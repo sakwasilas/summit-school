@@ -6,11 +6,15 @@ from datetime import datetime
 
 import os
 import re
+import pandas as pd
 
 from connections import SessionLocal
 from models import User, Admin, Course, Subject, Question, Quiz, Video, Document,StudentProfile,Result,Message,ActivityLog
 from utils import parse_docx_questions, get_quiz_status
 from utils import extract_drive_id, get_drive_embed_url
+
+from sqlalchemy.exc import IntegrityError
+
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100 MB limit
@@ -841,11 +845,15 @@ def student_activity():
     finally:
         db.close()
 
-#-----------------------------
-#student functionality
-#----------------------------
+# -----------------------------
+# Student functionality
+# -----------------------------
 
-# Register route
+from sqlalchemy.exc import IntegrityError
+
+# -----------------------------
+# Student Registration
+# -----------------------------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -854,9 +862,8 @@ def register():
 
         db = SessionLocal()
         try:
-            # Check if username already exists
-            existing = db.query(User).filter_by(username=username).first()
-            if existing:
+            # ✅ Pre-check username
+            if db.query(User).filter_by(username=username).first():
                 flash('❌ Username already exists. Please choose another one.', 'danger')
                 return render_template('students/Register.html', username=username)
 
@@ -868,9 +875,9 @@ def register():
             flash('✅ Registration successful! Please log in.', 'success')
             return redirect(url_for('login'))
 
-        except IntegrityError:
+        except Exception:
             db.rollback()
-            flash('❌ Error: Username already exists.', 'danger')
+            flash('❌ Something went wrong. Try again.', 'danger')
             return render_template('students/Register.html', username=username)
 
         finally:
@@ -879,74 +886,9 @@ def register():
     return render_template('students/Register.html')
 
 
-# @app.route('/complete_profile', methods=['GET', 'POST'])
-# def complete_profile():
-#     if 'username' not in session or session.get('role') != 'student':
-#         flash('Please log in as a student first.', 'error')
-#         return redirect(url_for('login'))
-
-#     db = SessionLocal()
-#     try:
-#         user_id = session.get('user_id')
-
-#         if request.method == 'POST':
-#             full_name = request.form.get('full_name')
-#             exam_type = request.form.get('exam_type')
-#             course_id = request.form.get('course_id')
-#             admission_number = request.form.get('admission_number')
-#             phone_number = request.form.get('phone_number')
-#             blocked = False
-
-#             # Ensure course_id is integer
-#             try:
-#                 course_id = int(course_id)
-#             except:
-#                 flash('Invalid course selected.', 'danger')
-#                 return redirect(url_for('complete_profile'))
-
-#             selected_course = db.query(Course).filter_by(id=course_id).first()
-#             if not selected_course:
-#                 flash("Invalid course selected.", "danger")
-#                 return redirect(url_for('complete_profile'))
-
-#             existing_profile = db.query(StudentProfile).filter_by(admission_number=admission_number).first()
-#             if existing_profile:
-#                 flash('A profile with that admission number already exists.', 'warning')
-#                 return redirect(url_for('complete_profile'))
-
-#             new_profile = StudentProfile(
-#                 full_name=full_name,
-#                 exam_type=exam_type,
-#                 course_id=course_id,
-#                 level=selected_course.level,
-#                 admission_number=admission_number,
-#                 blocked=blocked,
-#                 phone_number=phone_number,
-#                 user_id=user_id
-#             )
-
-#             db.add(new_profile)
-#             db.commit()
-#             flash('Profile completed successfully!', 'success')
-#             return redirect(url_for('student_dashboard'))
-
-#         # ✅ Pass exam types list
-#         courses = db.query(Course).all()
-#         exam_types = ["KASNEB", "ICM", "KNEC", "ABMA"]  
-
-#         return render_template(
-#             'students/complete_profile.html',
-#             courses=courses,
-#             exam_types=exam_types   # 👈 passing to template
-#         )
-
-#     except Exception as e:
-#         db.rollback()
-#         flash(f"An error occurred: {e}", "danger")
-#         return redirect(url_for('complete_profile'))
-#     finally:
-#         db.close()
-
+# -----------------------------
+# Complete Student Profile
+# -----------------------------
 @app.route("/complete_profile", methods=["GET", "POST"])
 def complete_profile():
     if "user_id" not in session:
@@ -956,29 +898,58 @@ def complete_profile():
     user_id = session["user_id"]
 
     if request.method == "POST":
-        full_name = request.form.get("full_name")
+        full_name = request.form.get("full_name").strip()
         exam_type = request.form.get("exam_type")
         course_id = request.form.get("course_id")
-        
-        admission_number = request.form.get("admission_number")
-        phone_number = request.form.get("phone_number")
+        admission_number = request.form.get("admission_number").strip()
+        phone_number = request.form.get("phone_number").strip()
 
-        profile = StudentProfile(
-            full_name=full_name,
-            exam_type=exam_type,
-            course_id=course_id,
-            
-            admission_number=admission_number,
-            phone_number=phone_number,
-            user_id=user_id,   # ✅ FIX HERE
-        )
-        db.add(profile)
-        db.commit()
-        db.close()
-        return redirect(url_for("student_dashboard"))
+        try:
+            # ✅ Pre-check admission_number
+            if db.query(StudentProfile).filter_by(admission_number=admission_number).first():
+                flash("❌ Admission number already exists. Please use another one.", "danger")
+                courses = db.query(Course).all()
+                return render_template("students/complete_profile.html",
+                                       courses=courses,
+                                       full_name=full_name,
+                                       exam_type=exam_type,
+                                       admission_number=admission_number,
+                                       phone_number=phone_number)
+
+            # ✅ Ensure user doesn’t already have a profile
+            if db.query(StudentProfile).filter_by(user_id=user_id).first():
+                flash("❌ You have already completed your profile.", "warning")
+                return redirect(url_for("student_dashboard"))
+
+            # Create profile
+            profile = StudentProfile(
+                full_name=full_name,
+                exam_type=exam_type,
+                course_id=course_id,
+                admission_number=admission_number,
+                phone_number=phone_number,
+                user_id=user_id,
+            )
+            db.add(profile)
+            db.commit()
+
+            flash("✅ Profile completed successfully!", "success")
+            return redirect(url_for("student_dashboard"))
+
+        except Exception:
+            db.rollback()
+            flash("❌ Something went wrong. Try again.", "danger")
+            courses = db.query(Course).all()
+            return render_template("students/complete_profile.html", courses=courses)
+
+        finally:
+            db.close()
 
     courses = db.query(Course).all()
+    db.close()
     return render_template("students/complete_profile.html", courses=courses)
+
+
 
 
 #student dashboard
@@ -1269,8 +1240,5 @@ def student_results():
         db.close()
 
 
-# -----------------------------
-# Run
-# -----------------------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
