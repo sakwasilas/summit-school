@@ -132,9 +132,38 @@ def parse_docx_questions(file_stream, image_output_dir=DEFAULT_IMAGE_DIR):
         else:
             skipped += 1
 
-    # Return structured result
-    return {
-        "case_study": case_study_html,
-        "questions": questions,
-        "skipped": skipped
-    }
+    return questions
+
+
+# ------------------------------
+# Placeholder for Render deployment
+# ------------------------------
+def get_quiz_status(user_id):
+    """Placeholder so import works on Render."""
+    return "active"
+
+
+# ------------------------------
+# Google Drive helpers
+# ------------------------------
+def extract_drive_id(url: str):
+    if not url:
+        return None
+
+    m = re.search(r'/d/([a-zA-Z0-9_-]+)', url)
+    if m:
+        return m.group(1)
+
+    try:
+        parsed = urlparse(url)
+        qs = parse_qs(parsed.query)
+        if 'id' in qs:
+            return qs['id'][0]
+    except:
+        pass
+
+    return None
+
+
+def get_drive_embed_url(file_id: str):
+    return f"https://drive.google.com/file/d/{file_id}/preview"
