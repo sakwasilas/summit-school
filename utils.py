@@ -1,200 +1,176 @@
-import docx
 import re
 import os
-from docx.opc.constants import RELATIONSHIP_TYPE as RT
+from docx import Document
 
-# ---------------------------------------------------------
-# LOAD DOCX
-# ---------------------------------------------------------
+# --------------------------------------------
+# GOOGLE DRIVE HELPERS
+# --------------------------------------------
 
-def load_docx(path):
-    doc = docx.Document(path)
-    return doc
-
-
-# ---------------------------------------------------------
-# HELPERS TO DETECT LINES
-# ---------------------------------------------------------
-
-def is_question_line(text):
-    # Example: "1. What is..." or "1) What is..."
-    return re.match(r"^\d+[\.\)]\s*", text) is not None
-
-
-def is_option_line(text):
-    # Example: "A. Option" or "A) Option"
-    return re.match(r"^[A-D][\.\):]\s*", text, re.IGNORECASE) is not None
-
-
-def is_answer_line(text):
-    # Example: "Answer: C"
-    return text.lower().startswith("answer")
-
-
-# ---------------------------------------------------------
-# IMAGE EXTRACTION
-# ---------------------------------------------------------
-
-def extract_images(document, output_dir, question_index):
+def extract_drive_id(url: str):
     """
-    Extract images from a DOCX document.
-    Saves them as PNG/JPG files inside output_dir.
+    Extracts the file ID from a Google Drive share URL.
     """
-    os.makedirs(output_dir, exist_ok=True)
+    patterns = [
+        r"/d/([a-zA-Z0-9_-]+)",              # /d/FILE_ID/
+        r"id=([a-zA-Z0-9_-]+)",             # ?id=FILE_ID
+        r"file/d/([a-zA-Z0-9_-]+)"          # file/d/FILE_ID
+    ]
 
-    images = {}
-    count = 0
+    for p in patterns:
+        match = re.search(p, url)
+        if match:
+            return match.group(1)
 
-    for rel in document.part.rels.values():
-        if rel.reltype == RT.IMAGE:
-            count += 1
-            ext = rel.target_ref.split('.')[-1]
-            filename = f"q{question_index}_img{count}.{ext}"
-            filepath = os.path.join(output_dir, filename)
-
-            with open(filepath, "wb") as f:
-                f.write(rel.target_part.blob)
-
-            images[count] = filename
-
-    return images
+    return None
 
 
-# ---------------------------------------------------------
-# MAIN MCQ PARSER
-# ---------------------------------------------------------
-
-def parse_docx_questions(path, image_output_dir=None):
+def get_drive_embed_url(file_id: str):
     """
-    RETURNS a list of questions in format:
+    Returns a Google Drive embeddable video link.
+    """
+    return f"https://drive.google.com/file/d/{file_id}/preview"
+
+
+
+# --------------------------------------------
+# QUIZ STATUS HELPER
+# --------------------------------------------
+
+def get_quiz_status(quiz):
+    if quiz.status == "active":
+        return "Active"
+    else:
+        return "Inactive"
+
+
+
+# --------------------------------------------
+# .DOCX QUESTION PARSING ENGINE
+# --------------------------------------------
+
+def parse_docx_questions(filepath, image_output_dir=None):
+    """
+    A UNIVERSAL parser that supports:
+    -------------------------------------
+    1️⃣ Multiple-choice questions  
+    2️⃣ Case study questions  
+    3️⃣ Accounting structured questions  
+
+    Returns a list of dictionaries:
     {
-        'question': 'What is...',
-        'a': 'Option text',
-        'b': 'Option text',
-        'c': 'Option text',
-        'd': 'Option text',
-        'answer': 'c',
-        'marks': 2,
-        'image': 'filename.png' (if exists)
+        "question": "...",
+        "a": "...",
+        "b": "...",
+        "c": "...",
+        "d": "...",
+        "answer": "...",
+        "marks": 2,
+        "extra_content": "...",   # for long questions
+        "image": None
     }
     """
 
-    doc = load_docx(path)
-    paragraphs = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+    doc = Document(filepath)
+    text_lines = []
+
+    for para in doc.paragraphs:
+        line = para.text.strip()
+        if line:
+            text_lines.append(line)
 
     questions = []
-    current = None
-    q_index = 0
+    current_question = None
+    options_collected = 0
 
-    for line in paragraphs:
+    mcq_pattern = r"^\s*(\d+)\.\s*(.+?)\((\d+)\s*mks?\)$"   # e.g. 1. What is...? (2mks)
 
-        # ---------------------------
-        # Question line
-        # ---------------------------
-        if is_question_line(line):
-            if current:
-                questions.append(current)
+    option_pattern = r"^[A-D]\.?[\)]?\s*(.+)$"             # A.answer, A) answer, A. answer
 
-            q_index += 1
-            question_text = re.sub(r"^\d+[\.\)]\s*", "", line).strip()
+    for line in text_lines:
 
-            # Extract marks (e.g. "(2mks)")
-            mk = re.search(r"\((\d+)\s*mks?\)", line, re.IGNORECASE)
-            marks = int(mk.group(1)) if mk else 1
+        # -------------------------------
+        # 1️⃣ Detect MULTIPLE CHOICE QUESTION
+        # -------------------------------
+        q_match = re.match(mcq_pattern, line, re.IGNORECASE)
+        if q_match:
+            # Save previous question
+            if current_question:
+                questions.append(current_question)
 
-            current = {
-                "question": question_text,
+            q_number, q_text, marks = q_match.groups()
+
+            current_question = {
+                "question": q_text.strip(),
+                "marks": int(marks),
                 "a": "",
                 "b": "",
                 "c": "",
                 "d": "",
                 "answer": "",
-                "marks": marks,
+                "extra_content": None,
                 "image": None
             }
+            options_collected = 0
+            continue
 
-            # Extract images
-            if image_output_dir:
-                imgs = extract_images(doc, image_output_dir, q_index)
-                if imgs:
-                    current["image"] = list(imgs.values())[0]
+        # -------------------------------
+        # 2️⃣ Detect OPTIONS A/B/C/D
+        # -------------------------------
+        if current_question:
+            if re.match(r"^A", line):
+                current_question["a"] = clean_option(line)
+                options_collected += 1
+                continue
+            if re.match(r"^B", line):
+                current_question["b"] = clean_option(line)
+                options_collected += 1
+                continue
+            if re.match(r"^C", line):
+                current_question["c"] = clean_option(line)
+                options_collected += 1
+                continue
+            if re.match(r"^D", line):
+                current_question["d"] = clean_option(line)
+                options_collected += 1
+                continue
 
-        # ---------------------------
-        # Option line
-        # ---------------------------
-        elif is_option_line(line) and current:
-            letter = line[0].lower()
-            text = re.sub(r"^[A-D][\.\):]\s*", "", line).strip()
-            current[letter] = text
+        # -------------------------------
+        # 3️⃣ Detect ANSWER: X
+        # -------------------------------
+        if current_question and line.lower().startswith("answer"):
+            ans = line.split(":")[-1].strip()
+            current_question["answer"] = ans.lower()
+            continue
 
-        # ---------------------------
-        # Answer line
-        # ---------------------------
-        elif is_answer_line(line) and current:
-            ans = line.split(":")[-1].strip().lower()
-            current["answer"] = ans
+        # -------------------------------
+        # 4️⃣ Case study OR Accounting questions
+        # (Long paragraph before any “Answer:”)
+        # -------------------------------
+        if current_question and current_question["answer"] == "":
+            # Append long text into extra_content
+            if current_question.get("extra_content") is None:
+                current_question["extra_content"] = line
+            else:
+                current_question["extra_content"] += "\n" + line
 
-    if current:
-        questions.append(current)
+    # Add last question
+    if current_question:
+        questions.append(current_question)
 
     return questions
 
 
-# ---------------------------------------------------------
-# CASE STUDY PARSER
-# ---------------------------------------------------------
 
-def parse_case_studies(paragraphs):
-    case_studies = []
-    block = []
-    capturing = False
+# --------------------------------------------
+# CLEAN OPTIONS LIKE:
+# A.answer:A  -> A
+# A) answer   -> answer
+# --------------------------------------------
 
-    for line in paragraphs:
-        if "case study" in line.lower():
-            if block:
-                case_studies.append("\n".join(block))
-            block = [line]
-            capturing = True
-
-        elif capturing:
-            if is_question_line(line):
-                case_studies.append("\n".join(block))
-                block = []
-                capturing = False
-            else:
-                block.append(line)
-
-    if capturing and block:
-        case_studies.append("\n".join(block))
-
-    return case_studies
-
-
-# ---------------------------------------------------------
-# QUIZ STATUS
-# ---------------------------------------------------------
-
-def get_quiz_status():
-    return {"status": "ok", "message": "Quiz system operational"}
-
-
-# ---------------------------------------------------------
-# GOOGLE DRIVE HELPERS
-# ---------------------------------------------------------
-
-def extract_drive_id(url):
-    patterns = [
-        r"/d/([a-zA-Z0-9_-]+)",
-        r"id=([a-zA-Z0-9_-]+)"
-    ]
-    for p in patterns:
-        m = re.search(p, url)
-        if m:
-            return m.group(1)
-    return None
-
-
-def get_drive_embed_url(file_id):
-    if not file_id:
-        return None
-    return f"https://drive.google.com/file/d/{file_id}/preview"
+def clean_option(text):
+    """
+    Extracts clean option text by removing A., A), A-answer etc.
+    """
+    text = text.strip()
+    text = re.sub(r"^[A-D][\.\:\)\-]*\s*", "", text)
+    return text
