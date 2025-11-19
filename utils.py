@@ -6,14 +6,13 @@ from docx.opc.constants import RELATIONSHIP_TYPE as RT
 # ---------------------------------------------------------
 # LOAD DOCX
 # ---------------------------------------------------------
-
 def load_docx(path):
+    """Load a DOCX file."""
     return docx.Document(path)
 
 # ---------------------------------------------------------
 # HELPERS
 # ---------------------------------------------------------
-
 def is_question_line(text):
     return re.match(r"^\d+[\.\)]\s*", text) is not None
 
@@ -26,11 +25,12 @@ def is_answer_line(text):
 # ---------------------------------------------------------
 # IMAGE EXTRACTION
 # ---------------------------------------------------------
-
 def extract_images(document, output_dir, q_index):
+    """Extract images from DOCX and save them in the specified folder."""
     os.makedirs(output_dir, exist_ok=True)
     images = []
     count = 0
+
     for rel in document.part.rels.values():
         if rel.reltype == RT.IMAGE:
             count += 1
@@ -45,8 +45,8 @@ def extract_images(document, output_dir, q_index):
 # ---------------------------------------------------------
 # PARSER
 # ---------------------------------------------------------
-
 def parse_docx_questions(path, image_output_dir=None):
+    """Parse DOCX file into a list of questions with options, answer, marks, and optional image."""
     doc = load_docx(path)
     paragraphs = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
     questions = []
@@ -54,7 +54,6 @@ def parse_docx_questions(path, image_output_dir=None):
     q_index = 0
 
     for line in paragraphs:
-
         # -------------------------- NEW QUESTION --------------------------
         if is_question_line(line):
             if current:
@@ -98,8 +97,14 @@ def parse_docx_questions(path, image_output_dir=None):
 # ---------------------------------------------------------
 # SCORING ENGINE
 # ---------------------------------------------------------
-
 def compute_score(questions, student_answers):
+    """
+    Compute the student's score.
+    `student_answers` can be keyed by:
+      - question index (int)
+      - question text (str)
+      - 'q1', 'q2', ... style
+    """
     total_marks = 0
     score = 0
     details = []
@@ -107,10 +112,18 @@ def compute_score(questions, student_answers):
     for index, q in enumerate(questions, start=1):
         total_marks += q["marks"]
         correct = q["answer"].lower().strip()
-        student_answer = student_answers.get(index, "").lower().strip()
+
+        # Try multiple ways to find the student's answer
+        student_answer = ""
+        for key in (index, f"q{index}", q["question"]):
+            if key in student_answers:
+                student_answer = student_answers[key].lower().strip()
+                break
+
         is_correct = student_answer == correct
         if is_correct:
             score += q["marks"]
+
         details.append({
             "question": q["question"],
             "correct": correct,
@@ -122,21 +135,25 @@ def compute_score(questions, student_answers):
     return {
         "score": score,
         "total": total_marks,
-        "percentage": round((score / total_marks) * 100, 2),
+        "percentage": round((score / total_marks) * 100, 2) if total_marks else 0,
         "details": details
     }
 
 # ---------------------------------------------------------
 # QUIZ STATUS
 # ---------------------------------------------------------
-
 def get_quiz_status(questions, student_answers):
     """
     Returns the status of each question: correct, incorrect, or unanswered.
+    Works with flexible keys (index, 'qX', or full question text).
     """
     status_list = []
     for index, q in enumerate(questions, start=1):
-        student_answer = student_answers.get(index, "").strip().lower()
+        student_answer = ""
+        for key in (index, f"q{index}", q["question"]):
+            if key in student_answers:
+                student_answer = student_answers[key].strip().lower()
+                break
         correct_answer = q["answer"].strip().lower()
         if not student_answer:
             status = "unanswered"
@@ -155,7 +172,6 @@ def get_quiz_status(questions, student_answers):
 # ---------------------------------------------------------
 # GOOGLE DRIVE HELPERS
 # ---------------------------------------------------------
-
 def extract_drive_id(url):
     """
     Extract the file ID from a Google Drive URL.
@@ -175,8 +191,6 @@ def extract_drive_id(url):
     return url  # assume input is already a file ID
 
 def get_drive_embed_url(drive_url_or_id):
-    """
-    Returns an embeddable Google Drive URL.
-    """
+    """Returns an embeddable Google Drive URL."""
     file_id = extract_drive_id(drive_url_or_id)
     return f"https://drive.google.com/file/d/{file_id}/preview"
