@@ -93,11 +93,25 @@
     button.submit-btn:hover {
       background-color: #0056b3;
     }
-    /* Disabled button with red background */
     button.submit-btn.disabled-red {
       background-color: red !important;
       cursor: not-allowed;
       opacity: 0.9;
+    }
+    /* Table styling for questions */
+    .question-block table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .question-block table, 
+    .question-block th, 
+    .question-block td {
+      border: 1px solid #ccc;
+    }
+    .question-block td {
+      padding: 8px;
+      text-align: left;
     }
   </style>
 </head>
@@ -117,7 +131,8 @@
   <form method="POST" id="exam-form">
     {% for question in questions %}
       <div class="question-block">
-        <p><strong>Q{{ loop.index }}:</strong> {{ question.question_text }}</p>
+        <!-- Use 'safe' to render HTML tables from question_text -->
+        <p><strong>Q{{ loop.index }}:</strong> {{ question.question_text | safe }}</p>
         {% if question.image %}
           <img src="{{ url_for('static', filename='question_images/' ~ question.image) }}" alt="Question Image" />
         {% endif %}
