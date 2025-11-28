@@ -1,300 +1,4 @@
-# # # # # # # # # # # 
-# # # # # # # # # # import docx
-# # # # # # # # # # import re
-# # # # # # # # # # import os
-# # # # # # # # # # from docx.opc.constants import RELATIONSHIP_TYPE as RT
-
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # # LOAD DOCX
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # def load_docx(path):
-# # # # # # # # # #     return docx.Document(path)
-
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # # HELPER MATCHERS
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # def is_question_line(text):
-# # # # # # # # # #     return bool(re.match(r"^\d+[\.\)]\s*", text))
-
-# # # # # # # # # # def is_option_line(text):
-# # # # # # # # # #     return bool(re.match(r"^[A-D][\.\):]\s*", text.strip(), re.IGNORECASE))
-
-# # # # # # # # # # def is_answer_line(text):
-# # # # # # # # # #     return text.lower().startswith(("answer", "ans", "correct"))
-
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # # IMAGE EXTRACTION
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # def extract_images(document, output_dir, q_index):
-# # # # # # # # # #     os.makedirs(output_dir, exist_ok=True)
-# # # # # # # # # #     images = []
-# # # # # # # # # #     count = 0
-# # # # # # # # # #     for rel in document.part.rels.values():
-# # # # # # # # # #         if rel.reltype == RT.IMAGE:
-# # # # # # # # # #             count += 1
-# # # # # # # # # #             ext = rel.target_ref.split('.')[-1]
-# # # # # # # # # #             filename = f"q{q_index}_img{count}.{ext}"
-# # # # # # # # # #             filepath = os.path.join(output_dir, filename)
-# # # # # # # # # #             with open(filepath, "wb") as f:
-# # # # # # # # # #                 f.write(rel.target_part.blob)
-# # # # # # # # # #             images.append(filename)
-# # # # # # # # # #     return images
-
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # # HTML TABLE BUILDER
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # def make_html_table(cells):
-# # # # # # # # # #     html = "<table class='table table-bordered'><tr>"
-# # # # # # # # # #     for c in cells:
-# # # # # # # # # #         html += f"<td>{c}</td>"
-# # # # # # # # # #     html += "</tr></table>"
-# # # # # # # # # #     return html
-
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # # FLATTEN DOCX (PARAGRAPHS + TABLES)
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # def flatten_doc(document):
-# # # # # # # # # #     lines = []
-
-# # # # # # # # # #     # Preserve exact order of paragraphs + tables
-# # # # # # # # # #     for block in document.element.body:
-# # # # # # # # # #         # Paragraph
-# # # # # # # # # #         if block.tag.endswith('p'):
-# # # # # # # # # #             para = docx.text.paragraph.Paragraph(block, document)
-# # # # # # # # # #             text = para.text.strip()
-# # # # # # # # # #             if text:
-# # # # # # # # # #                 lines.append({"type": "text", "content": text})
-
-# # # # # # # # # #         # Table
-# # # # # # # # # #         elif block.tag.endswith('tbl'):
-# # # # # # # # # #             table = docx.table.Table(block, document)
-# # # # # # # # # #             rows = []
-# # # # # # # # # #             for row in table.rows:
-# # # # # # # # # #                 cells = [c.text.strip() for c in row.cells if c.text.strip()]
-# # # # # # # # # #                 if cells:
-# # # # # # # # # #                     rows.append(cells)
-# # # # # # # # # #             if rows:
-# # # # # # # # # #                 lines.append({"type": "table", "cells": rows})
-
-# # # # # # # # # #     return lines(document):
-# # # # # # # # # #     lines = []
-# # # # # # # # # #     # Paragraphs
-# # # # # # # # # #     for p in document.paragraphs:
-# # # # # # # # # #         if p.text.strip():
-# # # # # # # # # #             lines.append({"type": "text", "content": p.text.strip()})
-# # # # # # # # # #     # Tables
-# # # # # # # # # #     for table in document.tables:
-# # # # # # # # # #         for row in table.rows:
-# # # # # # # # # #             row_text = [cell.text.strip() for cell in row.cells if cell.text.strip()]
-# # # # # # # # # #             if row_text:
-# # # # # # # # # #                 lines.append({"type": "table", "cells": row_text})
-# # # # # # # # # #     return lines
-
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # # PARSE DOCX QUESTIONS (WITH STRICT CASE STUDY SEPARATION)
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # # NEW RULE:
-# # # # # # # # # # # 1) Anything after a question line BUT before first option is still part of QUESTION STEM.
-# # # # # # # # # # # 2) Case study begins ONLY when line starts with known keywords OR appears BETWEEN questions
-# # # # # # # # # # #    such as: "Use the following information to answer...".
-# # # # # # # # # # # 3) Case study must attach to NEXT question, not previous.
-# # # # # # # # # # # ---------------------------------------------------------
-
-# # # # # # # # # #  (WITH CASE STUDY + TABLES)
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # def is_case_study_line(text):
-# # # # # # # # # #     keywords = [
-# # # # # # # # # #         "use the following information",
-# # # # # # # # # #         "study the information",
-# # # # # # # # # #         "refer to the following",
-# # # # # # # # # #         "case study",
-# # # # # # # # # #         "use the data below"
-# # # # # # # # # #     ]
-# # # # # # # # # #     t = text.lower()
-# # # # # # # # # #     return any(k in t for k in keywords)
-
-
-# # # # # # # # # # def parse_docx_questions(path, image_output_dir=None):(path, image_output_dir=None):
-# # # # # # # # # #     doc = load_docx(path)
-# # # # # # # # # #     entries = flatten_doc(doc)
-
-# # # # # # # # # #     questions = []
-# # # # # # # # # #     current = None
-# # # # # # # # # #     q_index = 0
-# # # # # # # # # #     current_case_study = ""
-
-# # # # # # # # # #     for entry in entries:
-
-# # # # # # # # # #         # --------------------------------------------------
-# # # # # # # # # #         # TEXT ENTRY
-# # # # # # # # # #         # --------------------------------------------------
-# # # # # # # # # #         if entry["type"] == "text":
-# # # # # # # # # #             line = entry["content"]
-
-# # # # # # # # # #             # ---------- NEW QUESTION ----------
-# # # # # # # # # #             if is_question_line(line):
-# # # # # # # # # #                 if current:
-# # # # # # # # # #                     questions.append(current)
-
-# # # # # # # # # #                 q_index += 1
-# # # # # # # # # #                 question_text = re.sub(r"^\d+[\.\)]\s*", "", line).strip()
-
-# # # # # # # # # #                 mk = re.search(r"\((\d+)\s*mks?\)", line, re.IGNORECASE)
-# # # # # # # # # #                 marks = int(mk.group(1)) if mk else 1
-
-# # # # # # # # # #                 current = {
-# # # # # # # # # #                     "question": question_text,
-# # # # # # # # # #                     "instructions": current_case_study.strip(),
-# # # # # # # # # #                     "a": "",
-# # # # # # # # # #                     "b": "",
-# # # # # # # # # #                     "c": "",
-# # # # # # # # # #                     "d": "",
-# # # # # # # # # #                     "answer": "",
-# # # # # # # # # #                     "marks": marks,
-# # # # # # # # # #                     "image": None
-# # # # # # # # # #                 }
-
-# # # # # # # # # #                 # Extract images
-# # # # # # # # # #                 if image_output_dir:
-# # # # # # # # # #                     imgs = extract_images(doc, image_output_dir, q_index)
-# # # # # # # # # #                     if imgs:
-# # # # # # # # # #                         current["image"] = imgs[0]
-
-# # # # # # # # # #                 # Reset case study
-# # # # # # # # # #                 current_case_study = ""
-
-# # # # # # # # # #             # ---------- OPTIONS ----------
-# # # # # # # # # #             elif current and is_option_line(line):
-# # # # # # # # # #                 letter = line[0].lower()
-# # # # # # # # # #                 text = re.sub(r"^[A-D][\.\):]\s*", "", line).strip()
-# # # # # # # # # #                 current[letter] = text
-
-# # # # # # # # # #             # ---------- ANSWER ----------
-# # # # # # # # # #             elif current and is_answer_line(line):
-# # # # # # # # # #                 raw = line.split(":")[-1].strip().lower()
-# # # # # # # # # #                 clean = re.sub(r"[^a-d]", "", raw)
-# # # # # # # # # #                 current["answer"] = clean
-
-# # # # # # # # # #             # ---------- CASE STUDY OR EXTRA TEXT ----------
-# # # # # # # # # #             else:
-# # # # # # # # # #                 # BEFORE first question → case study
-# # # # # # # # # #                 if not current:
-# # # # # # # # # #                     if current_case_study:
-# # # # # # # # # #                         current_case_study += "<br>" + line.strip()
-# # # # # # # # # #                     else:
-# # # # # # # # # #                         current_case_study = line.strip()
-# # # # # # # # # #                 else:
-# # # # # # # # # #                     # text inside question
-# # # # # # # # # #                     current["question"] += " " + line.strip()
-
-# # # # # # # # # #         # --------------------------------------------------
-# # # # # # # # # #         # TABLE ENTRY
-# # # # # # # # # #         # --------------------------------------------------
-# # # # # # # # # #         elif entry["type"] == "table":
-# # # # # # # # # #             html_table = make_html_table(entry["cells"])
-
-# # # # # # # # # #             if not current:
-# # # # # # # # # #                 if current_case_study:
-# # # # # # # # # #                     current_case_study += "<br>" + html_table
-# # # # # # # # # #                 else:
-# # # # # # # # # #                     current_case_study = html_table
-# # # # # # # # # #             else:
-# # # # # # # # # #                 current["question"] += "<br>" + html_table
-
-# # # # # # # # # #     # Push last question
-# # # # # # # # # #     if current:
-# # # # # # # # # #         questions.append(current)
-
-# # # # # # # # # #     return questions
-
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # # SCORING ENGINE
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # def compute_score(questions, student_answers):
-# # # # # # # # # #     score = 0
-# # # # # # # # # #     total_marks = 0
-# # # # # # # # # #     details = []
-
-# # # # # # # # # #     for index, q in enumerate(questions, start=1):
-# # # # # # # # # #         correct = q["answer"].strip().lower()
-# # # # # # # # # #         total_marks += q["marks"]
-
-# # # # # # # # # #         student_answer = ""
-# # # # # # # # # #         for key in (index, f"q{index}", q["question"]):
-# # # # # # # # # #             if key in student_answers:
-# # # # # # # # # #                 student_answer = student_answers[key].strip().lower()
-# # # # # # # # # #                 break
-
-# # # # # # # # # #         got_it = student_answer == correct
-# # # # # # # # # #         if got_it:
-# # # # # # # # # #             score += q["marks"]
-
-# # # # # # # # # #         details.append({
-# # # # # # # # # #             "question": q["question"],
-# # # # # # # # # #             "correct": correct,
-# # # # # # # # # #             "student_answer": student_answer,
-# # # # # # # # # #             "marks": q["marks"],
-# # # # # # # # # #             "earned": q["marks"] if got_it else 0
-# # # # # # # # # #         })
-
-# # # # # # # # # #     percentage = round((score / total_marks) * 100, 2) if total_marks else 0
-
-# # # # # # # # # #     return {
-# # # # # # # # # #         "score": score,
-# # # # # # # # # #         "total": total_marks,
-# # # # # # # # # #         "percentage": percentage,
-# # # # # # # # # #         "details": details
-# # # # # # # # # #     }
-
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # # QUIZ STATUS
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # def get_quiz_status(questions, student_answers):
-# # # # # # # # # #     status_list = []
-
-# # # # # # # # # #     for index, q in enumerate(questions, start=1):
-# # # # # # # # # #         correct = q["answer"].strip().lower()
-
-# # # # # # # # # #         student_answer = ""
-# # # # # # # # # #         for key in (index, f"q{index}", q["question"]):
-# # # # # # # # # #             if key in student_answers:
-# # # # # # # # # #                 student_answer = student_answers[key].strip().lower()
-# # # # # # # # # #                 break
-
-# # # # # # # # # #         if not student_answer:
-# # # # # # # # # #             status = "unanswered"
-# # # # # # # # # #         elif student_answer == correct:
-# # # # # # # # # #             status = "correct"
-# # # # # # # # # #         else:
-# # # # # # # # # #             status = "incorrect"
-
-# # # # # # # # # #         status_list.append({
-# # # # # # # # # #             "question_index": index,
-# # # # # # # # # #             "status": status,
-# # # # # # # # # #             "student_answer": student_answer,
-# # # # # # # # # #             "correct_answer": correct
-# # # # # # # # # #         })
-
-# # # # # # # # # #     return status_list
-
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # # GOOGLE DRIVE HELPERS
-# # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # def extract_drive_id(url):
-# # # # # # # # # #     patterns = [
-# # # # # # # # # #         r"https://drive\\.google\\.com/file/d/([a-zA-Z0-9_-]+)",
-# # # # # # # # # #         r"https://drive\\.google\\.com/open\\?id=([a-zA-Z0-9_-]+)"
-# # # # # # # # # #     ]
-# # # # # # # # # #     for pattern in patterns:
-# # # # # # # # # #         m = re.search(pattern, url)
-# # # # # # # # # #         if m:
-# # # # # # # # # #             return m.group(1)
-# # # # # # # # # #     return url
-
-# # # # # # # # # # def get_drive_embed_url(drive_url_or_id):
-# # # # # # # # # #     file_id = extract_drive_id(drive_url_or_id)
-# # # # # # # # # #     return f"https://drive.google.com/file/d/{file_id}/preview"
-
+# # # # # # # # # # 
 # # # # # # # # # import docx
 # # # # # # # # # import re
 # # # # # # # # # import os
@@ -340,21 +44,19 @@
 # # # # # # # # # # HTML TABLE BUILDER
 # # # # # # # # # # ---------------------------------------------------------
 # # # # # # # # # def make_html_table(cells):
-# # # # # # # # #     html = "<table class='table table-bordered'>"
-# # # # # # # # #     for row in cells:
-# # # # # # # # #         html += "<tr>"
-# # # # # # # # #         for c in row:
-# # # # # # # # #             html += f"<td>{c}</td>"
-# # # # # # # # #         html += "</tr>"
-# # # # # # # # #     html += "</table>"
+# # # # # # # # #     html = "<table class='table table-bordered'><tr>"
+# # # # # # # # #     for c in cells:
+# # # # # # # # #         html += f"<td>{c}</td>"
+# # # # # # # # #     html += "</tr></table>"
 # # # # # # # # #     return html
 
 # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # FLATTEN DOCX (PARAGRAPHS + TABLES) – FIXED
+# # # # # # # # # # FLATTEN DOCX (PARAGRAPHS + TABLES)
 # # # # # # # # # # ---------------------------------------------------------
 # # # # # # # # # def flatten_doc(document):
 # # # # # # # # #     lines = []
 
+# # # # # # # # #     # Preserve exact order of paragraphs + tables
 # # # # # # # # #     for block in document.element.body:
 # # # # # # # # #         # Paragraph
 # # # # # # # # #         if block.tag.endswith('p'):
@@ -368,14 +70,37 @@
 # # # # # # # # #             table = docx.table.Table(block, document)
 # # # # # # # # #             rows = []
 # # # # # # # # #             for row in table.rows:
-# # # # # # # # #                 cells = [c.text.strip() for c in row.cells]
-# # # # # # # # #                 rows.append(cells)
-# # # # # # # # #             lines.append({"type": "table", "cells": rows})
+# # # # # # # # #                 cells = [c.text.strip() for c in row.cells if c.text.strip()]
+# # # # # # # # #                 if cells:
+# # # # # # # # #                     rows.append(cells)
+# # # # # # # # #             if rows:
+# # # # # # # # #                 lines.append({"type": "table", "cells": rows})
 
+# # # # # # # # #     return lines(document):
+# # # # # # # # #     lines = []
+# # # # # # # # #     # Paragraphs
+# # # # # # # # #     for p in document.paragraphs:
+# # # # # # # # #         if p.text.strip():
+# # # # # # # # #             lines.append({"type": "text", "content": p.text.strip()})
+# # # # # # # # #     # Tables
+# # # # # # # # #     for table in document.tables:
+# # # # # # # # #         for row in table.rows:
+# # # # # # # # #             row_text = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+# # # # # # # # #             if row_text:
+# # # # # # # # #                 lines.append({"type": "table", "cells": row_text})
 # # # # # # # # #     return lines
 
 # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # CASE STUDY CHECKER
+# # # # # # # # # # PARSE DOCX QUESTIONS (WITH STRICT CASE STUDY SEPARATION)
+# # # # # # # # # # ---------------------------------------------------------
+# # # # # # # # # # NEW RULE:
+# # # # # # # # # # 1) Anything after a question line BUT before first option is still part of QUESTION STEM.
+# # # # # # # # # # 2) Case study begins ONLY when line starts with known keywords OR appears BETWEEN questions
+# # # # # # # # # #    such as: "Use the following information to answer...".
+# # # # # # # # # # 3) Case study must attach to NEXT question, not previous.
+# # # # # # # # # # ---------------------------------------------------------
+
+# # # # # # # # #  (WITH CASE STUDY + TABLES)
 # # # # # # # # # # ---------------------------------------------------------
 # # # # # # # # # def is_case_study_line(text):
 # # # # # # # # #     keywords = [
@@ -388,10 +113,8 @@
 # # # # # # # # #     t = text.lower()
 # # # # # # # # #     return any(k in t for k in keywords)
 
-# # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # PARSE DOCX QUESTIONS – FIXED
-# # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # def parse_docx_questions(path, image_output_dir=None):
+
+# # # # # # # # # def parse_docx_questions(path, image_output_dir=None):(path, image_output_dir=None):
 # # # # # # # # #     doc = load_docx(path)
 # # # # # # # # #     entries = flatten_doc(doc)
 
@@ -431,6 +154,7 @@
 # # # # # # # # #                     "image": None
 # # # # # # # # #                 }
 
+# # # # # # # # #                 # Extract images
 # # # # # # # # #                 if image_output_dir:
 # # # # # # # # #                     imgs = extract_images(doc, image_output_dir, q_index)
 # # # # # # # # #                     if imgs:
@@ -451,31 +175,40 @@
 # # # # # # # # #                 clean = re.sub(r"[^a-d]", "", raw)
 # # # # # # # # #                 current["answer"] = clean
 
-# # # # # # # # #             # ---------- CASE STUDY or EXTRA TEXT ----------
+# # # # # # # # #             # ---------- CASE STUDY OR EXTRA TEXT ----------
 # # # # # # # # #             else:
+# # # # # # # # #                 # BEFORE first question → case study
 # # # # # # # # #                 if not current:
-# # # # # # # # #                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
+# # # # # # # # #                     if current_case_study:
+# # # # # # # # #                         current_case_study += "<br>" + line.strip()
+# # # # # # # # #                     else:
+# # # # # # # # #                         current_case_study = line.strip()
 # # # # # # # # #                 else:
+# # # # # # # # #                     # text inside question
 # # # # # # # # #                     current["question"] += " " + line.strip()
 
 # # # # # # # # #         # --------------------------------------------------
-# # # # # # # # #         # TABLE ENTRY – FIXED
+# # # # # # # # #         # TABLE ENTRY
 # # # # # # # # #         # --------------------------------------------------
 # # # # # # # # #         elif entry["type"] == "table":
 # # # # # # # # #             html_table = make_html_table(entry["cells"])
 
 # # # # # # # # #             if not current:
-# # # # # # # # #                 current_case_study += ("<br>" if current_case_study else "") + html_table
+# # # # # # # # #                 if current_case_study:
+# # # # # # # # #                     current_case_study += "<br>" + html_table
+# # # # # # # # #                 else:
+# # # # # # # # #                     current_case_study = html_table
 # # # # # # # # #             else:
 # # # # # # # # #                 current["question"] += "<br>" + html_table
 
+# # # # # # # # #     # Push last question
 # # # # # # # # #     if current:
 # # # # # # # # #         questions.append(current)
 
 # # # # # # # # #     return questions
 
 # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # SCORING ENGINE (UNCHANGED)
+# # # # # # # # # # SCORING ENGINE
 # # # # # # # # # # ---------------------------------------------------------
 # # # # # # # # # def compute_score(questions, student_answers):
 # # # # # # # # #     score = 0
@@ -514,7 +247,7 @@
 # # # # # # # # #     }
 
 # # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # # QUIZ STATUS (UNCHANGED)
+# # # # # # # # # # QUIZ STATUS
 # # # # # # # # # # ---------------------------------------------------------
 # # # # # # # # # def get_quiz_status(questions, student_answers):
 # # # # # # # # #     status_list = []
@@ -561,7 +294,6 @@
 # # # # # # # # # def get_drive_embed_url(drive_url_or_id):
 # # # # # # # # #     file_id = extract_drive_id(drive_url_or_id)
 # # # # # # # # #     return f"https://drive.google.com/file/d/{file_id}/preview"
-
 
 # # # # # # # # import docx
 # # # # # # # # import re
@@ -618,7 +350,7 @@
 # # # # # # # #     return html
 
 # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # FLATTEN DOCX (PARAGRAPHS + TABLES)
+# # # # # # # # # FLATTEN DOCX (PARAGRAPHS + TABLES) – FIXED
 # # # # # # # # # ---------------------------------------------------------
 # # # # # # # # def flatten_doc(document):
 # # # # # # # #     lines = []
@@ -657,7 +389,7 @@
 # # # # # # # #     return any(k in t for k in keywords)
 
 # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # PARSE DOCX QUESTIONS – FIXED WITH INLINE CASE STUDY SPLIT
+# # # # # # # # # PARSE DOCX QUESTIONS – FIXED
 # # # # # # # # # ---------------------------------------------------------
 # # # # # # # # def parse_docx_questions(path, image_output_dir=None):
 # # # # # # # #     doc = load_docx(path)
@@ -682,34 +414,11 @@
 # # # # # # # #                     questions.append(current)
 
 # # # # # # # #                 q_index += 1
+# # # # # # # #                 question_text = re.sub(r"^\d+[\.\)]\s*", "", line).strip()
 
-# # # # # # # #                 # --- Remove number prefix ---
-# # # # # # # #                 raw_question = re.sub(r"^\d+[\.\)]\s*", "", line).strip()
-
-# # # # # # # #                 # --- Detect embedded case study inline ---
-# # # # # # # #                 embedded_case = ""
-# # # # # # # #                 for k in [
-# # # # # # # #                     "use the following information",
-# # # # # # # #                     "study the information",
-# # # # # # # #                     "refer to the following",
-# # # # # # # #                     "case study",
-# # # # # # # #                     "use the data below"
-# # # # # # # #                 ]:
-# # # # # # # #                     if k in raw_question.lower():
-# # # # # # # #                         parts = re.split(k, raw_question, flags=re.IGNORECASE)
-# # # # # # # #                         raw_question = parts[0].strip()
-# # # # # # # #                         embedded_case = k + " " + parts[1].strip()
-# # # # # # # #                         break
-
-# # # # # # # #                 # --- Extract marks ---
-# # # # # # # #                 mk = re.search(r"\((\d+)\s*mks?\)", raw_question, re.IGNORECASE)
+# # # # # # # #                 mk = re.search(r"\((\d+)\s*mks?\)", line, re.IGNORECASE)
 # # # # # # # #                 marks = int(mk.group(1)) if mk else 1
-# # # # # # # #                 raw_question = re.sub(r"\(\d+\s*mks?\)", "", raw_question).strip()
 
-# # # # # # # #                 # Save question text
-# # # # # # # #                 question_text = raw_question
-
-# # # # # # # #                 # Create question entry
 # # # # # # # #                 current = {
 # # # # # # # #                     "question": question_text,
 # # # # # # # #                     "instructions": current_case_study.strip(),
@@ -722,14 +431,13 @@
 # # # # # # # #                     "image": None
 # # # # # # # #                 }
 
-# # # # # # # #                 # Extract images
 # # # # # # # #                 if image_output_dir:
 # # # # # # # #                     imgs = extract_images(doc, image_output_dir, q_index)
 # # # # # # # #                     if imgs:
 # # # # # # # #                         current["image"] = imgs[0]
 
-# # # # # # # #                 # Reset case study for next question if embedded
-# # # # # # # #                 current_case_study = embedded_case
+# # # # # # # #                 # Reset case study
+# # # # # # # #                 current_case_study = ""
 
 # # # # # # # #             # ---------- OPTIONS ----------
 # # # # # # # #             elif current and is_option_line(line):
@@ -743,7 +451,7 @@
 # # # # # # # #                 clean = re.sub(r"[^a-d]", "", raw)
 # # # # # # # #                 current["answer"] = clean
 
-# # # # # # # #             # ---------- CASE STUDY OR EXTRA TEXT ----------
+# # # # # # # #             # ---------- CASE STUDY or EXTRA TEXT ----------
 # # # # # # # #             else:
 # # # # # # # #                 if not current:
 # # # # # # # #                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
@@ -751,7 +459,7 @@
 # # # # # # # #                     current["question"] += " " + line.strip()
 
 # # # # # # # #         # --------------------------------------------------
-# # # # # # # #         # TABLE ENTRY
+# # # # # # # #         # TABLE ENTRY – FIXED
 # # # # # # # #         # --------------------------------------------------
 # # # # # # # #         elif entry["type"] == "table":
 # # # # # # # #             html_table = make_html_table(entry["cells"])
@@ -767,7 +475,7 @@
 # # # # # # # #     return questions
 
 # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # SCORING ENGINE
+# # # # # # # # # SCORING ENGINE (UNCHANGED)
 # # # # # # # # # ---------------------------------------------------------
 # # # # # # # # def compute_score(questions, student_answers):
 # # # # # # # #     score = 0
@@ -806,7 +514,7 @@
 # # # # # # # #     }
 
 # # # # # # # # # ---------------------------------------------------------
-# # # # # # # # # QUIZ STATUS
+# # # # # # # # # QUIZ STATUS (UNCHANGED)
 # # # # # # # # # ---------------------------------------------------------
 # # # # # # # # def get_quiz_status(questions, student_answers):
 # # # # # # # #     status_list = []
@@ -949,7 +657,7 @@
 # # # # # # #     return any(k in t for k in keywords)
 
 # # # # # # # # ---------------------------------------------------------
-# # # # # # # # PARSE DOCX QUESTIONS – FULL FIXED
+# # # # # # # # PARSE DOCX QUESTIONS – FIXED WITH INLINE CASE STUDY SPLIT
 # # # # # # # # ---------------------------------------------------------
 # # # # # # # def parse_docx_questions(path, image_output_dir=None):
 # # # # # # #     doc = load_docx(path)
@@ -978,7 +686,7 @@
 # # # # # # #                 # --- Remove number prefix ---
 # # # # # # #                 raw_question = re.sub(r"^\d+[\.\)]\s*", "", line).strip()
 
-# # # # # # #                 # --- Detect inline case study inside same line ---
+# # # # # # #                 # --- Detect embedded case study inline ---
 # # # # # # #                 embedded_case = ""
 # # # # # # #                 for k in [
 # # # # # # #                     "use the following information",
@@ -1020,7 +728,7 @@
 # # # # # # #                     if imgs:
 # # # # # # #                         current["image"] = imgs[0]
 
-# # # # # # #                 # Reset case study for next question if embedded or already stored
+# # # # # # #                 # Reset case study for next question if embedded
 # # # # # # #                 current_case_study = embedded_case
 
 # # # # # # #             # ---------- OPTIONS ----------
@@ -1037,16 +745,10 @@
 
 # # # # # # #             # ---------- CASE STUDY OR EXTRA TEXT ----------
 # # # # # # #             else:
-# # # # # # #                 # If the line is a case study, attach it to the next question
-# # # # # # #                 if is_case_study_line(line):
+# # # # # # #                 if not current:
 # # # # # # #                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
 # # # # # # #                 else:
-# # # # # # #                     # Otherwise, extra text belongs to current question if exists
-# # # # # # #                     if current:
-# # # # # # #                         current["question"] += " " + line.strip()
-# # # # # # #                     else:
-# # # # # # #                         # Text before any question → part of case study
-# # # # # # #                         current_case_study += ("<br>" if current_case_study else "") + line.strip()
+# # # # # # #                     current["question"] += " " + line.strip()
 
 # # # # # # #         # --------------------------------------------------
 # # # # # # #         # TABLE ENTRY
@@ -1152,6 +854,7 @@
 # # # # # # #     file_id = extract_drive_id(drive_url_or_id)
 # # # # # # #     return f"https://drive.google.com/file/d/{file_id}/preview"
 
+
 # # # # # # import docx
 # # # # # # import re
 # # # # # # import os
@@ -1246,7 +949,7 @@
 # # # # # #     return any(k in t for k in keywords)
 
 # # # # # # # ---------------------------------------------------------
-# # # # # # # PARSE DOCX QUESTIONS – FULL FIXED WITH POST-ANSWER CASE STUDY
+# # # # # # # PARSE DOCX QUESTIONS – FULL FIXED
 # # # # # # # ---------------------------------------------------------
 # # # # # # def parse_docx_questions(path, image_output_dir=None):
 # # # # # #     doc = load_docx(path)
@@ -1306,7 +1009,7 @@
 # # # # # #                     "b": "",
 # # # # # #                     "c": "",
 # # # # # #                     "d": "",
-# # # # # #                    #"answer": "",
+# # # # # #                     "answer": "",
 # # # # # #                     "marks": marks,
 # # # # # #                     "image": None
 # # # # # #                 }
@@ -1326,40 +1029,23 @@
 # # # # # #                 text = re.sub(r"^[A-D][\.\):]\s*", "", line).strip()
 # # # # # #                 current[letter] = text
 
-# # # # # #             # ---------- ANSWER / POST-ANSWER CASE STUDY ----------
+# # # # # #             # ---------- ANSWER ----------
+# # # # # #             elif current and is_answer_line(line):
+# # # # # #                 raw = line.split(":")[-1].strip().lower()
+# # # # # #                 clean = re.sub(r"[^a-d]", "", raw)
+# # # # # #                 current["answer"] = clean
+
+# # # # # #             # ---------- CASE STUDY OR EXTRA TEXT ----------
 # # # # # #             else:
-# # # # # #                 # Handle lines with both Answer and case study in same paragraph
-# # # # # #                 if current and "answer" in line.lower() and is_case_study_line(line):
-# # # # # #                     parts = re.split(
-# # # # # #                         r"(Use the following.*|Study the information.*|Refer to the following.*|Case study.*|Use the data below.*)",
-# # # # # #                         line,
-# # # # # #                         flags=re.IGNORECASE
-# # # # # #                     )
-# # # # # #                     answer_part = parts[0].strip()
-# # # # # #                     case_study_part = parts[1].strip() if len(parts) > 1 else ""
-
-# # # # # #                     # Process answer normally
-# # # # # #                     raw = answer_part.split(":")[-1].strip().lower()
-# # # # # #                     clean = re.sub(r"[^a-d]", "", raw)
-# # # # # #                     current["answer"] = clean
-
-# # # # # #                     # Store case study for next question
-# # # # # #                     if case_study_part:
-# # # # # #                         current_case_study += ("<br>" if current_case_study else "") + case_study_part
-
-# # # # # #                 # Regular case study line before any question
-# # # # # #                 elif is_case_study_line(line) and not current:
+# # # # # #                 # If the line is a case study, attach it to the next question
+# # # # # #                 if is_case_study_line(line):
 # # # # # #                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
-
-# # # # # #                 # Regular case study line after a question → attach to next
-# # # # # #                 elif is_case_study_line(line) and current:
-# # # # # #                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
-
-# # # # # #                 # Otherwise, attach text to current question if exists
 # # # # # #                 else:
+# # # # # #                     # Otherwise, extra text belongs to current question if exists
 # # # # # #                     if current:
 # # # # # #                         current["question"] += " " + line.strip()
 # # # # # #                     else:
+# # # # # #                         # Text before any question → part of case study
 # # # # # #                         current_case_study += ("<br>" if current_case_study else "") + line.strip()
 
 # # # # # #         # --------------------------------------------------
@@ -1466,7 +1152,6 @@
 # # # # # #     file_id = extract_drive_id(drive_url_or_id)
 # # # # # #     return f"https://drive.google.com/file/d/{file_id}/preview"
 
-
 # # # # # import docx
 # # # # # import re
 # # # # # import os
@@ -1526,6 +1211,7 @@
 # # # # # # ---------------------------------------------------------
 # # # # # def flatten_doc(document):
 # # # # #     lines = []
+
 # # # # #     for block in document.element.body:
 # # # # #         # Paragraph
 # # # # #         if block.tag.endswith('p'):
@@ -1533,6 +1219,7 @@
 # # # # #             text = para.text.strip()
 # # # # #             if text:
 # # # # #                 lines.append({"type": "text", "content": text})
+
 # # # # #         # Table
 # # # # #         elif block.tag.endswith('tbl'):
 # # # # #             table = docx.table.Table(block, document)
@@ -1541,6 +1228,7 @@
 # # # # #                 cells = [c.text.strip() for c in row.cells]
 # # # # #                 rows.append(cells)
 # # # # #             lines.append({"type": "table", "cells": rows})
+
 # # # # #     return lines
 
 # # # # # # ---------------------------------------------------------
@@ -1558,7 +1246,7 @@
 # # # # #     return any(k in t for k in keywords)
 
 # # # # # # ---------------------------------------------------------
-# # # # # # PARSE DOCX QUESTIONS – ANSWERS KEPT INTERNALLY
+# # # # # # PARSE DOCX QUESTIONS – FULL FIXED WITH POST-ANSWER CASE STUDY
 # # # # # # ---------------------------------------------------------
 # # # # # def parse_docx_questions(path, image_output_dir=None):
 # # # # #     doc = load_docx(path)
@@ -1570,6 +1258,10 @@
 # # # # #     current_case_study = ""
 
 # # # # #     for entry in entries:
+
+# # # # #         # --------------------------------------------------
+# # # # #         # TEXT ENTRY
+# # # # #         # --------------------------------------------------
 # # # # #         if entry["type"] == "text":
 # # # # #             line = entry["content"]
 
@@ -1577,11 +1269,13 @@
 # # # # #             if is_question_line(line):
 # # # # #                 if current:
 # # # # #                     questions.append(current)
+
 # # # # #                 q_index += 1
 
+# # # # #                 # --- Remove number prefix ---
 # # # # #                 raw_question = re.sub(r"^\d+[\.\)]\s*", "", line).strip()
 
-# # # # #                 # Detect inline case study inside same line
+# # # # #                 # --- Detect inline case study inside same line ---
 # # # # #                 embedded_case = ""
 # # # # #                 for k in [
 # # # # #                     "use the following information",
@@ -1596,29 +1290,34 @@
 # # # # #                         embedded_case = k + " " + parts[1].strip()
 # # # # #                         break
 
-# # # # #                 # Extract marks
+# # # # #                 # --- Extract marks ---
 # # # # #                 mk = re.search(r"\((\d+)\s*mks?\)", raw_question, re.IGNORECASE)
 # # # # #                 marks = int(mk.group(1)) if mk else 1
 # # # # #                 raw_question = re.sub(r"\(\d+\s*mks?\)", "", raw_question).strip()
 
-# # # # #                 # Create question object with internal answer placeholder
+# # # # #                 # Save question text
+# # # # #                 question_text = raw_question
+
+# # # # #                 # Create question entry
 # # # # #                 current = {
-# # # # #                     "question": raw_question,
+# # # # #                     "question": question_text,
 # # # # #                     "instructions": current_case_study.strip(),
 # # # # #                     "a": "",
 # # # # #                     "b": "",
 # # # # #                     "c": "",
 # # # # #                     "d": "",
-# # # # #                     "answer_internal": "",  # internal only
+# # # # #                    #"answer": "",
 # # # # #                     "marks": marks,
 # # # # #                     "image": None
 # # # # #                 }
 
+# # # # #                 # Extract images
 # # # # #                 if image_output_dir:
 # # # # #                     imgs = extract_images(doc, image_output_dir, q_index)
 # # # # #                     if imgs:
 # # # # #                         current["image"] = imgs[0]
 
+# # # # #                 # Reset case study for next question if embedded or already stored
 # # # # #                 current_case_study = embedded_case
 
 # # # # #             # ---------- OPTIONS ----------
@@ -1629,23 +1328,46 @@
 
 # # # # #             # ---------- ANSWER / POST-ANSWER CASE STUDY ----------
 # # # # #             else:
-# # # # #                 if current and is_answer_line(line):
-# # # # #                     raw = line.split(":")[-1].strip().lower()
+# # # # #                 # Handle lines with both Answer and case study in same paragraph
+# # # # #                 if current and "answer" in line.lower() and is_case_study_line(line):
+# # # # #                     parts = re.split(
+# # # # #                         r"(Use the following.*|Study the information.*|Refer to the following.*|Case study.*|Use the data below.*)",
+# # # # #                         line,
+# # # # #                         flags=re.IGNORECASE
+# # # # #                     )
+# # # # #                     answer_part = parts[0].strip()
+# # # # #                     case_study_part = parts[1].strip() if len(parts) > 1 else ""
+
+# # # # #                     # Process answer normally
+# # # # #                     raw = answer_part.split(":")[-1].strip().lower()
 # # # # #                     clean = re.sub(r"[^a-d]", "", raw)
-# # # # #                     current["answer_internal"] = clean
+# # # # #                     current["answer"] = clean
+
+# # # # #                     # Store case study for next question
+# # # # #                     if case_study_part:
+# # # # #                         current_case_study += ("<br>" if current_case_study else "") + case_study_part
+
+# # # # #                 # Regular case study line before any question
 # # # # #                 elif is_case_study_line(line) and not current:
 # # # # #                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
+
+# # # # #                 # Regular case study line after a question → attach to next
 # # # # #                 elif is_case_study_line(line) and current:
 # # # # #                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
+
+# # # # #                 # Otherwise, attach text to current question if exists
 # # # # #                 else:
 # # # # #                     if current:
 # # # # #                         current["question"] += " " + line.strip()
 # # # # #                     else:
 # # # # #                         current_case_study += ("<br>" if current_case_study else "") + line.strip()
 
-# # # # #         # ---------- TABLE ENTRY ----------
+# # # # #         # --------------------------------------------------
+# # # # #         # TABLE ENTRY
+# # # # #         # --------------------------------------------------
 # # # # #         elif entry["type"] == "table":
 # # # # #             html_table = make_html_table(entry["cells"])
+
 # # # # #             if not current:
 # # # # #                 current_case_study += ("<br>" if current_case_study else "") + html_table
 # # # # #             else:
@@ -1657,24 +1379,6 @@
 # # # # #     return questions
 
 # # # # # # ---------------------------------------------------------
-# # # # # # PREPARE STUDENT-FACING QUESTIONS (ANSWERS HIDDEN)
-# # # # # # ---------------------------------------------------------
-# # # # # def prepare_questions_for_student(questions):
-# # # # #     student_questions = []
-# # # # #     for q in questions:
-# # # # #         student_questions.append({
-# # # # #             "question": q["question"],
-# # # # #             "instructions": q["instructions"],
-# # # # #             "a": q["a"],
-# # # # #             "b": q["b"],
-# # # # #             "c": q["c"],
-# # # # #             "d": q["d"],
-# # # # #             "marks": q["marks"],
-# # # # #             "image": q["image"]
-# # # # #         })
-# # # # #     return student_questions
-
-# # # # # # ---------------------------------------------------------
 # # # # # # SCORING ENGINE
 # # # # # # ---------------------------------------------------------
 # # # # # def compute_score(questions, student_answers):
@@ -1683,7 +1387,7 @@
 # # # # #     details = []
 
 # # # # #     for index, q in enumerate(questions, start=1):
-# # # # #         correct = q.get("answer_internal", "").strip().lower()
+# # # # #         correct = q["answer"].strip().lower()
 # # # # #         total_marks += q["marks"]
 
 # # # # #         student_answer = ""
@@ -1720,7 +1424,7 @@
 # # # # #     status_list = []
 
 # # # # #     for index, q in enumerate(questions, start=1):
-# # # # #         correct = q.get("answer_internal", "").strip().lower()
+# # # # #         correct = q["answer"].strip().lower()
 
 # # # # #         student_answer = ""
 # # # # #         for key in (index, f"q{index}", q["question"]):
@@ -1762,6 +1466,7 @@
 # # # # #     file_id = extract_drive_id(drive_url_or_id)
 # # # # #     return f"https://drive.google.com/file/d/{file_id}/preview"
 
+
 # # # # import docx
 # # # # import re
 # # # # import os
@@ -1784,17 +1489,6 @@
 
 # # # # def is_answer_line(text):
 # # # #     return text.lower().startswith(("answer", "ans", "correct"))
-
-# # # # def is_case_study_line(text):
-# # # #     keywords = [
-# # # #         "use the following information",
-# # # #         "study the information",
-# # # #         "refer to the following",
-# # # #         "case study",
-# # # #         "use the data below"
-# # # #     ]
-# # # #     t = text.lower()
-# # # #     return any(k in t for k in keywords)
 
 # # # # # ---------------------------------------------------------
 # # # # # IMAGE EXTRACTION
@@ -1850,7 +1544,21 @@
 # # # #     return lines
 
 # # # # # ---------------------------------------------------------
-# # # # # PARSE DOCX QUESTIONS WITH CASE STUDY AND TABLES
+# # # # # CASE STUDY CHECKER
+# # # # # ---------------------------------------------------------
+# # # # def is_case_study_line(text):
+# # # #     keywords = [
+# # # #         "use the following information",
+# # # #         "study the information",
+# # # #         "refer to the following",
+# # # #         "case study",
+# # # #         "use the data below"
+# # # #     ]
+# # # #     t = text.lower()
+# # # #     return any(k in t for k in keywords)
+
+# # # # # ---------------------------------------------------------
+# # # # # PARSE DOCX QUESTIONS – ANSWERS KEPT INTERNALLY
 # # # # # ---------------------------------------------------------
 # # # # def parse_docx_questions(path, image_output_dir=None):
 # # # #     doc = load_docx(path)
@@ -1893,7 +1601,7 @@
 # # # #                 marks = int(mk.group(1)) if mk else 1
 # # # #                 raw_question = re.sub(r"\(\d+\s*mks?\)", "", raw_question).strip()
 
-# # # #                 # Create question object
+# # # #                 # Create question object with internal answer placeholder
 # # # #                 current = {
 # # # #                     "question": raw_question,
 # # # #                     "instructions": current_case_study.strip(),
@@ -1901,7 +1609,7 @@
 # # # #                     "b": "",
 # # # #                     "c": "",
 # # # #                     "d": "",
-# # # #                     "answer_internal": "",  # for scoring
+# # # #                     "answer_internal": "",  # internal only
 # # # #                     "marks": marks,
 # # # #                     "image": None
 # # # #                 }
@@ -1919,7 +1627,7 @@
 # # # #                 text = re.sub(r"^[A-D][\.\):]\s*", "", line).strip()
 # # # #                 current[letter] = text
 
-# # # #             # ---------- ANSWER / CASE STUDY ----------
+# # # #             # ---------- ANSWER / POST-ANSWER CASE STUDY ----------
 # # # #             else:
 # # # #                 if current and is_answer_line(line):
 # # # #                     raw = line.split(":")[-1].strip().lower()
@@ -1967,7 +1675,7 @@
 # # # #     return student_questions
 
 # # # # # ---------------------------------------------------------
-# # # # # SCORING ENGINE (WORKS NOW)
+# # # # # SCORING ENGINE
 # # # # # ---------------------------------------------------------
 # # # # def compute_score(questions, student_answers):
 # # # #     score = 0
@@ -1978,9 +1686,8 @@
 # # # #         correct = q.get("answer_internal", "").strip().lower()
 # # # #         total_marks += q["marks"]
 
-# # # #         # Student answer lookup only by q index or q1/q2...
 # # # #         student_answer = ""
-# # # #         for key in (index, f"q{index}"):
+# # # #         for key in (index, f"q{index}", q["question"]):
 # # # #             if key in student_answers:
 # # # #                 student_answer = student_answers[key].strip().lower()
 # # # #                 break
@@ -2014,8 +1721,9 @@
 
 # # # #     for index, q in enumerate(questions, start=1):
 # # # #         correct = q.get("answer_internal", "").strip().lower()
+
 # # # #         student_answer = ""
-# # # #         for key in (index, f"q{index}"):
+# # # #         for key in (index, f"q{index}", q["question"]):
 # # # #             if key in student_answers:
 # # # #                 student_answer = student_answers[key].strip().lower()
 # # # #                 break
@@ -2036,16 +1744,38 @@
 
 # # # #     return status_list
 
+# # # # # ---------------------------------------------------------
+# # # # # GOOGLE DRIVE HELPERS
+# # # # # ---------------------------------------------------------
+# # # # def extract_drive_id(url):
+# # # #     patterns = [
+# # # #         r"https://drive\\.google\\.com/file/d/([a-zA-Z0-9_-]+)",
+# # # #         r"https://drive\\.google\\.com/open\\?id=([a-zA-Z0-9_-]+)"
+# # # #     ]
+# # # #     for pattern in patterns:
+# # # #         m = re.search(pattern, url)
+# # # #         if m:
+# # # #             return m.group(1)
+# # # #     return url
+
+# # # # def get_drive_embed_url(drive_url_or_id):
+# # # #     file_id = extract_drive_id(drive_url_or_id)
+# # # #     return f"https://drive.google.com/file/d/{file_id}/preview"
+
 # # # import docx
 # # # import re
 # # # import os
 # # # from docx.opc.constants import RELATIONSHIP_TYPE as RT
 
-# # # # ------------------- LOAD DOCX -------------------
+# # # # ---------------------------------------------------------
+# # # # LOAD DOCX
+# # # # ---------------------------------------------------------
 # # # def load_docx(path):
 # # #     return docx.Document(path)
 
-# # # # ------------------- HELPERS -------------------
+# # # # ---------------------------------------------------------
+# # # # HELPER MATCHERS
+# # # # ---------------------------------------------------------
 # # # def is_question_line(text):
 # # #     return bool(re.match(r"^\d+[\.\)]\s*", text))
 
@@ -2066,7 +1796,9 @@
 # # #     t = text.lower()
 # # #     return any(k in t for k in keywords)
 
-# # # # ------------------- IMAGE EXTRACTION -------------------
+# # # # ---------------------------------------------------------
+# # # # IMAGE EXTRACTION
+# # # # ---------------------------------------------------------
 # # # def extract_images(document, output_dir, q_index):
 # # #     os.makedirs(output_dir, exist_ok=True)
 # # #     images = []
@@ -2082,7 +1814,9 @@
 # # #             images.append(filename)
 # # #     return images
 
-# # # # ------------------- HTML TABLE BUILDER -------------------
+# # # # ---------------------------------------------------------
+# # # # HTML TABLE BUILDER
+# # # # ---------------------------------------------------------
 # # # def make_html_table(cells):
 # # #     html = "<table class='table table-bordered'>"
 # # #     for row in cells:
@@ -2093,15 +1827,19 @@
 # # #     html += "</table>"
 # # #     return html
 
-# # # # ------------------- FLATTEN DOCX -------------------
+# # # # ---------------------------------------------------------
+# # # # FLATTEN DOCX (PARAGRAPHS + TABLES)
+# # # # ---------------------------------------------------------
 # # # def flatten_doc(document):
 # # #     lines = []
 # # #     for block in document.element.body:
+# # #         # Paragraph
 # # #         if block.tag.endswith('p'):
 # # #             para = docx.text.paragraph.Paragraph(block, document)
 # # #             text = para.text.strip()
 # # #             if text:
 # # #                 lines.append({"type": "text", "content": text})
+# # #         # Table
 # # #         elif block.tag.endswith('tbl'):
 # # #             table = docx.table.Table(block, document)
 # # #             rows = []
@@ -2111,7 +1849,9 @@
 # # #             lines.append({"type": "table", "cells": rows})
 # # #     return lines
 
-# # # # ------------------- PARSE QUESTIONS (TABLES + CASE STUDY) -------------------
+# # # # ---------------------------------------------------------
+# # # # PARSE DOCX QUESTIONS WITH CASE STUDY AND TABLES
+# # # # ---------------------------------------------------------
 # # # def parse_docx_questions(path, image_output_dir=None):
 # # #     doc = load_docx(path)
 # # #     entries = flatten_doc(doc)
@@ -2125,6 +1865,7 @@
 # # #         if entry["type"] == "text":
 # # #             line = entry["content"]
 
+# # #             # ---------- NEW QUESTION ----------
 # # #             if is_question_line(line):
 # # #                 if current:
 # # #                     questions.append(current)
@@ -2132,7 +1873,7 @@
 
 # # #                 raw_question = re.sub(r"^\d+[\.\)]\s*", "", line).strip()
 
-# # #                 # Detect inline case study inside the same line
+# # #                 # Detect inline case study inside same line
 # # #                 embedded_case = ""
 # # #                 for k in [
 # # #                     "use the following information",
@@ -2147,10 +1888,12 @@
 # # #                         embedded_case = k + " " + parts[1].strip()
 # # #                         break
 
+# # #                 # Extract marks
 # # #                 mk = re.search(r"\((\d+)\s*mks?\)", raw_question, re.IGNORECASE)
 # # #                 marks = int(mk.group(1)) if mk else 1
 # # #                 raw_question = re.sub(r"\(\d+\s*mks?\)", "", raw_question).strip()
 
+# # #                 # Create question object
 # # #                 current = {
 # # #                     "question": raw_question,
 # # #                     "instructions": current_case_study.strip(),
@@ -2170,17 +1913,21 @@
 
 # # #                 current_case_study = embedded_case
 
+# # #             # ---------- OPTIONS ----------
 # # #             elif current and is_option_line(line):
 # # #                 letter = line[0].lower()
 # # #                 text = re.sub(r"^[A-D][\.\):]\s*", "", line).strip()
 # # #                 current[letter] = text
 
+# # #             # ---------- ANSWER / CASE STUDY ----------
 # # #             else:
 # # #                 if current and is_answer_line(line):
 # # #                     raw = line.split(":")[-1].strip().lower()
 # # #                     clean = re.sub(r"[^a-d]", "", raw)
 # # #                     current["answer_internal"] = clean
-# # #                 elif is_case_study_line(line):
+# # #                 elif is_case_study_line(line) and not current:
+# # #                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
+# # #                 elif is_case_study_line(line) and current:
 # # #                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
 # # #                 else:
 # # #                     if current:
@@ -2188,6 +1935,7 @@
 # # #                     else:
 # # #                         current_case_study += ("<br>" if current_case_study else "") + line.strip()
 
+# # #         # ---------- TABLE ENTRY ----------
 # # #         elif entry["type"] == "table":
 # # #             html_table = make_html_table(entry["cells"])
 # # #             if not current:
@@ -2200,7 +1948,9 @@
 
 # # #     return questions
 
-# # # # ------------------- PREPARE QUESTIONS FOR STUDENT -------------------
+# # # # ---------------------------------------------------------
+# # # # PREPARE STUDENT-FACING QUESTIONS (ANSWERS HIDDEN)
+# # # # ---------------------------------------------------------
 # # # def prepare_questions_for_student(questions):
 # # #     student_questions = []
 # # #     for q in questions:
@@ -2216,7 +1966,9 @@
 # # #         })
 # # #     return student_questions
 
-# # # # ------------------- SCORING ENGINE -------------------
+# # # # ---------------------------------------------------------
+# # # # SCORING ENGINE (WORKS NOW)
+# # # # ---------------------------------------------------------
 # # # def compute_score(questions, student_answers):
 # # #     score = 0
 # # #     total_marks = 0
@@ -2226,6 +1978,7 @@
 # # #         correct = q.get("answer_internal", "").strip().lower()
 # # #         total_marks += q["marks"]
 
+# # #         # Student answer lookup only by q index or q1/q2...
 # # #         student_answer = ""
 # # #         for key in (index, f"q{index}"):
 # # #             if key in student_answers:
@@ -2253,7 +2006,9 @@
 # # #         "details": details
 # # #     }
 
-# # # # ------------------- QUIZ STATUS -------------------
+# # # # ---------------------------------------------------------
+# # # # QUIZ STATUS
+# # # # ---------------------------------------------------------
 # # # def get_quiz_status(questions, student_answers):
 # # #     status_list = []
 
@@ -2286,15 +2041,11 @@
 # # import os
 # # from docx.opc.constants import RELATIONSHIP_TYPE as RT
 
-# # # ---------------------------------------------------------
-# # # LOAD DOCX
-# # # ---------------------------------------------------------
+# # # ------------------- LOAD DOCX -------------------
 # # def load_docx(path):
 # #     return docx.Document(path)
 
-# # # ---------------------------------------------------------
-# # # HELPER MATCHERS
-# # # ---------------------------------------------------------
+# # # ------------------- HELPERS -------------------
 # # def is_question_line(text):
 # #     return bool(re.match(r"^\d+[\.\)]\s*", text))
 
@@ -2312,11 +2063,10 @@
 # #         "case study",
 # #         "use the data below"
 # #     ]
-# #     return any(k in text.lower() for k in keywords)
+# #     t = text.lower()
+# #     return any(k in t for k in keywords)
 
-# # # ---------------------------------------------------------
-# # # IMAGE EXTRACTION
-# # # ---------------------------------------------------------
+# # # ------------------- IMAGE EXTRACTION -------------------
 # # def extract_images(document, output_dir, q_index):
 # #     os.makedirs(output_dir, exist_ok=True)
 # #     images = []
@@ -2332,29 +2082,26 @@
 # #             images.append(filename)
 # #     return images
 
-# # # ---------------------------------------------------------
-# # # HTML TABLE BUILDER
-# # # ---------------------------------------------------------
+# # # ------------------- HTML TABLE BUILDER -------------------
 # # def make_html_table(cells):
 # #     html = "<table class='table table-bordered'>"
 # #     for row in cells:
-# #         html += "<tr>" + "".join(f"<td>{c}</td>" for c in row) + "</tr>"
+# #         html += "<tr>"
+# #         for c in row:
+# #             html += f"<td>{c}</td>"
+# #         html += "</tr>"
 # #     html += "</table>"
 # #     return html
 
-# # # ---------------------------------------------------------
-# # # FLATTEN DOCX (PARAGRAPHS + TABLES)
-# # # ---------------------------------------------------------
+# # # ------------------- FLATTEN DOCX -------------------
 # # def flatten_doc(document):
 # #     lines = []
 # #     for block in document.element.body:
-# #         # Paragraph
 # #         if block.tag.endswith('p'):
 # #             para = docx.text.paragraph.Paragraph(block, document)
 # #             text = para.text.strip()
 # #             if text:
 # #                 lines.append({"type": "text", "content": text})
-# #         # Table
 # #         elif block.tag.endswith('tbl'):
 # #             table = docx.table.Table(block, document)
 # #             rows = []
@@ -2364,9 +2111,7 @@
 # #             lines.append({"type": "table", "cells": rows})
 # #     return lines
 
-# # # ---------------------------------------------------------
-# # # PARSE DOCX QUESTIONS (WITH CASE STUDY, TABLES, IMAGES)
-# # # ---------------------------------------------------------
+# # # ------------------- PARSE QUESTIONS (TABLES + CASE STUDY) -------------------
 # # def parse_docx_questions(path, image_output_dir=None):
 # #     doc = load_docx(path)
 # #     entries = flatten_doc(doc)
@@ -2380,14 +2125,14 @@
 # #         if entry["type"] == "text":
 # #             line = entry["content"]
 
-# #             # ---------- NEW QUESTION ----------
 # #             if is_question_line(line):
 # #                 if current:
 # #                     questions.append(current)
 # #                 q_index += 1
+
 # #                 raw_question = re.sub(r"^\d+[\.\)]\s*", "", line).strip()
 
-# #                 # Extract embedded case study from same line
+# #                 # Detect inline case study inside the same line
 # #                 embedded_case = ""
 # #                 for k in [
 # #                     "use the following information",
@@ -2402,7 +2147,6 @@
 # #                         embedded_case = k + " " + parts[1].strip()
 # #                         break
 
-# #                 # Extract marks
 # #                 mk = re.search(r"\((\d+)\s*mks?\)", raw_question, re.IGNORECASE)
 # #                 marks = int(mk.group(1)) if mk else 1
 # #                 raw_question = re.sub(r"\(\d+\s*mks?\)", "", raw_question).strip()
@@ -2426,21 +2170,17 @@
 
 # #                 current_case_study = embedded_case
 
-# #             # ---------- OPTIONS ----------
 # #             elif current and is_option_line(line):
 # #                 letter = line[0].lower()
 # #                 text = re.sub(r"^[A-D][\.\):]\s*", "", line).strip()
 # #                 current[letter] = text
 
-# #             # ---------- ANSWER / CASE STUDY ----------
 # #             else:
 # #                 if current and is_answer_line(line):
 # #                     raw = line.split(":")[-1].strip().lower()
 # #                     clean = re.sub(r"[^a-d]", "", raw)
 # #                     current["answer_internal"] = clean
-# #                 elif is_case_study_line(line) and not current:
-# #                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
-# #                 elif is_case_study_line(line) and current:
+# #                 elif is_case_study_line(line):
 # #                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
 # #                 else:
 # #                     if current:
@@ -2448,7 +2188,6 @@
 # #                     else:
 # #                         current_case_study += ("<br>" if current_case_study else "") + line.strip()
 
-# #         # ---------- TABLE ENTRY ----------
 # #         elif entry["type"] == "table":
 # #             html_table = make_html_table(entry["cells"])
 # #             if not current:
@@ -2461,15 +2200,13 @@
 
 # #     return questions
 
-# # # ---------------------------------------------------------
-# # # PREPARE STUDENT-FACING QUESTIONS (ANSWERS HIDDEN)
-# # # ---------------------------------------------------------
+# # # ------------------- PREPARE QUESTIONS FOR STUDENT -------------------
 # # def prepare_questions_for_student(questions):
 # #     student_questions = []
 # #     for q in questions:
 # #         student_questions.append({
 # #             "question": q["question"],
-# #             "instructions": q["instructions"],  # case study / instructions at top
+# #             "instructions": q["instructions"],
 # #             "a": q["a"],
 # #             "b": q["b"],
 # #             "c": q["c"],
@@ -2479,9 +2216,7 @@
 # #         })
 # #     return student_questions
 
-# # # ---------------------------------------------------------
-# # # SCORING ENGINE
-# # # ---------------------------------------------------------
+# # # ------------------- SCORING ENGINE -------------------
 # # def compute_score(questions, student_answers):
 # #     score = 0
 # #     total_marks = 0
@@ -2494,13 +2229,10 @@
 # #         student_answer = ""
 # #         for key in (index, f"q{index}"):
 # #             if key in student_answers:
-# #                 val = student_answers[key].strip().lower()
-# #                 # Normalize to a,b,c,d
-# #                 student_answer = re.sub(r"[^a-d]", "", val)
+# #                 student_answer = student_answers[key].strip().lower()
 # #                 break
 
 # #         got_it = student_answer == correct
-
 # #         if got_it:
 # #             score += q["marks"]
 
@@ -2521,12 +2253,10 @@
 # #         "details": details
 # #     }
 
-
-# # # ---------------------------------------------------------
-# # # QUIZ STATUS
-# # # ---------------------------------------------------------
+# # # ------------------- QUIZ STATUS -------------------
 # # def get_quiz_status(questions, student_answers):
 # #     status_list = []
+
 # #     for index, q in enumerate(questions, start=1):
 # #         correct = q.get("answer_internal", "").strip().lower()
 # #         student_answer = ""
@@ -2548,36 +2278,23 @@
 # #             "student_answer": student_answer,
 # #             "correct_answer": correct
 # #         })
+
 # #     return status_list
-
-# # # ---------------------------------------------------------
-# # # GOOGLE DRIVE HELPERS (now included safely)
-# # # ---------------------------------------------------------
-# # def extract_drive_id(url):
-# #     patterns = [
-# #         r"https://drive\.google\.com/file/d/([a-zA-Z0-9_-]+)",
-# #         r"https://drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)"
-# #     ]
-# #     for pattern in patterns:
-# #         m = re.search(pattern, url)
-# #         if m:
-# #             return m.group(1)
-# #     return url
-
-# # def get_drive_embed_url(drive_url_or_id):
-# #     file_id = extract_drive_id(drive_url_or_id)
-# #     return f"https://drive.google.com/file/d/{file_id}/preview"
 
 # import docx
 # import re
 # import os
 # from docx.opc.constants import RELATIONSHIP_TYPE as RT
 
-# # --------------------- LOAD DOCX ---------------------
+# # ---------------------------------------------------------
+# # LOAD DOCX
+# # ---------------------------------------------------------
 # def load_docx(path):
 #     return docx.Document(path)
 
-# # --------------------- HELPERS -----------------------
+# # ---------------------------------------------------------
+# # HELPER MATCHERS
+# # ---------------------------------------------------------
 # def is_question_line(text):
 #     return bool(re.match(r"^\d+[\.\)]\s*", text))
 
@@ -2585,7 +2302,7 @@
 #     return bool(re.match(r"^[A-D][\.\):]\s*", text.strip(), re.IGNORECASE))
 
 # def is_answer_line(text):
-#     return text.lower().lstrip().startswith(("answer", "ans", "correct"))
+#     return text.lower().startswith(("answer", "ans", "correct"))
 
 # def is_case_study_line(text):
 #     keywords = [
@@ -2595,15 +2312,15 @@
 #         "case study",
 #         "use the data below"
 #     ]
-#     t = text.lower()
-#     return any(k in t for k in keywords)
+#     return any(k in text.lower() for k in keywords)
 
-# # ------------------- IMAGE EXTRACTION -----------------
+# # ---------------------------------------------------------
+# # IMAGE EXTRACTION
+# # ---------------------------------------------------------
 # def extract_images(document, output_dir, q_index):
 #     os.makedirs(output_dir, exist_ok=True)
 #     images = []
 #     count = 0
-#     # iterate over relationships to find images
 #     for rel in document.part.rels.values():
 #         if rel.reltype == RT.IMAGE:
 #             count += 1
@@ -2615,79 +2332,62 @@
 #             images.append(filename)
 #     return images
 
-# # ------------------- TABLE -> HTML -------------------
+# # ---------------------------------------------------------
+# # HTML TABLE BUILDER
+# # ---------------------------------------------------------
 # def make_html_table(cells):
 #     html = "<table class='table table-bordered'>"
 #     for row in cells:
-#         html += "<tr>"
-#         for c in row:
-#             # Escape minimal HTML-sensitive chars (basic)
-#             safe = (c.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;"))
-#             html += f"<td>{safe}</td>"
-#         html += "</tr>"
+#         html += "<tr>" + "".join(f"<td>{c}</td>" for c in row) + "</tr>"
 #     html += "</table>"
 #     return html
 
-# # ------------------- FLATTEN DOCX --------------------
+# # ---------------------------------------------------------
+# # FLATTEN DOCX (PARAGRAPHS + TABLES)
+# # ---------------------------------------------------------
 # def flatten_doc(document):
-#     """
-#     Returns a list of entries preserving paragraphs and tables in document order.
-#     Each entry is {"type":"text","content":...} or {"type":"table","cells": [...]}
-#     """
 #     lines = []
 #     for block in document.element.body:
+#         # Paragraph
 #         if block.tag.endswith('p'):
 #             para = docx.text.paragraph.Paragraph(block, document)
 #             text = para.text.strip()
 #             if text:
 #                 lines.append({"type": "text", "content": text})
+#         # Table
 #         elif block.tag.endswith('tbl'):
 #             table = docx.table.Table(block, document)
 #             rows = []
 #             for row in table.rows:
-#                 cells = [cell.text.strip() for cell in row.cells]
+#                 cells = [c.text.strip() for c in row.cells]
 #                 rows.append(cells)
 #             lines.append({"type": "table", "cells": rows})
 #     return lines
 
-# # --------------- PARSE DOCX QUESTIONS -----------------
+# # ---------------------------------------------------------
+# # PARSE DOCX QUESTIONS (WITH CASE STUDY, TABLES, IMAGES)
+# # ---------------------------------------------------------
 # def parse_docx_questions(path, image_output_dir=None):
-#     """
-#     Parse docx file and return list of questions.
-#     Each question dict has:
-#       - question (text with any inline tables as HTML)
-#       - instructions (case study/instructions that were appearing BEFORE the question)
-#       - a, b, c, d (option texts)
-#       - answer (single letter 'a'..'d', stored lower-case)
-#       - marks (int)
-#       - image (filename or None)
-#     Case studies/tables that appear before a question are attached to the next question's 'instructions'.
-#     """
 #     doc = load_docx(path)
 #     entries = flatten_doc(doc)
 
 #     questions = []
 #     current = None
 #     q_index = 0
-#     # holds instructions/case-study found before the *next* question
-#     pending_instructions = ""
+#     current_case_study = ""
 
 #     for entry in entries:
 #         if entry["type"] == "text":
-#             line = entry["content"].strip()
+#             line = entry["content"]
 
-#             # If line contains both an Answer and a new case-study after it (same paragraph),
-#             # we'll handle splitting later when looking for answer lines.
 #             # ---------- NEW QUESTION ----------
 #             if is_question_line(line):
-#                 # push previous
 #                 if current:
 #                     questions.append(current)
-
 #                 q_index += 1
 #                 raw_question = re.sub(r"^\d+[\.\)]\s*", "", line).strip()
 
-#                 # detect inline embedded case study text in same line as question (rare)
+#                 # Extract embedded case study from same line
 #                 embedded_case = ""
 #                 for k in [
 #                     "use the following information",
@@ -2702,174 +2402,114 @@
 #                         embedded_case = k + " " + parts[1].strip()
 #                         break
 
-#                 # extract marks like (2 mks)
+#                 # Extract marks
 #                 mk = re.search(r"\((\d+)\s*mks?\)", raw_question, re.IGNORECASE)
 #                 marks = int(mk.group(1)) if mk else 1
 #                 raw_question = re.sub(r"\(\d+\s*mks?\)", "", raw_question).strip()
 
-#                 # create current question and attach pending_instructions to it
 #                 current = {
 #                     "question": raw_question,
-#                     "instructions": pending_instructions.strip(),
+#                     "instructions": current_case_study.strip(),
 #                     "a": "",
 #                     "b": "",
 #                     "c": "",
 #                     "d": "",
-#                     "answer": "",   # keep the working scoring schema
+#                     "answer_internal": "",  # for scoring
 #                     "marks": marks,
 #                     "image": None
 #                 }
 
-#                 # extract image if requested (note: this extracts doc-level images; names may collide
-#                 # across questions if multiple images exist - kept for backward compatibility)
 #                 if image_output_dir:
 #                     imgs = extract_images(doc, image_output_dir, q_index)
 #                     if imgs:
 #                         current["image"] = imgs[0]
 
-#                 # reset pending_instructions; if there was embedded_case put it back as pending for next question
-#                 pending_instructions = embedded_case
+#                 current_case_study = embedded_case
 
-#             # ---------- OPTION (A-D) ----------
+#             # ---------- OPTIONS ----------
 #             elif current and is_option_line(line):
 #                 letter = line[0].lower()
 #                 text = re.sub(r"^[A-D][\.\):]\s*", "", line).strip()
 #                 current[letter] = text
 
-#             # ---------- ANSWER LINE (may appear anywhere after options) ----------
-#             elif current and is_answer_line(line):
-#                 # handle patterns like "Answer: B Use the following..."
-#                 # split into answer part and trailing case study if present
-#                 parts = re.split(r"(use the following.*|study the information.*|refer to the following.*|case study.*|use the data below.*)",
-#                                  line, flags=re.IGNORECASE)
-#                 answer_part = parts[0]
-#                 trailing_case = ""
-#                 if len(parts) > 1:
-#                     trailing_case = "".join(parts[1:]).strip()
-
-#                 raw = answer_part.split(":")[-1].strip().lower()
-#                 clean = re.sub(r"[^a-d]", "", raw)
-#                 current["answer"] = clean
-
-#                 # if trailing_case exists, attach it to pending_instructions for next question (rule B)
-#                 if trailing_case:
-#                     # normalize
-#                     pending_instructions += ("<br>" if pending_instructions else "") + trailing_case
-
-#             # ---------- CASE STUDY LINE BEFORE ANY QUESTION (attach to pending_instructions) ----------
-#             elif is_case_study_line(line) and not current:
-#                 pending_instructions += ("<br>" if pending_instructions else "") + line
-
-#             # ---------- CASE STUDY LINE AFTER A QUESTION (should be attached to next question per rule B) ----------
-#             elif is_case_study_line(line) and current:
-#                 # attach to pending so next question will receive it
-#                 pending_instructions += ("<br>" if pending_instructions else "") + line
-
-#             # ---------- OTHER TEXT: attach to current question text (question continuation) or to pending if no current ----------
+#             # ---------- ANSWER / CASE STUDY ----------
 #             else:
-#                 if current:
-#                     current["question"] += " " + line
+#                 if current and is_answer_line(line):
+#                     raw = line.split(":")[-1].strip().lower()
+#                     clean = re.sub(r"[^a-d]", "", raw)
+#                     current["answer_internal"] = clean
+#                 elif is_case_study_line(line) and not current:
+#                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
+#                 elif is_case_study_line(line) and current:
+#                     current_case_study += ("<br>" if current_case_study else "") + line.strip()
 #                 else:
-#                     pending_instructions += ("<br>" if pending_instructions else "") + line
+#                     if current:
+#                         current["question"] += " " + line.strip()
+#                     else:
+#                         current_case_study += ("<br>" if current_case_study else "") + line.strip()
 
 #         # ---------- TABLE ENTRY ----------
 #         elif entry["type"] == "table":
 #             html_table = make_html_table(entry["cells"])
-#             # If no current question exists, treat table as part of pending instructions (case study)
 #             if not current:
-#                 pending_instructions += ("<br>" if pending_instructions else "") + html_table
+#                 current_case_study += ("<br>" if current_case_study else "") + html_table
 #             else:
-#                 # attach table to current question text
 #                 current["question"] += "<br>" + html_table
 
-#     # push last question
 #     if current:
 #         questions.append(current)
 
 #     return questions
 
-# # --------------- PREPARE STUDENT-FACING (HIDE ANSWERS) ---------------
-# def prepare_questions_for_student(questions, include_instructions_once=True):
-#     """
-#     Returns a list of questions safe to display to students (without answers).
-#     If include_instructions_once=True, returns instructions separately as 'page_instructions' and questions list.
-#     Otherwise each question includes its 'instructions' field.
-#     """
-#     if include_instructions_once:
-#         # gather first non-empty instructions (or concatenate distinct ones)
-#         page_instructions = ""
-#         for q in questions:
-#             if q.get("instructions"):
-#                 if page_instructions:
-#                     page_instructions += "<hr>" + q["instructions"]
-#                 else:
-#                     page_instructions = q["instructions"]
-#         # build student questions without answers
-#         student_questions = []
-#         for q in questions:
-#             student_questions.append({
-#                 "question": q["question"],
-#                 "a": q["a"],
-#                 "b": q["b"],
-#                 "c": q["c"],
-#                 "d": q["d"],
-#                 "marks": q["marks"],
-#                 "image": q["image"]
-#             })
-#         return {"page_instructions": page_instructions, "questions": student_questions}
-#     else:
-#         student_questions = []
-#         for q in questions:
-#             student_questions.append({
-#                 "question": q["question"],
-#                 "instructions": q["instructions"],
-#                 "a": q["a"],
-#                 "b": q["b"],
-#                 "c": q["c"],
-#                 "d": q["d"],
-#                 "marks": q["marks"],
-#                 "image": q["image"]
-#             })
-#         return {"page_instructions": "", "questions": student_questions}
+# # ---------------------------------------------------------
+# # PREPARE STUDENT-FACING QUESTIONS (ANSWERS HIDDEN)
+# # ---------------------------------------------------------
+# def prepare_questions_for_student(questions):
+#     student_questions = []
+#     for q in questions:
+#         student_questions.append({
+#             "question": q["question"],
+#             "instructions": q["instructions"],  # case study / instructions at top
+#             "a": q["a"],
+#             "b": q["b"],
+#             "c": q["c"],
+#             "d": q["d"],
+#             "marks": q["marks"],
+#             "image": q["image"]
+#         })
+#     return student_questions
 
-# # ------------------ SCORING ENGINE (keeps your working format) ------------------
+# # ---------------------------------------------------------
+# # SCORING ENGINE
+# # ---------------------------------------------------------
 # def compute_score(questions, student_answers):
-#     """
-#     questions: list produced by parse_docx_questions (uses question['answer'] as correct)
-#     student_answers: dict-like, expected keys 'q1','q2',... or '1','2',...
-#     returns dict with score, total, percentage, details list
-#     """
 #     score = 0
 #     total_marks = 0
 #     details = []
 
 #     for index, q in enumerate(questions, start=1):
-#         # normalize correct (from parser stored in 'answer')
-#         correct = (q.get("answer", "") or "").strip().lower()
-#         correct = re.sub(r"[^a-d]", "", correct)
+#         correct = q.get("answer_internal", "").strip().lower()
+#         total_marks += q["marks"]
 
-#         total_marks += q.get("marks", 1)
-
-#         # find student answer: prefer 'q{index}' then '{index}'
 #         student_answer = ""
-#         for key in (f"q{index}", str(index)):
+#         for key in (index, f"q{index}"):
 #             if key in student_answers:
-#                 raw = (student_answers[key] or "").strip().lower()
-#                 student_answer = re.sub(r"[^a-d]", "", raw)
+#                 val = student_answers[key].strip().lower()
+#                 # Normalize to a,b,c,d
+#                 student_answer = re.sub(r"[^a-d]", "", val)
 #                 break
 
-#         # Safety: if both are empty, treat as unanswered (not correct)
-#         got_it = (student_answer != "" and student_answer == correct)
+#         got_it = student_answer == correct
 
 #         if got_it:
-#             score += q.get("marks", 1)
+#             score += q["marks"]
 
 #         details.append({
-#             "question": q.get("question", ""),
+#             "question": q["question"],
 #             "correct": correct,
 #             "student_answer": student_answer,
-#             "marks": q.get("marks", 1),
-#             "earned": q.get("marks", 1) if got_it else 0
+#             "marks": q["marks"],
+#             "earned": q["marks"] if got_it else 0
 #         })
 
 #     percentage = round((score / total_marks) * 100, 2) if total_marks else 0
@@ -2881,18 +2521,18 @@
 #         "details": details
 #     }
 
-# # ------------------ QUIZ STATUS ------------------
+
+# # ---------------------------------------------------------
+# # QUIZ STATUS
+# # ---------------------------------------------------------
 # def get_quiz_status(questions, student_answers):
 #     status_list = []
 #     for index, q in enumerate(questions, start=1):
-#         correct = (q.get("answer", "") or "").strip().lower()
-#         correct = re.sub(r"[^a-d]", "", correct)
-
+#         correct = q.get("answer_internal", "").strip().lower()
 #         student_answer = ""
-#         for key in (f"q{index}", str(index)):
+#         for key in (index, f"q{index}"):
 #             if key in student_answers:
-#                 raw = (student_answers[key] or "").strip().lower()
-#                 student_answer = re.sub(r"[^a-d]", "", raw)
+#                 student_answer = student_answers[key].strip().lower()
 #                 break
 
 #         if not student_answer:
@@ -2910,11 +2550,13 @@
 #         })
 #     return status_list
 
-# # ------------------ GOOGLE DRIVE HELPERS ------------------
+# # ---------------------------------------------------------
+# # GOOGLE DRIVE HELPERS (now included safely)
+# # ---------------------------------------------------------
 # def extract_drive_id(url):
 #     patterns = [
-#         r"https://drive\.google\.com/file/d/([A-Za-z0-9_-]+)",
-#         r"https://drive\.google\.com/open\?id=([A-Za-z0-9_-]+)"
+#         r"https://drive\.google\.com/file/d/([a-zA-Z0-9_-]+)",
+#         r"https://drive\.google\.com/open\?id=([a-zA-Z0-9_-]+)"
 #     ]
 #     for pattern in patterns:
 #         m = re.search(pattern, url)
@@ -2925,6 +2567,7 @@
 # def get_drive_embed_url(drive_url_or_id):
 #     file_id = extract_drive_id(drive_url_or_id)
 #     return f"https://drive.google.com/file/d/{file_id}/preview"
+
 import docx
 import re
 import os
@@ -2955,32 +2598,21 @@ def is_case_study_line(text):
     t = text.lower()
     return any(k in t for k in keywords)
 
-# ------------------- IMAGE EXTRACTION (all images once) -----------------
-def extract_all_images(document, output_dir):
-    """
-    Extracts all image relationships from the document.part.rels once.
-    Returns a dict mapping rId -> filename (and writes the files into output_dir).
-    """
-    if not output_dir:
-        return {}
-
+# ------------------- IMAGE EXTRACTION -----------------
+def extract_images(document, output_dir, q_index):
     os.makedirs(output_dir, exist_ok=True)
-    images = {}
+    images = []
     count = 0
-
-    # document.part.rels is a mapping rId -> rel
-    for rId, rel in document.part.rels.items():
-        if getattr(rel, "reltype", None) == RT.IMAGE:
+    # iterate over relationships to find images
+    for rel in document.part.rels.values():
+        if rel.reltype == RT.IMAGE:
             count += 1
-            # determine extension from target_ref
-            target_ref = getattr(rel, "target_ref", "")
-            ext = target_ref.split('.')[-1] if '.' in target_ref else "bin"
-            filename = f"img_{count}.{ext}"
+            ext = rel.target_ref.split('.')[-1]
+            filename = f"q{q_index}_img{count}.{ext}"
             filepath = os.path.join(output_dir, filename)
             with open(filepath, "wb") as f:
                 f.write(rel.target_part.blob)
-            images[rId] = filename
-
+            images.append(filename)
     return images
 
 # ------------------- TABLE -> HTML -------------------
@@ -2996,56 +2628,19 @@ def make_html_table(cells):
     html += "</table>"
     return html
 
-# ------------------- FLATTEN DOCX (now includes images) --------------------
+# ------------------- FLATTEN DOCX --------------------
 def flatten_doc(document):
     """
-    Returns a list of entries preserving paragraphs, tables, and image occurrences
-    in document order.
-    Each entry is:
-      - {"type":"text","content":...}
-      - {"type":"table","cells": [...]}
-      - {"type":"image","rId": "<relationship id>"}
+    Returns a list of entries preserving paragraphs and tables in document order.
+    Each entry is {"type":"text","content":...} or {"type":"table","cells": [...]}
     """
     lines = []
-
-    # XML namespaces used to find drawing/blip/image references
-    ns = {
-        'a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
-        'r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
-        'v': 'urn:schemas-microsoft-com:vml',
-        'wp': 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing',
-        'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
-    }
-
     for block in document.element.body:
-        # paragraph
         if block.tag.endswith('p'):
             para = docx.text.paragraph.Paragraph(block, document)
             text = para.text.strip()
-
-            # Look for drawing/blip (drawingml) or legacy v:imagedata
-            # We search the paragraph element for any <a:blip> or <v:imagedata> which contain r:embed or r:id
-            blips = block.xpath('.//a:blip', namespaces=ns)
-            vimgs = block.xpath('.//v:imagedata', namespaces=ns)
-
-            # If text exists, append it first (preserve textual content order)
             if text:
                 lines.append({"type": "text", "content": text})
-
-            # For each found drawing blip, append an image entry with its embed rId
-            for b in blips:
-                r_embed = b.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed')
-                if r_embed:
-                    lines.append({"type": "image", "rId": r_embed})
-
-            # For legacy v:imagedata (older docs), attribute could be 'r:id'
-            for vi in vimgs:
-                r_id = vi.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id') or vi.get('r:id')
-                if r_id:
-                    lines.append({"type": "image", "rId": r_id})
-
-            # If no text AND no images, ignore empty paragraph
-        # table
         elif block.tag.endswith('tbl'):
             table = docx.table.Table(block, document)
             rows = []
@@ -3053,10 +2648,6 @@ def flatten_doc(document):
                 cells = [cell.text.strip() for cell in row.cells]
                 rows.append(cells)
             lines.append({"type": "table", "cells": rows})
-        else:
-            # unknown block: ignore
-            pass
-
     return lines
 
 # --------------- PARSE DOCX QUESTIONS -----------------
@@ -3070,15 +2661,9 @@ def parse_docx_questions(path, image_output_dir=None):
       - answer (single letter 'a'..'d', stored lower-case)
       - marks (int)
       - image (filename or None)
-    Images are attached based on document order:
-      - an image entry that appears before a question is attached to the next question
-      - an image entry that appears while a question is being accumulated is attached to that question
+    Case studies/tables that appear before a question are attached to the next question's 'instructions'.
     """
     doc = load_docx(path)
-
-    # extract all images once and map rId -> filename
-    image_map = extract_all_images(doc, image_output_dir) if image_output_dir else {}
-
     entries = flatten_doc(doc)
 
     questions = []
@@ -3086,13 +2671,13 @@ def parse_docx_questions(path, image_output_dir=None):
     q_index = 0
     # holds instructions/case-study found before the *next* question
     pending_instructions = ""
-    # pending image filename (if an image appears before the next question)
-    pending_image = None
 
     for entry in entries:
         if entry["type"] == "text":
             line = entry["content"].strip()
 
+            # If line contains both an Answer and a new case-study after it (same paragraph),
+            # we'll handle splitting later when looking for answer lines.
             # ---------- NEW QUESTION ----------
             if is_question_line(line):
                 # push previous
@@ -3135,10 +2720,12 @@ def parse_docx_questions(path, image_output_dir=None):
                     "image": None
                 }
 
-                # If there was an image immediately preceding this question, attach it now
-                if pending_image:
-                    current["image"] = pending_image
-                    pending_image = None
+                # extract image if requested (note: this extracts doc-level images; names may collide
+                # across questions if multiple images exist - kept for backward compatibility)
+                if image_output_dir:
+                    imgs = extract_images(doc, image_output_dir, q_index)
+                    if imgs:
+                        current["image"] = imgs[0]
 
                 # reset pending_instructions; if there was embedded_case put it back as pending for next question
                 pending_instructions = embedded_case
@@ -3194,18 +2781,6 @@ def parse_docx_questions(path, image_output_dir=None):
             else:
                 # attach table to current question text
                 current["question"] += "<br>" + html_table
-
-        # ---------- IMAGE ENTRY ----------
-        elif entry["type"] == "image":
-            rId = entry.get("rId")
-            filename = image_map.get(rId) if image_map else None
-
-            # If an image appears while we're building a current question, attach it to current
-            if current:
-                current["image"] = filename
-            else:
-                # Otherwise, mark it as pending for the next question
-                pending_image = filename
 
     # push last question
     if current:
