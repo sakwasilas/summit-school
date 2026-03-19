@@ -10,5 +10,5 @@ engine = create_engine(DATABASE_URL)
 Session = scoped_session(sessionmaker(bind=engine))
 SessionLocal = Session
 
-# Base class for ORM models
+# Base class for ORM models models
 Base = declarative_base()
