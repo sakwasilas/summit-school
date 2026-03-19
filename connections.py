@@ -1,10 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 
-# ✅ Updated database URL for `summit_2_594c`
-DATABASE_URL = "postgresql://summit_2_594c_user:nONVlxoLsg6mhZgHsQfZveamzOuxNcop@dpg-d4arcia4d50c73crc21g-a.oregon-postgres.render.com:5432/summit_2_594c"
+# ✅ Render PostgreSQL database URL
+DATABASE_URL = "postgresql+psycopg2://kasneb_exams_user:6MRZVYQH4IlueDPteIajtSNfRbBdCUl7@dpg-d6tv3lvdiees73d74k3g-a.oregon-postgres.render.com:5432/kasneb_exams"
 
-# Create SQLAlchemy engine
 engine = create_engine(DATABASE_URL)
 
 # Create a scoped session
