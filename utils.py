@@ -3,6 +3,47 @@ import re
 import os
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 
+# ------------------- IMAGE EXTRACTION (FIXED - NO DUPLICATION) -----------------
+# Global cache to store extracted images per document
+_image_cache = {}
+
+def extract_images(document, output_dir, q_index):
+    """
+    Extract images from document - but only once per document.
+    Returns the image for the specific question index.
+    """
+    global _image_cache
+    
+    # Create a cache key based on document and output directory
+    cache_key = f"{id(document)}_{output_dir}"
+    
+    # If we haven't extracted images for this document yet, do it once
+    if cache_key not in _image_cache:
+        os.makedirs(output_dir, exist_ok=True)
+        images = []
+        count = 0
+        
+        # Extract all images and store them in order
+        for rel in document.part.rels.values():
+            if rel.reltype == RT.IMAGE:
+                count += 1
+                ext = rel.target_ref.split('.')[-1]
+                # Use generic names without question index
+                filename = f"img_{count}.{ext}"
+                filepath = os.path.join(output_dir, filename)
+                with open(filepath, "wb") as f:
+                    f.write(rel.target_part.blob)
+                images.append(filename)
+        
+        _image_cache[cache_key] = images
+    
+    # Return the image for this question index (1-based)
+    all_images = _image_cache[cache_key]
+    if q_index <= len(all_images):
+        return [all_images[q_index - 1]]  # Return as list to maintain compatibility
+    else:
+        return []  # No image for this question
+
 # --------------------- LOAD DOCX ---------------------
 def load_docx(path):
     return docx.Document(path)
@@ -27,23 +68,6 @@ def is_case_study_line(text):
     ]
     t = text.lower()
     return any(k in t for k in keywords)
-
-# ------------------- IMAGE EXTRACTION -----------------
-def extract_images(document, output_dir, q_index):
-    os.makedirs(output_dir, exist_ok=True)
-    images = []
-    count = 0
-    # iterate over relationships to find images
-    for rel in document.part.rels.values():
-        if rel.reltype == RT.IMAGE:
-            count += 1
-            ext = rel.target_ref.split('.')[-1]
-            filename = f"q{q_index}_img{count}.{ext}"
-            filepath = os.path.join(output_dir, filename)
-            with open(filepath, "wb") as f:
-                f.write(rel.target_part.blob)
-            images.append(filename)
-    return images
 
 # ------------------- TABLE -> HTML -------------------
 def make_html_table(cells):
@@ -150,8 +174,7 @@ def parse_docx_questions(path, image_output_dir=None):
                     "image": None
                 }
 
-                # extract image if requested (note: this extracts doc-level images; names may collide
-                # across questions if multiple images exist - kept for backward compatibility)
+                # extract image if requested (FIXED: now gets correct image per question)
                 if image_output_dir:
                     imgs = extract_images(doc, image_output_dir, q_index)
                     if imgs:
