@@ -1144,44 +1144,45 @@ def take_exam(quiz_id):
 
     db = SessionLocal()
     try:
-        
         student = db.query(StudentProfile).filter_by(user_id=session['user_id']).first()
         if not student:
             flash("Student profile not found.", "danger")
             return redirect(url_for('student_dashboard'))
 
-        
         if student.blocked:
             flash("You can't access this exam. Please clear the fee to regain access.", "danger")
             return redirect(url_for('student_dashboard'))
 
-       
         quiz = db.query(Quiz).filter_by(id=quiz_id).first()
         if not quiz:
             flash("Quiz not found.", "danger")
             return redirect(url_for('student_dashboard'))
 
-        
         db.query(ActivityLog).filter_by(student_id=student.id, is_active=True).update({"is_active": False})
         log = ActivityLog(student_id=student.id, activity_type="exam", is_active=True)
         db.add(log)
         db.commit()
 
-       
         if request.method == "POST":
             score = 0
             total_marks = 0
-            questions = db.query(Question).filter_by(quiz_id=quiz.id).all()
+
+            questions = (
+                db.query(Question)
+                .filter_by(quiz_id=quiz.id)
+                .order_by(Question.id.asc())
+                .all()
+            )
 
             for q in questions:
-                selected = request.form.get(f"question_{q.id}") 
-                total_marks += q.marks  
-                if selected and selected == q.correct_option: 
-                    score += q.marks  
+                selected = request.form.get(f"question_{q.id}")
+                total_marks += q.marks
+
+                if selected and selected.strip().lower() == (q.correct_option or "").strip().lower():
+                    score += q.marks
 
             percentage = (score / total_marks) * 100 if total_marks > 0 else 0
 
-            # ✅ save result
             result = Result(
                 student_id=student.id,
                 quiz_id=quiz.id,
@@ -1191,20 +1192,29 @@ def take_exam(quiz_id):
             )
             db.add(result)
 
-            
-            db.query(ActivityLog).filter_by(student_id=student.id, activity_type="exam", is_active=True).update({"is_active": False})
+            db.query(ActivityLog).filter_by(
+                student_id=student.id,
+                activity_type="exam",
+                is_active=True
+            ).update({"is_active": False})
+
             db.commit()
 
             flash(f"You scored {score} out of {total_marks} ({percentage:.2f}%)", "success")
             return redirect(url_for('student_dashboard'))
 
-        # ✅ render exam page
-        questions = db.query(Question).filter_by(quiz_id=quiz.id).all()
+        questions = (
+            db.query(Question)
+            .filter_by(quiz_id=quiz.id)
+            .order_by(Question.id.asc())
+            .all()
+        )
+
         return render_template("students/take_exam.html", quiz=quiz, questions=questions)
 
     finally:
         db.close()
-
+        
 @app.route('/student/results')
 def student_results():
     if 'username' not in session or session.get('role') != 'student':
