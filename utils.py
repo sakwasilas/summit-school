@@ -1658,9 +1658,1254 @@
 #     file_id = extract_drive_id(drive_url_or_id)
 #     return f"https://drive.google.com/file/d/{file_id}/preview"
 
+# import os
+# import re
+# import html
+# from docx import Document
+# from docx.oxml.ns import qn
+# from docx.table import Table
+# from docx.text.paragraph import Paragraph
+
+# DEFAULT_IMAGE_DIR = "static/question_images"
+
+
+# def extract_table_html(table):
+#     """
+#     Convert a python-docx table to simple HTML.
+#     """
+#     html_output = "<table border='1' cellspacing='0' cellpadding='5'>"
+
+#     for row in table.rows:
+#         html_output += "<tr>"
+#         for cell in row.cells:
+#             cell_text = cell.text.strip() if cell.text else ""
+#             cell_text = html.escape(cell_text).replace("\n", "<br>")
+#             html_output += f"<td>{cell_text}</td>"
+#         html_output += "</tr>"
+
+#     html_output += "</table>"
+#     return html_output
+
+
+# def save_image_from_run(run, output_dir, image_counter):
+#     """
+#     Extract image from a run and save it to disk.
+#     Returns the saved filename, or None if no image is found.
+#     """
+#     blip_elements = run._element.findall(
+#         './/a:blip',
+#         namespaces={'a': 'http://schemas.openxmlformats.org/drawingml/2006/main'}
+#     )
+
+#     if not blip_elements:
+#         return None
+
+#     r_id = blip_elements[0].get(qn('r:embed'))
+#     if not r_id:
+#         return None
+
+#     image_part = run.part.related_parts[r_id]
+#     image_data = image_part.blob
+
+#     image_filename = f"question_image_{image_counter}.png"
+#     image_path = os.path.join(output_dir, image_filename)
+
+#     with open(image_path, 'wb') as f:
+#         f.write(image_data)
+
+#     return image_filename
+
+
+# def iter_block_items(document):
+#     """
+#     Yield paragraphs and tables in document order.
+#     """
+#     body = document.element.body
+
+#     for child in body.iterchildren():
+#         if child.tag.endswith('p'):
+#             yield Paragraph(child, document)
+#         elif child.tag.endswith('tbl'):
+#             yield Table(child, document)
+
+
+# def merge_extra_content(current_question, extra_html_parts):
+#     """
+#     Merge already-stored extra_content with new paragraph/table content.
+#     This prevents tables from being overwritten later.
+#     """
+#     existing_extra = current_question.get("extra_content") or ""
+#     new_extra = ''.join(extra_html_parts) if extra_html_parts else ""
+#     merged = existing_extra + new_extra
+#     current_question["extra_content"] = merged if merged else None
+
+
+# def finalize_question(current_question, extra_html_parts, questions):
+#     """
+#     Finalize the current question:
+#     - merge extra content
+#     - validate required fields
+#     - append to questions if valid
+#     Returns True if saved, False if skipped.
+#     """
+#     if not current_question:
+#         return False
+
+#     merge_extra_content(current_question, extra_html_parts)
+
+#     if current_question.get("question") and current_question.get("answer") in ["a", "b", "c", "d"]:
+#         questions.append(current_question)
+#         return True
+
+#     return False
+
+
+# def parse_docx_questions(file_stream, image_output_dir=DEFAULT_IMAGE_DIR):
+#     document = Document(file_stream)
+#     questions = []
+#     current_question = None
+#     extra_html_parts = []
+#     image_counter = 0
+#     skipped = 0
+
+#     os.makedirs(image_output_dir, exist_ok=True)
+
+#     blocks = list(iter_block_items(document))
+#     print(f"📄 Found {len(blocks)} total blocks (paragraphs + tables)")
+
+#     for idx, block in enumerate(blocks):
+#         print(f"Processing block {idx}: {type(block).__name__}")
+
+#         if isinstance(block, Paragraph):
+#             para = block
+#             text = para.text.strip()
+
+#             print(f"  Paragraph text: '{text[:50] if text else 'EMPTY'}'")
+
+#             # Save image(s) attached to current paragraph
+#             for run in para.runs:
+#                 image_name = save_image_from_run(run, image_output_dir, image_counter + 1)
+#                 if image_name and current_question:
+#                     image_counter += 1
+#                     current_question["image"] = image_name
+#                     print(f"  📸 Saved image: {image_name}")
+
+#             if not text:
+#                 continue
+
+#             # New question
+#             if re.match(r"^\d+[\.\)]", text):
+#                 print("  🆕 New question detected")
+
+#                 if current_question:
+#                     saved = finalize_question(current_question, extra_html_parts, questions)
+#                     if not saved:
+#                         skipped += 1
+#                     extra_html_parts = []
+
+#                 # Extract marks
+#                 marks_match = re.search(r"\((\d+)\s?(?:mks|marks?)\)", text, re.IGNORECASE)
+#                 marks = int(marks_match.group(1)) if marks_match else 1
+
+#                 # Remove marks from displayed question text
+#                 clean_text = re.sub(r"\s*\(\d+\s?(?:mks|marks?)\)", "", text, flags=re.IGNORECASE)
+#                 question_text = re.sub(r"^\d+[\.\)]\s*", "", clean_text).strip()
+
+#                 current_question = {
+#                     "question": question_text,
+#                     "a": "",
+#                     "b": "",
+#                     "c": "",
+#                     "d": "",
+#                     "answer": "",
+#                     "extra_content": None,
+#                     "image": None,
+#                     "marks": marks
+#                 }
+
+#                 print(f"  Question: {question_text[:50]}...")
+
+#             # Option line: A. / A) / (A) etc.
+#             elif re.match(r"^\(?[a-dA-D][\.\)]", text):
+#                 match = re.match(r"^\(?([a-dA-D])[\.\)]\s*(.+)", text)
+#                 if match and current_question:
+#                     label = match.group(1).lower()
+#                     content = match.group(2).strip()
+#                     current_question[label] = content
+#                     print(f"  Option {label}: {content[:30]}...")
+
+#             # Answer line
+#             elif re.match(r"^(answer|correct answer):", text, re.IGNORECASE):
+#                 match = re.search(r":\s*([a-dA-D])", text, re.IGNORECASE)
+#                 if match:
+#                     if current_question:
+#                         current_question["answer"] = match.group(1).lower()
+#                         print(f"  ✓ Answer: {match.group(1).lower()}")
+#                     else:
+#                         print("⚠️ Found answer but no current question defined.")
+
+#             # Any other paragraph becomes extra content
+#             else:
+#                 print("  📝 Extra content added")
+#                 extra_html_parts.append(f"<p>{html.escape(text)}</p>")
+
+#         elif isinstance(block, Table):
+#             print("  📊 Table detected")
+#             table_html = extract_table_html(block)
+
+#             if current_question:
+#                 current_question["extra_content"] = (current_question.get("extra_content") or "") + table_html
+#                 print("  Table added to current question")
+#             else:
+#                 extra_html_parts.append(table_html)
+#                 print("  Table added to extra content (no active question)")
+
+#     # Final question
+#     if current_question:
+#         saved = finalize_question(current_question, extra_html_parts, questions)
+#         if not saved:
+#             skipped += 1
+
+#     print(f"\n✅ Parsed {len(questions)} valid questions.")
+#     if skipped > 0:
+#         print(f"⚠️ Skipped {skipped} question(s) due to missing answers or invalid format.")
+
+#     # Debug summary
+#     for i, q in enumerate(questions, 1):
+#         print(f"\nQuestion {i}: {q['question'][:50]}...")
+#         print(f"  Options: a={q['a'][:30]}, b={q['b'][:30]}, c={q['c'][:30]}, d={q['d'][:30]}")
+#         print(f"  Answer: {q['answer']}")
+#         print(f"  Has extra: {bool(q['extra_content'])}")
+#         print(f"  Has image: {bool(q['image'])}")
+
+#     return questions
+
+
+# def get_quiz_status(user_id):
+#     # Placeholder implementation
+#     return "active"
+
+
+# # ------------------ GOOGLE DRIVE HELPERS ------------------
+
+# def extract_drive_id(url):
+#     patterns = [
+#         r"https://drive\.google\.com/file/d/([A-Za-z0-9_-]+)",
+#         r"https://drive\.google\.com/open\?id=([A-Za-z0-9_-]+)"
+#     ]
+
+#     for pattern in patterns:
+#         match = re.search(pattern, url)
+#         if match:
+#             return match.group(1)
+
+#     return url
+
+
+# def get_drive_embed_url(drive_url_or_id):
+#     file_id = extract_drive_id(drive_url_or_id)
+#     return f"https://drive.google.com/file/d/{file_id}/preview"
+
+
+# import os
+# import re
+# import html
+# from docx import Document
+# from docx.oxml.ns import qn
+# from docx.table import Table
+# from docx.text.paragraph import Paragraph
+
+# DEFAULT_IMAGE_DIR = "static/question_images"
+
+
+# def normalize_text(text):
+#     if text is None:
+#         return ""
+#     return text.replace("\xa0", " ").strip()
+
+
+# def extract_table_text(table):
+#     """
+#     Convert a python-docx table to readable plain text.
+#     Safer for parsers than HTML.
+#     """
+#     rows = []
+#     for row in table.rows:
+#         cells = [normalize_text(cell.text) for cell in row.cells]
+#         rows.append(" | ".join(cells))
+#     return "\n".join(rows).strip()
+
+
+# def extract_table_html(table):
+#     """
+#     Optional HTML representation if you still want to display tables in the UI.
+#     """
+#     html_output = "<table border='1' cellspacing='0' cellpadding='5'>"
+#     for row in table.rows:
+#         html_output += "<tr>"
+#         for cell in row.cells:
+#             cell_text = normalize_text(cell.text)
+#             cell_text = html.escape(cell_text).replace("\n", "<br>")
+#             html_output += f"<td>{cell_text}</td>"
+#         html_output += "</tr>"
+#     html_output += "</table>"
+#     return html_output
+
+
+# def save_image_from_run(run, output_dir, image_counter):
+#     """
+#     Extract image from a run and save it to disk.
+#     Returns the saved filename, or None if no image is found.
+#     """
+#     blip_elements = run._element.findall(
+#         './/a:blip',
+#         namespaces={'a': 'http://schemas.openxmlformats.org/drawingml/2006/main'}
+#     )
+
+#     if not blip_elements:
+#         return None
+
+#     r_id = blip_elements[0].get(qn('r:embed'))
+#     if not r_id:
+#         return None
+
+#     image_part = run.part.related_parts[r_id]
+#     image_data = image_part.blob
+
+#     image_filename = f"question_image_{image_counter}.png"
+#     image_path = os.path.join(output_dir, image_filename)
+
+#     with open(image_path, 'wb') as f:
+#         f.write(image_data)
+
+#     return image_filename
+
+
+# def iter_block_items(document):
+#     """
+#     Yield paragraphs and tables in document order.
+#     """
+#     body = document.element.body
+#     for child in body.iterchildren():
+#         if child.tag.endswith('p'):
+#             yield Paragraph(child, document)
+#         elif child.tag.endswith('tbl'):
+#             yield Table(child, document)
+
+
+# def is_question_start(text):
+#     return bool(re.match(r"^\d+[\.\)]\s*", text))
+
+
+# def is_option_start(text):
+#     return bool(re.match(r"^\(?[A-Da-d][\.\)]\s*", text))
+
+
+# def is_answer_line(text):
+#     return bool(re.match(r"^(answer|correct answer|ans|answr)\s*:", text, re.IGNORECASE))
+
+
+# def is_instruction_line(text):
+#     """
+#     Detect grouped instruction/case-study lead-ins.
+#     """
+#     lowered = text.lower().strip()
+
+#     instruction_starts = (
+#         "use the following",
+#         "use matrices",
+#         "use the information below",
+#         "use the information to answer",
+#         "refer to the following",
+#         "answer question",
+#         "answer questions",
+#     )
+
+#     return lowered.startswith(instruction_starts)
+
+
+# def parse_answer_letter(text):
+#     """
+#     Supports:
+#     Answer: A
+#     Correct answer: B
+#     Ans: C
+#     Answr: D
+#     """
+#     match = re.search(
+#         r"^(?:answer|correct answer|ans|answr)\s*:\s*([A-Da-d])\b",
+#         text.strip(),
+#         re.IGNORECASE
+#     )
+#     return match.group(1).lower() if match else ""
+
+
+# def get_marks_from_text(text):
+#     match = re.search(r"\((\d+)\s*(?:mks|marks?)\)", text, re.IGNORECASE)
+#     if match:
+#         return int(match.group(1))
+#     return None
+
+
+# def append_with_newline(existing, new_text):
+#     new_text = normalize_text(new_text)
+#     if not new_text:
+#         return existing
+#     if not existing:
+#         return new_text
+#     return existing + "\n" + new_text
+
+
+# def start_new_question(raw_text, active_instruction):
+#     marks = get_marks_from_text(raw_text)
+
+#     return {
+#         "question": normalize_text(raw_text),          # keep original question line
+#         "question_full": normalize_text(raw_text),     # stem + continuation lines/tables
+#         "instruction": normalize_text(active_instruction),
+#         "a": "",
+#         "b": "",
+#         "c": "",
+#         "d": "",
+#         "answer": "",
+#         "marks": marks if marks is not None else 1,
+#         "extra_content": None,
+#         "extra_html": None,
+#         "image": None,
+#         "images": [],
+#     }
+
+
+# def finalize_question(question, questions):
+#     """
+#     Save even if answer is blank.
+#     Only require that some question text exists.
+#     """
+#     if not question:
+#         return False
+
+#     if normalize_text(question.get("question_full")):
+#         # Build extra_content from instruction if you want one combined field
+#         extra_parts = []
+
+#         if question.get("instruction"):
+#             extra_parts.append(question["instruction"])
+
+#         if question.get("extra_content"):
+#             extra_parts.append(question["extra_content"])
+
+#         question["extra_content"] = "\n".join([p for p in extra_parts if p]).strip() or None
+#         question["extra_html"] = question.get("extra_html") or None
+
+#         questions.append(question)
+#         return True
+
+#     return False
+
+
+# def parse_docx_questions(file_stream, image_output_dir=DEFAULT_IMAGE_DIR):
+#     document = Document(file_stream)
+#     questions = []
+
+#     current_question = None
+#     current_option = None
+
+#     # instruction blocks before a question group
+#     active_instruction = ""
+
+#     # loose intro text before first question
+#     intro_buffer = []
+
+#     image_counter = 0
+#     skipped = 0
+
+#     os.makedirs(image_output_dir, exist_ok=True)
+
+#     blocks = list(iter_block_items(document))
+#     print(f"📄 Found {len(blocks)} total blocks (paragraphs + tables)")
+
+#     def close_current_question():
+#         nonlocal current_question, current_option, skipped
+#         if current_question:
+#             saved = finalize_question(current_question, questions)
+#             if not saved:
+#                 skipped += 1
+#         current_question = None
+#         current_option = None
+
+#     for idx, block in enumerate(blocks):
+#         print(f"\nProcessing block {idx}: {type(block).__name__}")
+
+#         if isinstance(block, Paragraph):
+#             para = block
+#             raw_text = para.text or ""
+#             text = normalize_text(raw_text)
+
+#             # Save paragraph images
+#             for run in para.runs:
+#                 image_name = save_image_from_run(run, image_output_dir, image_counter + 1)
+#                 if image_name:
+#                     image_counter += 1
+#                     if current_question:
+#                         current_question["images"].append(image_name)
+#                         if not current_question["image"]:
+#                             current_question["image"] = image_name
+#                         print(f"  📸 Saved image for current question: {image_name}")
+
+#             if not text:
+#                 continue
+
+#             print(f"  Paragraph text: {text[:100]}")
+
+#             # 1. New question
+#             if is_question_start(text):
+#                 print("  🆕 New question detected")
+#                 close_current_question()
+
+#                 # If there was intro text and no active instruction yet, attach it
+#                 if intro_buffer and not active_instruction:
+#                     active_instruction = "\n".join(intro_buffer).strip()
+#                     intro_buffer = []
+
+#                 current_question = start_new_question(text, active_instruction)
+#                 current_option = None
+#                 continue
+
+#             # 2. New instruction block
+#             if is_instruction_line(text):
+#                 print("  📘 Instruction block detected")
+#                 close_current_question()
+#                 active_instruction = text
+#                 current_option = None
+#                 continue
+
+#             # 3. Option line
+#             option_match = re.match(r"^\(?([A-Da-d])[\.\)]\s*(.*)$", text)
+#             if option_match and current_question:
+#                 label = option_match.group(1).lower()
+#                 content = option_match.group(2).strip()
+
+#                 # Preserve the original option form as closely as possible
+#                 current_question[label] = text
+#                 current_option = label
+#                 print(f"  🔠 Option {label.upper()} detected")
+#                 continue
+
+#             # 4. Answer line
+#             if is_answer_line(text) and current_question:
+#                 current_question["answer"] = parse_answer_letter(text)
+#                 current_option = None
+#                 print(f"  ✅ Answer detected: {current_question['answer'] or '(blank)'}")
+#                 continue
+
+#             # 5. Continuation lines
+#             if current_question:
+#                 if current_option:
+#                     # line continues the current option
+#                     current_question[current_option] = append_with_newline(
+#                         current_question[current_option],
+#                         text
+#                     )
+#                     print(f"  ↪ Continued option {current_option.upper()}")
+#                 else:
+#                     # line continues question stem
+#                     current_question["question_full"] = append_with_newline(
+#                         current_question["question_full"],
+#                         text
+#                     )
+#                     print("  ↪ Continued question stem")
+#             else:
+#                 # no active question yet; treat as intro or instruction accumulation
+#                 if active_instruction:
+#                     active_instruction = append_with_newline(active_instruction, text)
+#                     print("  ↪ Continued instruction block")
+#                 else:
+#                     intro_buffer.append(text)
+#                     print("  ↪ Intro text buffered")
+
+#         elif isinstance(block, Table):
+#             print("  📊 Table detected")
+#             table_text = extract_table_text(block)
+#             table_html = extract_table_html(block)
+
+#             if current_question:
+#                 if current_option:
+#                     current_question[current_option] = append_with_newline(
+#                         current_question[current_option],
+#                         table_text
+#                     )
+#                     print(f"  ↪ Table attached to option {current_option.upper()}")
+#                 else:
+#                     current_question["question_full"] = append_with_newline(
+#                         current_question["question_full"],
+#                         table_text
+#                     )
+#                     print("  ↪ Table attached to question stem")
+
+#                 current_question["extra_html"] = (
+#                     (current_question.get("extra_html") or "") + table_html
+#                 )
+#             else:
+#                 if active_instruction:
+#                     active_instruction = append_with_newline(active_instruction, table_text)
+#                     print("  ↪ Table attached to instruction block")
+#                 else:
+#                     intro_buffer.append(table_text)
+#                     print("  ↪ Table buffered as intro text")
+
+#     close_current_question()
+
+#     print(f"\n✅ Parsed {len(questions)} question(s)")
+#     if skipped:
+#         print(f"⚠️ Skipped {skipped} invalid question(s)")
+
+#     for i, q in enumerate(questions, 1):
+#         print(f"\nQuestion {i}")
+#         print(f"  Question: {q['question'][:80]}")
+#         print(f"  Full stem exists: {bool(q['question_full'])}")
+#         print(f"  Instruction exists: {bool(q['instruction'])}")
+#         print(f"  A: {q['a'][:60]}")
+#         print(f"  B: {q['b'][:60]}")
+#         print(f"  C: {q['c'][:60]}")
+#         print(f"  D: {q['d'][:60]}")
+#         print(f"  Answer: {q['answer'] or '(blank)'}")
+#         print(f"  Images: {len(q['images'])}")
+
+#     return questions
+
+
+# def get_quiz_status(user_id):
+#     return "active"
+
+
+# # ------------------ GOOGLE DRIVE HELPERS ------------------
+
+# def extract_drive_id(url):
+#     patterns = [
+#         r"https://drive\.google\.com/file/d/([A-Za-z0-9_-]+)",
+#         r"https://drive\.google\.com/open\?id=([A-Za-z0-9_-]+)"
+#     ]
+
+#     for pattern in patterns:
+#         match = re.search(pattern, url)
+#         if match:
+#             return match.group(1)
+
+#     return url
+
+
+# def get_drive_embed_url(drive_url_or_id):
+#     file_id = extract_drive_id(drive_url_or_id)
+#     return f"https://drive.google.com/file/d/{file_id}/preview"
+
+
+# import os
+# import re
+# import html
+# from docx import Document
+# from docx.oxml.ns import qn
+# from docx.table import Table
+# from docx.text.paragraph import Paragraph
+
+# DEFAULT_IMAGE_DIR = "static/question_images"
+
+
+# def normalize_text(text):
+#     if text is None:
+#         return ""
+#     return text.replace("\xa0", " ").strip()
+
+
+# def extract_table_text(table):
+#     rows = []
+#     for row in table.rows:
+#         cells = [normalize_text(cell.text) for cell in row.cells]
+#         rows.append(" | ".join(cells))
+#     return "\n".join(rows).strip()
+
+
+# def extract_table_html(table):
+#     html_output = "<table border='1' cellspacing='0' cellpadding='5'>"
+#     for row in table.rows:
+#         html_output += "<tr>"
+#         for cell in row.cells:
+#             cell_text = normalize_text(cell.text)
+#             cell_text = html.escape(cell_text).replace("\n", "<br>")
+#             html_output += f"<td>{cell_text}</td>"
+#         html_output += "</tr>"
+#     html_output += "</table>"
+#     return html_output
+
+
+# def save_image_from_run(run, output_dir, image_counter):
+#     blip_elements = run._element.findall(
+#         './/a:blip',
+#         namespaces={'a': 'http://schemas.openxmlformats.org/drawingml/2006/main'}
+#     )
+
+#     if not blip_elements:
+#         return None
+
+#     r_id = blip_elements[0].get(qn('r:embed'))
+#     if not r_id:
+#         return None
+
+#     image_part = run.part.related_parts[r_id]
+#     image_data = image_part.blob
+
+#     image_filename = f"question_image_{image_counter}.png"
+#     image_path = os.path.join(output_dir, image_filename)
+
+#     with open(image_path, 'wb') as f:
+#         f.write(image_data)
+
+#     return image_filename
+
+
+# def iter_block_items(document):
+#     body = document.element.body
+#     for child in body.iterchildren():
+#         if child.tag.endswith('p'):
+#             yield Paragraph(child, document)
+#         elif child.tag.endswith('tbl'):
+#             yield Table(child, document)
+
+
+# def append_with_newline(existing, new_text):
+#     new_text = normalize_text(new_text)
+#     if not new_text:
+#         return existing
+#     if not existing:
+#         return new_text
+#     return existing + "\n" + new_text
+
+
+# def is_question_start(text):
+#     return bool(re.match(r"^\d+[\.\)]\s*", text))
+
+
+# def is_option_start(text):
+#     return bool(re.match(r"^\(?[A-Da-d][\.\)]\s*", text))
+
+
+# def is_answer_line(text):
+#     return bool(re.match(r"^(answer|correct answer|ans|answr)\s*:", text, re.IGNORECASE))
+
+
+# def is_instruction_line(text):
+#     lowered = text.lower().strip()
+#     starters = (
+#         "use the following",
+#         "use matrices",
+#         "use the information below",
+#         "use the information to answer",
+#         "refer to the following",
+#         "answer question",
+#         "answer questions",
+#     )
+#     return lowered.startswith(starters)
+
+
+# def parse_answer_letter(text):
+#     match = re.search(
+#         r"^(?:answer|correct answer|ans|answr)\s*:\s*([A-Da-d])\b",
+#         text.strip(),
+#         re.IGNORECASE
+#     )
+#     return match.group(1).lower() if match else ""
+
+
+# def get_marks_from_text(text):
+#     match = re.search(r"\((\d+)\s*(?:mks|marks?)\)", text, re.IGNORECASE)
+#     if match:
+#         return int(match.group(1))
+#     return 1
+
+
+# def start_new_question(question_line, active_instruction):
+#     full_question = question_line
+#     if active_instruction:
+#         full_question = active_instruction.strip() + "\n\n" + question_line.strip()
+
+#     return {
+#         "question": full_question.strip(),   # IMPORTANT: save everything in existing field
+#         "a": "",
+#         "b": "",
+#         "c": "",
+#         "d": "",
+#         "answer": "",
+#         "extra_content": None,
+#         "image": None,
+#         "marks": get_marks_from_text(question_line),
+#     }
+
+
+# def finalize_question(question, questions):
+#     if not question:
+#         return False
+
+#     if normalize_text(question.get("question")):
+#         questions.append(question)
+#         return True
+
+#     return False
+
+
+# def parse_docx_questions(file_stream, image_output_dir=DEFAULT_IMAGE_DIR):
+#     document = Document(file_stream)
+#     questions = []
+
+#     current_question = None
+#     current_option = None
+#     active_instruction = ""
+#     intro_buffer = []
+#     image_counter = 0
+#     skipped = 0
+
+#     os.makedirs(image_output_dir, exist_ok=True)
+
+#     blocks = list(iter_block_items(document))
+#     print(f"📄 Found {len(blocks)} total blocks")
+
+#     def close_current_question():
+#         nonlocal current_question, current_option, skipped
+#         if current_question:
+#             saved = finalize_question(current_question, questions)
+#             if not saved:
+#                 skipped += 1
+#         current_question = None
+#         current_option = None
+
+#     for idx, block in enumerate(blocks):
+#         print(f"\nProcessing block {idx}: {type(block).__name__}")
+
+#         if isinstance(block, Paragraph):
+#             para = block
+#             text = normalize_text(para.text)
+
+#             for run in para.runs:
+#                 image_name = save_image_from_run(run, image_output_dir, image_counter + 1)
+#                 if image_name and current_question:
+#                     image_counter += 1
+#                     current_question["image"] = image_name
+
+#             if not text:
+#                 continue
+
+#             print(f"  Text: {text[:100]}")
+
+#             # New grouped instruction
+#             if is_instruction_line(text):
+#                 close_current_question()
+#                 active_instruction = text
+#                 current_option = None
+#                 print("  📘 Instruction detected")
+#                 continue
+
+#             # New question
+#             if is_question_start(text):
+#                 close_current_question()
+
+#                 if intro_buffer and not active_instruction:
+#                     active_instruction = "\n".join(intro_buffer).strip()
+#                     intro_buffer = []
+
+#                 current_question = start_new_question(text, active_instruction)
+#                 current_option = None
+#                 print("  🆕 Question detected")
+#                 continue
+
+#             # Option
+#             option_match = re.match(r"^\(?([A-Da-d])[\.\)]\s*(.*)$", text)
+#             if option_match and current_question:
+#                 label = option_match.group(1).lower()
+
+#                 # keep option exactly as it appears
+#                 current_question[label] = text
+#                 current_option = label
+#                 print(f"  🔠 Option {label.upper()} detected")
+#                 continue
+
+#             # Answer
+#             if is_answer_line(text) and current_question:
+#                 current_question["answer"] = parse_answer_letter(text)
+#                 current_option = None
+#                 print(f"  ✅ Answer: {current_question['answer'] or '(blank)'}")
+#                 continue
+
+#             # Continuation lines
+#             if current_question:
+#                 if current_option:
+#                     current_question[current_option] = append_with_newline(
+#                         current_question[current_option],
+#                         text
+#                     )
+#                     print(f"  ↪ Continued option {current_option.upper()}")
+#                 else:
+#                     current_question["question"] = append_with_newline(
+#                         current_question["question"],
+#                         text
+#                     )
+#                     print("  ↪ Continued question")
+#             else:
+#                 if active_instruction:
+#                     active_instruction = append_with_newline(active_instruction, text)
+#                     print("  ↪ Continued instruction")
+#                 else:
+#                     intro_buffer.append(text)
+#                     print("  ↪ Buffered intro text")
+
+#         elif isinstance(block, Table):
+#             table_text = extract_table_text(block)
+#             print("  📊 Table detected")
+
+#             if current_question:
+#                 if current_option:
+#                     current_question[current_option] = append_with_newline(
+#                         current_question[current_option],
+#                         table_text
+#                     )
+#                     print(f"  ↪ Table added to option {current_option.upper()}")
+#                 else:
+#                     current_question["question"] = append_with_newline(
+#                         current_question["question"],
+#                         table_text
+#                     )
+#                     print("  ↪ Table added to question")
+#             else:
+#                 if active_instruction:
+#                     active_instruction = append_with_newline(active_instruction, table_text)
+#                     print("  ↪ Table added to instruction")
+#                 else:
+#                     intro_buffer.append(table_text)
+#                     print("  ↪ Table buffered")
+
+#     close_current_question()
+
+#     print(f"\n✅ Parsed {len(questions)} question(s)")
+#     if skipped:
+#         print(f"⚠️ Skipped {skipped} question(s)")
+
+#     for i, q in enumerate(questions, 1):
+#         print(f"\nQuestion {i}")
+#         print(f"QUESTION:\n{q['question'][:200]}")
+#         print(f"A: {q['a'][:80]}")
+#         print(f"B: {q['b'][:80]}")
+#         print(f"C: {q['c'][:80]}")
+#         print(f"D: {q['d'][:80]}")
+#         print(f"ANSWER: {q['answer'] or '(blank)'}")
+
+#     return questions
+
+
+# def get_quiz_status(user_id):
+#     return "active"
+
+
+# def extract_drive_id(url):
+#     patterns = [
+#         r"https://drive\.google\.com/file/d/([A-Za-z0-9_-]+)",
+#         r"https://drive\.google\.com/open\?id=([A-Za-z0-9_-]+)"
+#     ]
+
+#     for pattern in patterns:
+#         match = re.search(pattern, url)
+#         if match:
+#             return match.group(1)
+
+#     return url
+
+
+# def get_drive_embed_url(drive_url_or_id):
+#     file_id = extract_drive_id(drive_url_or_id)
+#     return f"https://drive.google.com/file/d/{file_id}/preview"
+
+
+# import os
+# import re
+# from docx import Document
+# from docx.oxml.ns import qn
+# from docx.table import Table
+# from docx.text.paragraph import Paragraph
+
+# DEFAULT_IMAGE_DIR = "static/question_images"
+
+
+# def normalize_text(text):
+#     if text is None:
+#         return ""
+#     return text.replace("\xa0", " ").strip()
+
+
+# def extract_table_text(table):
+#     rows = []
+#     for row in table.rows:
+#         cells = [normalize_text(cell.text) for cell in row.cells]
+#         rows.append(" | ".join(cells))
+#     return "\n".join(rows).strip()
+
+
+# def save_image_from_run(run, output_dir, image_counter):
+#     blip_elements = run._element.findall(
+#         './/a:blip',
+#         namespaces={'a': 'http://schemas.openxmlformats.org/drawingml/2006/main'}
+#     )
+
+#     if not blip_elements:
+#         return None
+
+#     r_id = blip_elements[0].get(qn('r:embed'))
+#     if not r_id:
+#         return None
+
+#     image_part = run.part.related_parts[r_id]
+#     image_data = image_part.blob
+
+#     image_filename = f"question_image_{image_counter}.png"
+#     image_path = os.path.join(output_dir, image_filename)
+
+#     with open(image_path, 'wb') as f:
+#         f.write(image_data)
+
+#     return image_filename
+
+
+# def iter_block_items(document):
+#     body = document.element.body
+#     for child in body.iterchildren():
+#         if child.tag.endswith('p'):
+#             yield Paragraph(child, document)
+#         elif child.tag.endswith('tbl'):
+#             yield Table(child, document)
+
+
+# def append_with_newline(existing, new_text):
+#     new_text = normalize_text(new_text)
+#     if not new_text:
+#         return existing
+#     if not existing:
+#         return new_text
+#     return existing + "\n" + new_text
+
+
+# def is_question_start(text):
+#     return bool(re.match(r"^\d+[\.\)]\s*", text))
+
+
+# def is_answer_line(text):
+#     return bool(re.match(r"^(answer|correct answer|ans|answr)\s*:", text, re.IGNORECASE))
+
+
+# def is_instruction_line(text):
+#     lowered = text.lower().strip()
+#     starters = (
+#         "use the following",
+#         "use matrices",
+#         "use the information below",
+#         "use the information to answer",
+#         "refer to the following",
+#         "answer question",
+#         "answer questions",
+#     )
+#     return lowered.startswith(starters)
+
+
+# def parse_answer_letter(text):
+#     match = re.search(
+#         r"^(?:answer|correct answer|ans|answr)\s*:\s*([A-Da-d])\b",
+#         text.strip(),
+#         re.IGNORECASE
+#     )
+#     return match.group(1).lower() if match else ""
+
+
+# def get_marks_from_text(text):
+#     match = re.search(r"\((\d+)\s*(?:mks|marks?)\)", text, re.IGNORECASE)
+#     if match:
+#         return int(match.group(1))
+#     return 1
+
+
+# def finalize_question(question, questions):
+#     if question and normalize_text(question.get("question")):
+#         questions.append(question)
+#         return True
+#     return False
+
+
+# def parse_docx_questions(file_stream, image_output_dir=DEFAULT_IMAGE_DIR):
+#     document = Document(file_stream)
+#     questions = []
+
+#     current_question = None
+#     current_option = None
+#     current_shared_block = ""   # instruction + table block for upcoming questions
+#     image_counter = 0
+#     skipped = 0
+
+#     os.makedirs(image_output_dir, exist_ok=True)
+
+#     blocks = list(iter_block_items(document))
+#     print(f"📄 Found {len(blocks)} total blocks")
+
+#     def close_current_question():
+#         nonlocal current_question, current_option, skipped
+#         if current_question:
+#             saved = finalize_question(current_question, questions)
+#             if not saved:
+#                 skipped += 1
+#         current_question = None
+#         current_option = None
+
+#     for idx, block in enumerate(blocks):
+#         print(f"\nProcessing block {idx}: {type(block).__name__}")
+
+#         if isinstance(block, Paragraph):
+#             text = normalize_text(block.text)
+
+#             # images
+#             for run in block.runs:
+#                 image_name = save_image_from_run(run, image_output_dir, image_counter + 1)
+#                 if image_name and current_question:
+#                     image_counter += 1
+#                     current_question["image"] = image_name
+
+#             if not text:
+#                 continue
+
+#             print("TEXT:", text)
+
+#             # Start of a new shared instruction block
+#             if is_instruction_line(text):
+#                 close_current_question()
+#                 current_shared_block = text
+#                 current_option = None
+#                 print("📘 Started shared block")
+#                 continue
+
+#             # New question
+#             if is_question_start(text):
+#                 close_current_question()
+
+#                 full_question = text
+#                 if current_shared_block:
+#                     full_question = current_shared_block + "\n\n" + text
+
+#                 current_question = {
+#                     "question": full_question,
+#                     "a": "",
+#                     "b": "",
+#                     "c": "",
+#                     "d": "",
+#                     "answer": "",
+#                     "extra_content": None,
+#                     "image": None,
+#                     "marks": get_marks_from_text(text),
+#                 }
+#                 current_option = None
+#                 print("🆕 New question started")
+#                 continue
+
+#             # Option
+#             option_match = re.match(r"^\(?([A-Da-d])[\.\)]\s*(.*)$", text)
+#             if option_match and current_question:
+#                 label = option_match.group(1).lower()
+#                 current_question[label] = text
+#                 current_option = label
+#                 print(f"🔠 Option {label.upper()}")
+#                 continue
+
+#             # Answer
+#             if is_answer_line(text) and current_question:
+#                 current_question["answer"] = parse_answer_letter(text)
+#                 current_option = None
+#                 print(f"✅ Answer: {current_question['answer'] or '(blank)'}")
+#                 continue
+
+#             # Continuation
+#             if current_question:
+#                 if current_option:
+#                     current_question[current_option] = append_with_newline(
+#                         current_question[current_option], text
+#                     )
+#                     print(f"↪ Continued option {current_option.upper()}")
+#                 else:
+#                     current_question["question"] = append_with_newline(
+#                         current_question["question"], text
+#                     )
+#                     print("↪ Continued current question")
+#             else:
+#                 # THIS IS THE IMPORTANT PART:
+#                 # any text before the next numbered question belongs to the shared block
+#                 current_shared_block = append_with_newline(current_shared_block, text)
+#                 print("↪ Added to shared block")
+
+#         elif isinstance(block, Table):
+#             table_text = extract_table_text(block)
+#             if not table_text:
+#                 continue
+
+#             print("📊 Table detected")
+
+#             if current_question:
+#                 if current_option:
+#                     current_question[current_option] = append_with_newline(
+#                         current_question[current_option], table_text
+#                     )
+#                     print(f"↪ Table added to option {current_option.upper()}")
+#                 else:
+#                     current_question["question"] = append_with_newline(
+#                         current_question["question"], table_text
+#                     )
+#                     print("↪ Table added to current question")
+#             else:
+#                 # THIS IS ALSO IMPORTANT:
+#                 # table before next question belongs to shared block
+#                 current_shared_block = append_with_newline(current_shared_block, table_text)
+#                 print("↪ Table added to shared block")
+
+#     close_current_question()
+
+#     print(f"\n✅ Parsed {len(questions)} question(s)")
+#     if skipped:
+#         print(f"⚠️ Skipped {skipped} question(s)")
+
+#     for i, q in enumerate(questions, 1):
+#         print(f"\nQuestion {i}")
+#         print(q["question"][:300])
+#         print("A:", q["a"])
+#         print("B:", q["b"])
+#         print("C:", q["c"])
+#         print("D:", q["d"])
+#         print("Answer:", q["answer"] or "(blank)")
+
+#     return questions
+
+
+# def get_quiz_status(user_id):
+#     return "active"
+
+
+# def extract_drive_id(url):
+#     patterns = [
+#         r"https://drive\.google\.com/file/d/([A-Za-z0-9_-]+)",
+#         r"https://drive\.google\.com/open\?id=([A-Za-z0-9_-]+)"
+#     ]
+
+#     for pattern in patterns:
+#         match = re.search(pattern, url)
+#         if match:
+#             return match.group(1)
+
+#     return url
+
+
+# def get_drive_embed_url(drive_url_or_id):
+#     file_id = extract_drive_id(drive_url_or_id)
+#     return f"https://drive.google.com/file/d/{file_id}/preview"
+
 import os
 import re
-import html
 from docx import Document
 from docx.oxml.ns import qn
 from docx.table import Table
@@ -1669,29 +2914,21 @@ from docx.text.paragraph import Paragraph
 DEFAULT_IMAGE_DIR = "static/question_images"
 
 
-def extract_table_html(table):
-    """
-    Convert a python-docx table to simple HTML.
-    """
-    html_output = "<table border='1' cellspacing='0' cellpadding='5'>"
+def normalize_text(text):
+    if text is None:
+        return ""
+    return text.replace("\xa0", " ").strip()
 
+
+def extract_table_text(table):
+    rows = []
     for row in table.rows:
-        html_output += "<tr>"
-        for cell in row.cells:
-            cell_text = cell.text.strip() if cell.text else ""
-            cell_text = html.escape(cell_text).replace("\n", "<br>")
-            html_output += f"<td>{cell_text}</td>"
-        html_output += "</tr>"
-
-    html_output += "</table>"
-    return html_output
+        cells = [normalize_text(cell.text) for cell in row.cells]
+        rows.append(" | ".join(cells))
+    return "\n".join(rows).strip()
 
 
 def save_image_from_run(run, output_dir, image_counter):
-    """
-    Extract image from a run and save it to disk.
-    Returns the saved filename, or None if no image is found.
-    """
     blip_elements = run._element.findall(
         './/a:blip',
         namespaces={'a': 'http://schemas.openxmlformats.org/drawingml/2006/main'}
@@ -1717,11 +2954,7 @@ def save_image_from_run(run, output_dir, image_counter):
 
 
 def iter_block_items(document):
-    """
-    Yield paragraphs and tables in document order.
-    """
     body = document.element.body
-
     for child in body.iterchildren():
         if child.tag.endswith('p'):
             yield Paragraph(child, document)
@@ -1729,90 +2962,122 @@ def iter_block_items(document):
             yield Table(child, document)
 
 
-def merge_extra_content(current_question, extra_html_parts):
-    """
-    Merge already-stored extra_content with new paragraph/table content.
-    This prevents tables from being overwritten later.
-    """
-    existing_extra = current_question.get("extra_content") or ""
-    new_extra = ''.join(extra_html_parts) if extra_html_parts else ""
-    merged = existing_extra + new_extra
-    current_question["extra_content"] = merged if merged else None
+def append_with_newline(existing, new_text):
+    new_text = normalize_text(new_text)
+    if not new_text:
+        return existing
+    if not existing:
+        return new_text
+    return existing + "\n" + new_text
 
 
-def finalize_question(current_question, extra_html_parts, questions):
-    """
-    Finalize the current question:
-    - merge extra content
-    - validate required fields
-    - append to questions if valid
-    Returns True if saved, False if skipped.
-    """
-    if not current_question:
-        return False
+def is_question_start(text):
+    return bool(re.match(r"^\d+[\.\)]\s*", text))
 
-    merge_extra_content(current_question, extra_html_parts)
 
-    if current_question.get("question") and current_question.get("answer") in ["a", "b", "c", "d"]:
-        questions.append(current_question)
+def is_answer_line(text):
+    return bool(re.match(r"^(answer|correct answer|ans|answr)\s*:", text, re.IGNORECASE))
+
+
+def is_instruction_line(text):
+    lowered = text.lower().strip()
+    starters = (
+        "use the following",
+        "use matrices",
+        "use the information below",
+        "use the information to answer",
+        "refer to the following",
+        "answer question",
+        "answer questions",
+    )
+    return lowered.startswith(starters)
+
+
+def parse_answer_letter(text):
+    match = re.search(
+        r"^(?:answer|correct answer|ans|answr)\s*:\s*([A-Da-d])\b",
+        text.strip(),
+        re.IGNORECASE
+    )
+    return match.group(1).lower() if match else ""
+
+
+def get_marks_from_text(text):
+    match = re.search(r"\((\d+)\s*(?:mks|marks?)\)", text, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+    return 1
+
+
+def finalize_question(question, questions):
+    if question and normalize_text(question.get("question")):
+        questions.append(question)
         return True
-
     return False
 
 
 def parse_docx_questions(file_stream, image_output_dir=DEFAULT_IMAGE_DIR):
     document = Document(file_stream)
     questions = []
+
     current_question = None
-    extra_html_parts = []
+    current_option = None
+    current_shared_block = ""
     image_counter = 0
     skipped = 0
 
     os.makedirs(image_output_dir, exist_ok=True)
 
     blocks = list(iter_block_items(document))
-    print(f"📄 Found {len(blocks)} total blocks (paragraphs + tables)")
+    print(f"📄 Found {len(blocks)} total blocks")
+
+    def close_current_question():
+        nonlocal current_question, current_option, skipped
+        if current_question:
+            saved = finalize_question(current_question, questions)
+            if not saved:
+                skipped += 1
+        current_question = None
+        current_option = None
 
     for idx, block in enumerate(blocks):
-        print(f"Processing block {idx}: {type(block).__name__}")
+        print(f"\nProcessing block {idx}: {type(block).__name__}")
 
         if isinstance(block, Paragraph):
-            para = block
-            text = para.text.strip()
+            text = normalize_text(block.text)
 
-            print(f"  Paragraph text: '{text[:50] if text else 'EMPTY'}'")
-
-            # Save image(s) attached to current paragraph
-            for run in para.runs:
+            # Save images
+            for run in block.runs:
                 image_name = save_image_from_run(run, image_output_dir, image_counter + 1)
                 if image_name and current_question:
                     image_counter += 1
                     current_question["image"] = image_name
-                    print(f"  📸 Saved image: {image_name}")
+                    print(f"📸 Saved image: {image_name}")
 
             if not text:
                 continue
 
+            print("TEXT:", text)
+
+            # Start shared instruction block
+            if is_instruction_line(text):
+                close_current_question()
+                current_shared_block = text
+                current_option = None
+                print("📘 Started shared block")
+                continue
+
             # New question
-            if re.match(r"^\d+[\.\)]", text):
-                print("  🆕 New question detected")
+            if is_question_start(text):
+                close_current_question()
 
-                if current_question:
-                    saved = finalize_question(current_question, extra_html_parts, questions)
-                    if not saved:
-                        skipped += 1
-                    extra_html_parts = []
-
-                # Extract marks
-                marks_match = re.search(r"\((\d+)\s?(?:mks|marks?)\)", text, re.IGNORECASE)
-                marks = int(marks_match.group(1)) if marks_match else 1
-
-                # Remove marks from displayed question text
-                clean_text = re.sub(r"\s*\(\d+\s?(?:mks|marks?)\)", "", text, flags=re.IGNORECASE)
-                question_text = re.sub(r"^\d+[\.\)]\s*", "", clean_text).strip()
+                full_question = text
+                if current_shared_block:
+                    full_question = current_shared_block + "\n\n" + text
+                    current_shared_block = ""   # clear after first use
 
                 current_question = {
-                    "question": question_text,
+                    "question": full_question,
                     "a": "",
                     "b": "",
                     "c": "",
@@ -1820,73 +3085,87 @@ def parse_docx_questions(file_stream, image_output_dir=DEFAULT_IMAGE_DIR):
                     "answer": "",
                     "extra_content": None,
                     "image": None,
-                    "marks": marks
+                    "marks": get_marks_from_text(text),
                 }
+                current_option = None
+                print("🆕 New question started")
+                continue
 
-                print(f"  Question: {question_text[:50]}...")
+            # Option
+            option_match = re.match(r"^\(?([A-Da-d])[\.\)]\s*(.*)$", text)
+            if option_match and current_question:
+                label = option_match.group(1).lower()
+                current_question[label] = text
+                current_option = label
+                print(f"🔠 Option {label.upper()}")
+                continue
 
-            # Option line: A. / A) / (A) etc.
-            elif re.match(r"^\(?[a-dA-D][\.\)]", text):
-                match = re.match(r"^\(?([a-dA-D])[\.\)]\s*(.+)", text)
-                if match and current_question:
-                    label = match.group(1).lower()
-                    content = match.group(2).strip()
-                    current_question[label] = content
-                    print(f"  Option {label}: {content[:30]}...")
+            # Answer
+            if is_answer_line(text) and current_question:
+                current_question["answer"] = parse_answer_letter(text)
+                current_option = None
+                print(f"✅ Answer: {current_question['answer'] or '(blank)'}")
+                continue
 
-            # Answer line
-            elif re.match(r"^(answer|correct answer):", text, re.IGNORECASE):
-                match = re.search(r":\s*([a-dA-D])", text, re.IGNORECASE)
-                if match:
-                    if current_question:
-                        current_question["answer"] = match.group(1).lower()
-                        print(f"  ✓ Answer: {match.group(1).lower()}")
-                    else:
-                        print("⚠️ Found answer but no current question defined.")
-
-            # Any other paragraph becomes extra content
+            # Continuation
+            if current_question:
+                if current_option:
+                    current_question[current_option] = append_with_newline(
+                        current_question[current_option], text
+                    )
+                    print(f"↪ Continued option {current_option.upper()}")
+                else:
+                    current_question["question"] = append_with_newline(
+                        current_question["question"], text
+                    )
+                    print("↪ Continued current question")
             else:
-                print("  📝 Extra content added")
-                extra_html_parts.append(f"<p>{html.escape(text)}</p>")
+                current_shared_block = append_with_newline(current_shared_block, text)
+                print("↪ Added to shared block")
 
         elif isinstance(block, Table):
-            print("  📊 Table detected")
-            table_html = extract_table_html(block)
+            table_text = extract_table_text(block)
+            if not table_text:
+                continue
+
+            print("📊 Table detected")
 
             if current_question:
-                current_question["extra_content"] = (current_question.get("extra_content") or "") + table_html
-                print("  Table added to current question")
+                if current_option:
+                    current_question[current_option] = append_with_newline(
+                        current_question[current_option], table_text
+                    )
+                    print(f"↪ Table added to option {current_option.upper()}")
+                else:
+                    current_question["question"] = append_with_newline(
+                        current_question["question"], table_text
+                    )
+                    print("↪ Table added to current question")
             else:
-                extra_html_parts.append(table_html)
-                print("  Table added to extra content (no active question)")
+                current_shared_block = append_with_newline(current_shared_block, table_text)
+                print("↪ Table added to shared block")
 
-    # Final question
-    if current_question:
-        saved = finalize_question(current_question, extra_html_parts, questions)
-        if not saved:
-            skipped += 1
+    close_current_question()
 
-    print(f"\n✅ Parsed {len(questions)} valid questions.")
-    if skipped > 0:
-        print(f"⚠️ Skipped {skipped} question(s) due to missing answers or invalid format.")
+    print(f"\n✅ Parsed {len(questions)} question(s)")
+    if skipped:
+        print(f"⚠️ Skipped {skipped} question(s)")
 
-    # Debug summary
     for i, q in enumerate(questions, 1):
-        print(f"\nQuestion {i}: {q['question'][:50]}...")
-        print(f"  Options: a={q['a'][:30]}, b={q['b'][:30]}, c={q['c'][:30]}, d={q['d'][:30]}")
-        print(f"  Answer: {q['answer']}")
-        print(f"  Has extra: {bool(q['extra_content'])}")
-        print(f"  Has image: {bool(q['image'])}")
+        print(f"\nQuestion {i}")
+        print(q["question"][:300])
+        print("A:", q["a"])
+        print("B:", q["b"])
+        print("C:", q["c"])
+        print("D:", q["d"])
+        print("Answer:", q["answer"] or "(blank)")
 
     return questions
 
 
 def get_quiz_status(user_id):
-    # Placeholder implementation
     return "active"
 
-
-# ------------------ GOOGLE DRIVE HELPERS ------------------
 
 def extract_drive_id(url):
     patterns = [

@@ -9,7 +9,9 @@
       font-family: Arial, sans-serif;
       margin: 20px;
       background-color: #f9f9f9;
+      color: #222;
     }
+
     .header {
       display: flex;
       align-items: center;
@@ -20,6 +22,7 @@
       border-radius: 6px;
       margin-bottom: 20px;
     }
+
     .header img {
       width: 75px;
       height: 75px;
@@ -28,11 +31,13 @@
       background: white;
       padding: 5px;
     }
+
     h1 {
       margin: 0;
       font-size: 24px;
       flex-grow: 1;
     }
+
     #timer {
       background: #ffc107;
       color: #212529;
@@ -43,25 +48,29 @@
       position: fixed;
       top: 10px;
       right: 10px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
       user-select: none;
       z-index: 1000;
     }
+
     h2 {
       color: #333;
       margin-bottom: 5px;
     }
+
     p.duration {
       font-weight: bold;
       margin-bottom: 20px;
       color: #555;
     }
+
     form {
       background: white;
       padding: 20px;
       border-radius: 6px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
     }
+
     .question-block {
       border: 1px solid #ddd;
       padding: 15px;
@@ -69,17 +78,42 @@
       border-radius: 5px;
       background: #fff;
     }
+
     .question-block img {
       max-width: 100%;
       height: auto;
       margin-top: 10px;
       border-radius: 5px;
     }
-    .options label {
-      display: block;
-      margin: 6px 0;
+
+    .question-text {
+      white-space: pre-wrap;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    .options {
+      margin-top: 10px;
+    }
+
+    .option-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 10px 0;
       cursor: pointer;
     }
+
+    .option-line input[type="radio"] {
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .option-text {
+      white-space: pre-wrap;
+      line-height: 1.5;
+    }
+
     button.submit-btn {
       background-color: #007bff;
       color: white;
@@ -90,28 +124,15 @@
       font-size: 16px;
       transition: background-color 0.3s ease;
     }
+
     button.submit-btn:hover {
       background-color: #0056b3;
     }
+
     button.submit-btn.disabled-red {
       background-color: red !important;
       cursor: not-allowed;
       opacity: 0.9;
-    }
-    /* Table styling for questions */
-    .question-block table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    .question-block table,
-    .question-block th,
-    .question-block td {
-      border: 1px solid #ccc;
-    }
-    .question-block td {
-      padding: 8px;
-      text-align: left;
     }
   </style>
 </head>
@@ -126,35 +147,50 @@
     ⏱️ Time left: <span id="countdown">Loading...</span>
   </div>
 
-  <h2><strong><center><Font color="red">SUBJECT</Font>:{{ quiz.title }}</center></strong></h2>
+  <h2><strong><center><font color="red">SUBJECT</font>: {{ quiz.title }}</center></strong></h2>
   <p class="duration">Duration: {{ quiz.duration }} minutes</p>
 
-  <!-- ================== EXAM INSTRUCTIONS ================== -->
   <div style="background: #fff3cd; border-left: 5px solid #ffa502; padding: 15px; margin-bottom: 20px; border-radius: 5px;">
-    <p><strong>Time Allowed:</strong> 2 hours.</p>
+    <p><strong>Time Allowed:</strong> {{ quiz.duration }} minutes.</p>
     <p>
-      This paper is made up of fifty (50) Multiple Choice Questions. 
-      Answer ALL questions by indicating the letter (A, B, C or D) that represents the correct answer. 
-      Each question is allocated two (2) marks.  
+      This paper is made up of fifty (50) Multiple Choice Questions.
+      Answer ALL questions by indicating the letter (A, B, C or D) that represents the correct answer.
+      Each question is allocated two (2) marks.
       <strong>Do NOT write anything on this paper.</strong>
     </p>
   </div>
-  <!-- ======================================================= -->
 
   <form method="POST" id="exam-form">
     {% for question in questions %}
       <div class="question-block">
-        <p><strong>Q{{ loop.index }}:</strong> {{ question.question_text | safe }}</p>
+        <div class="question-text">{{ question.question_text }}</div>
+
+       
 
         {% if question.image %}
-          <img src="{{ url_for('static', filename='question_images/' ~ question.image) }}" alt="Question Image" />
+          <img src="{{ url_for('static', filename='question_images/' ~ question.image) }}" alt="Question Image">
         {% endif %}
 
         <div class="options">
-          <label><input type="radio" name="question_{{ question.id }}" value="a"> A. {{ question.option_a }}</label>
-          <label><input type="radio" name="question_{{ question.id }}" value="b"> B. {{ question.option_b }}</label>
-          <label><input type="radio" name="question_{{ question.id }}" value="c"> C. {{ question.option_c }}</label>
-          <label><input type="radio" name="question_{{ question.id }}" value="d"> D. {{ question.option_d }}</label>
+          <label class="option-line">
+            <input type="radio" name="question_{{ question.id }}" value="a">
+            <div class="option-text">{{ question.option_a }}</div>
+          </label>
+
+          <label class="option-line">
+            <input type="radio" name="question_{{ question.id }}" value="b">
+            <div class="option-text">{{ question.option_b }}</div>
+          </label>
+
+          <label class="option-line">
+            <input type="radio" name="question_{{ question.id }}" value="c">
+            <div class="option-text">{{ question.option_c }}</div>
+          </label>
+
+          <label class="option-line">
+            <input type="radio" name="question_{{ question.id }}" value="d">
+            <div class="option-text">{{ question.option_d }}</div>
+          </label>
         </div>
       </div>
     {% endfor %}
@@ -181,6 +217,7 @@
         submitBtn.classList.add('disabled-red');
         form.submit();
       }
+
       totalSeconds--;
     }
 
@@ -194,4 +231,4 @@
     });
   </script>
 </body>
-</htm
+</html>
