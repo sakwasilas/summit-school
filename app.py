@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash,Response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, Response
 from werkzeug.utils import secure_filename
 import pandas as pd
 from flask import send_file
@@ -9,7 +9,7 @@ import re
 import pandas as pd
 
 from connections import SessionLocal
-from models import User, Admin, Course, Subject, Question, Quiz, Video, Document,StudentProfile,Result,Message,ActivityLog
+from models import User, Admin, Course, Subject, Question, Quiz, Video, Document, StudentProfile, Result, Message, ActivityLog
 from utils import parse_docx_questions, get_quiz_status
 from utils import extract_drive_id, get_drive_embed_url
 
@@ -46,6 +46,7 @@ def allowed(filename, allowed_set):
 @app.route('/')
 def home():
     return redirect(url_for('login'))
+
 '''
 login route
 '''
@@ -74,12 +75,14 @@ def login():
         finally:
             db.close()
     return render_template('login.html', error=error)
+
 '''
 logout route'''
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
 '''
 admin dashboard
 '''
@@ -535,6 +538,7 @@ def show_credentials():
         db.close()
 
     return render_template('admin/show_credentials.html', users=users)
+
 '''
 admin delete user
 '''
@@ -916,7 +920,7 @@ def complete_profile():
                                        admission_number=admission_number,
                                        phone_number=phone_number)
 
-            # ✅ Ensure user doesn’t already have a profile
+            # ✅ Ensure user doesn't already have a profile
             if db.query(StudentProfile).filter_by(user_id=user_id).first():
                 flash("❌ You have already completed your profile.", "warning")
                 return redirect(url_for("student_dashboard"))
@@ -979,10 +983,14 @@ def student_dashboard():
             status='active'
         ).all()
 
+        # Get all results for this student
+        results = db.query(Result).filter_by(student_id=student_profile.id).all()
         
-        taken_quiz_ids = set(
-            r.quiz_id for r in db.query(Result).filter_by(student_id=user.id).all()
-        )
+        # Create a dictionary mapping quiz_id to result for easy lookup in template
+        results_by_quiz = {r.quiz_id: r for r in results}
+        
+        # Get IDs of taken quizzes
+        taken_quiz_ids = set(results_by_quiz.keys())
 
       
         available_videos = db.query(Video).filter_by(course_id=student_profile.course_id).all()
@@ -1001,12 +1009,12 @@ def student_dashboard():
             videos=available_videos,
             documents=available_documents,
             taken_quiz_ids=taken_quiz_ids,
+            results_by_quiz=results_by_quiz,  # Add this to pass results data
             student_profile=student_profile,
             messages_from_admin=messages
         )
     finally:
         db.close()
-
 '''
 student documents and videos
 '''
@@ -1134,7 +1142,7 @@ def video_stream(filename):
     return send_file(path, mimetype="video/mp4")
 
 '''
-student take exam
+student take exam - UPDATED VERSION WITH STUDENT NAME AND CIRCULAR SCORE
 '''
 @app.route('/take_exam/<int:quiz_id>', methods=["GET", "POST"])
 def take_exam(quiz_id):
@@ -1158,6 +1166,7 @@ def take_exam(quiz_id):
             flash("Quiz not found.", "danger")
             return redirect(url_for('student_dashboard'))
 
+        # Log activity
         db.query(ActivityLog).filter_by(student_id=student.id, is_active=True).update({"is_active": False})
         log = ActivityLog(student_id=student.id, activity_type="exam", is_active=True)
         db.add(log)
@@ -1200,8 +1209,15 @@ def take_exam(quiz_id):
 
             db.commit()
 
-            flash(f"You scored {score} out of {total_marks} ({percentage:.2f}%)", "success")
-            return redirect(url_for('student_dashboard'))
+            # Pass result data to template for circular score display
+            return render_template("students/take_exam.html", 
+                                 quiz=quiz, 
+                                 questions=[], 
+                                 student=student,
+                                 show_result=True,
+                                 score=score,
+                                 total_marks=total_marks,
+                                 percentage=percentage)
 
         questions = (
             db.query(Question)
@@ -1210,7 +1226,11 @@ def take_exam(quiz_id):
             .all()
         )
 
-        return render_template("students/take_exam.html", quiz=quiz, questions=questions)
+        return render_template("students/take_exam.html", 
+                             quiz=quiz, 
+                             questions=questions, 
+                             student=student,
+                             show_result=False)
 
     finally:
         db.close()
