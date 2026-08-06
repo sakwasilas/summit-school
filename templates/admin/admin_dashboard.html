@@ -4,22 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard</title>
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
   <style>
-    body {
+    * {
       margin: 0;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      display: flex;
-      background-color: #f5f6fa;
-      color: #2c3e50;
-    }
-    h1, h3, p {
-      margin: 0 0 15px;
+      padding: 0;
+      box-sizing: border-box;
     }
 
-    /* Sidebar */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      background-color: #f0f2f5;
+      color: #2c3e50;
+      min-height: 100vh;
+    }
+
+    /* ===== SIDEBAR ===== */
     .sidebar {
-      width: 220px;
-      background: linear-gradient(180deg, #007bff, #0056b3);
+      width: 250px;
+      background: linear-gradient(180deg, #1a2332, #2c3e50);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -28,261 +33,614 @@
       top: 0;
       bottom: 0;
       color: white;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-      transition: 0.3s;
+      box-shadow: 2px 0 15px rgba(0,0,0,0.1);
       z-index: 1000;
+      transition: all 0.3s ease;
     }
-    .sidebar-content {
-      flex: 1;
-      padding: 20px 0;
+
+    .sidebar-brand {
       text-align: center;
+      padding: 25px 20px 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
-    .sidebar img {
+
+    .sidebar-brand img {
       border-radius: 50%;
-      margin-bottom: 15px;
-      border: 3px solid white;
+      border: 3px solid #1abc9c;
+      margin-bottom: 10px;
     }
-    .sidebar ol {
-      list-style: none;
-      padding: 0;
+
+    .sidebar-brand h4 {
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
       margin: 0;
     }
-    .sidebar a {
-      display: block;
-      color: white;
-      padding: 12px 20px;
+
+    .sidebar-brand span {
+      color: #1abc9c;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 15px 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-nav .nav-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      padding: 10px 20px 5px;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(255,255,255,0.7);
+      padding: 10px 20px;
       text-decoration: none;
+      font-size: 14px;
       font-weight: 500;
       transition: all 0.3s ease;
-      text-align: left;
-      font-size: 15px;
-      border-radius: 6px;
-      margin: 6px 12px;
-    }
-    .sidebar a:hover {
-      background-color: rgba(255, 255, 255, 0.2);
-      padding-left: 28px;
-    }
-    .logout {
-      padding: 15px;
-      margin: 20px 15px;
-      display: block;
-      text-align: center;
-      background: #e74c3c;
+      border-left: 3px solid transparent;
+      margin: 2px 10px;
       border-radius: 8px;
-      font-weight: bold;
+    }
+
+    .sidebar-nav a:hover {
+      background: rgba(255,255,255,0.08);
       color: white;
-      transition: 0.3s;
-    }
-    .logout:hover {
-      background: #c0392b;
+      border-left-color: #1abc9c;
+      padding-left: 25px;
     }
 
-    /* Main content */
-    .main-content {
-      margin-left: 220px;
-      flex: 1;
-      padding: 40px;
-      min-height: 100vh;
-      transition: margin-left 0.3s;
-    }
-    .dashboard-card {
-      background: white;
-      border-radius: 12px;
-      padding: 25px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-    }
-    h1 {
+    .sidebar-nav a i {
+      font-size: 18px;
+      width: 24px;
       text-align: center;
-      font-size: 26px;
-      margin-bottom: 25px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      color: #1abc9c;
     }
 
-    /* Quick action grid */
+    .sidebar-nav a.active {
+      background: rgba(26, 188, 156, 0.15);
+      color: white;
+      border-left-color: #1abc9c;
+    }
+
+    .sidebar-footer {
+      padding: 15px 20px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .sidebar-footer .logout-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #e74c3c;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 10px 15px;
+      border-radius: 8px;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+
+    .sidebar-footer .logout-btn:hover {
+      background: rgba(231, 76, 60, 0.15);
+    }
+
+    .sidebar-footer .logout-btn i {
+      font-size: 18px;
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .main-content {
+      margin-left: 250px;
+      flex: 1;
+      padding: 30px 35px;
+      min-height: 100vh;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .top-bar h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #2c3e50;
+      margin: 0;
+    }
+
+    .top-bar h1 span {
+      color: #1abc9c;
+    }
+
+    .top-bar .admin-badge {
+      background: #1abc9c;
+      color: white;
+      padding: 5px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .top-bar .date-time {
+      color: #7f8c8d;
+      font-size: 14px;
+    }
+
+    /* Welcome Card */
+    .welcome-card {
+      background: linear-gradient(135deg, #2c3e50, #1a2332);
+      color: white;
+      border-radius: 16px;
+      padding: 25px 30px;
+      margin-bottom: 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .welcome-card h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 5px;
+    }
+
+    .welcome-card p {
+      opacity: 0.8;
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .welcome-card .stats-badge {
+      display: flex;
+      gap: 25px;
+      flex-wrap: wrap;
+    }
+
+    .welcome-card .stats-badge .stat-item {
+      text-align: center;
+    }
+
+    .welcome-card .stats-badge .stat-item .number {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1abc9c;
+    }
+
+    .welcome-card .stats-badge .stat-item .label {
+      font-size: 11px;
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Quick Actions */
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #2c3e50;
+      margin: 30px 0 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, #1abc9c, transparent);
+    }
+
     .quick-actions {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 18px;
     }
+
     .quick-actions a {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 25px 20px;
+      padding: 20px 15px;
       text-align: center;
-      background: #ffffff;
+      background: white;
       border-radius: 14px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
       text-decoration: none;
       color: #2c3e50;
       font-weight: 600;
-      transition: 0.3s;
-    }
-    .quick-actions a:hover {
-      background: #007bff;
-      color: white;
-      transform: translateY(-5px);
-    }
-    .quick-actions .icon {
-      font-size: 28px;
-      margin-bottom: 12px;
-    }
-    .quick-actions p {
-      font-size: 13px;
-      font-weight: normal;
-      opacity: 0.8;
-      margin-top: 6px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+      min-height: 120px;
     }
 
-    /* Responsive Breakpoints */
+    .quick-actions a:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+      border-color: #1abc9c;
+    }
+
+    .quick-actions .icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 60px;
+      height: 60px;
+      border-radius: 14px;
+      background: #f0f2f5;
+      transition: all 0.3s;
+    }
+
+    .quick-actions a:hover .icon {
+      background: #1abc9c;
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .quick-actions a .label {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .quick-actions a .desc {
+      font-size: 11px;
+      font-weight: normal;
+      opacity: 0.7;
+      margin-top: 4px;
+    }
+
+    /* Color variants for icons */
+    .quick-actions a:nth-child(1) .icon { background: #e8f4f8; color: #17a2b8; }
+    .quick-actions a:nth-child(2) .icon { background: #e8f5e9; color: #28a745; }
+    .quick-actions a:nth-child(3) .icon { background: #fff3e0; color: #fd7e14; }
+    .quick-actions a:nth-child(4) .icon { background: #fce4ec; color: #e83e8c; }
+    .quick-actions a:nth-child(5) .icon { background: #e8eaf6; color: #6f42c1; }
+    .quick-actions a:nth-child(6) .icon { background: #e0f7fa; color: #00bcd4; }
+    .quick-actions a:nth-child(7) .icon { background: #f1f8e9; color: #8bc34a; }
+    .quick-actions a:nth-child(8) .icon { background: #fff8e1; color: #ffc107; }
+    .quick-actions a:nth-child(9) .icon { background: #fce4ec; color: #e91e63; }
+    .quick-actions a:nth-child(10) .icon { background: #e8eaf6; color: #3f51b5; }
+    .quick-actions a:nth-child(11) .icon { background: #f3e5f5; color: #9c27b0; }
+
+    .quick-actions a:hover:nth-child(1) .icon { background: #17a2b8; color: white; }
+    .quick-actions a:hover:nth-child(2) .icon { background: #28a745; color: white; }
+    .quick-actions a:hover:nth-child(3) .icon { background: #fd7e14; color: white; }
+    .quick-actions a:hover:nth-child(4) .icon { background: #e83e8c; color: white; }
+    .quick-actions a:hover:nth-child(5) .icon { background: #6f42c1; color: white; }
+    .quick-actions a:hover:nth-child(6) .icon { background: #00bcd4; color: white; }
+    .quick-actions a:hover:nth-child(7) .icon { background: #8bc34a; color: white; }
+    .quick-actions a:hover:nth-child(8) .icon { background: #ffc107; color: white; }
+    .quick-actions a:hover:nth-child(9) .icon { background: #e91e63; color: white; }
+    .quick-actions a:hover:nth-child(10) .icon { background: #3f51b5; color: white; }
+    .quick-actions a:hover:nth-child(11) .icon { background: #9c27b0; color: white; }
+
+    /* ===== RESPONSIVE ===== */
     @media (max-width: 1024px) {
       .main-content {
-        padding: 20px;
+        padding: 20px 25px;
       }
-      h1 {
-        font-size: 22px;
+      .quick-actions {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       }
     }
+
     @media (max-width: 768px) {
-      body {
-        flex-direction: column;
-      }
       .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        flex-direction: row;
-        justify-content: space-around;
-        padding: 10px;
+        width: 220px;
+        transform: translateX(-100%);
       }
-      .sidebar-content {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .sidebar ol {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        margin-left: 10px;
-      }
-      .sidebar a {
-        font-size: 14px;
-        padding: 8px 12px;
-        margin: 4px;
-        text-align: center;
+      .sidebar.open {
+        transform: translateX(0);
       }
       .main-content {
         margin-left: 0;
-        padding: 20px;
+        padding: 15px 20px;
       }
-      .quick-actions {
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      }
-    }
-    @media (max-width: 480px) {
-      h1 {
+      .top-bar h1 {
         font-size: 18px;
       }
+      .welcome-card {
+        flex-direction: column;
+        text-align: center;
+      }
+      .welcome-card .stats-badge {
+        justify-content: center;
+      }
       .quick-actions {
-        grid-template-columns: 1fr; /* Single column on very small screens */
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
       }
       .quick-actions a {
-        padding: 18px;
+        padding: 15px 10px;
+        min-height: 100px;
       }
       .quick-actions .icon {
+        width: 50px;
+        height: 50px;
         font-size: 24px;
       }
+      /* Mobile toggle button */
+      .menu-toggle {
+        display: flex !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .quick-actions {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .quick-actions a {
+        padding: 12px 8px;
+        min-height: 90px;
+      }
+      .quick-actions .icon {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+      }
+      .quick-actions a .label {
+        font-size: 12px;
+      }
+      .quick-actions a .desc {
+        display: none;
+      }
+    }
+
+    /* Mobile Menu Toggle Button */
+    .menu-toggle {
+      display: none;
+      background: #2c3e50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 20px;
+      cursor: pointer;
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 1001;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .menu-toggle:hover {
+      background: #1a2332;
+    }
+
+    /* Overlay for mobile */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
+    .sidebar-overlay.active {
+      display: block;
     }
   </style>
 </head>
 <body>
 
+  <!-- Mobile Menu Toggle -->
+  <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
   <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="sidebar-content">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
       <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Summit Tech College" width="70" height="70">
-      <ol>
-        <li><a href="{{ url_for('manage_students') }}">👨‍🎓 Manage Students</a></li>
-        <li><a href="{{ url_for('admin_messages') }}">✉️ Messages</a></li>
-        <li><a href="{{ url_for('student_activity') }}">📊 Monitor Activity</a></li>
-        <a href="{{ url_for('logout') }}" class="logout">🚪 Logout</a>
-      </ol>
+      <h4>Summit Tech</h4>
+      <span>Admin Panel</span>
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-label">Main Navigation</div>
+      <a href="{{ url_for('manage_students') }}" class="active">
+        <i class="bi bi-people-fill"></i> Manage Students
+      </a>
+      <a href="{{ url_for('admin_messages') }}">
+        <i class="bi bi-envelope-fill"></i> Messages
+      </a>
+      <a href="{{ url_for('student_activity') }}">
+        <i class="bi bi-graph-up-arrow"></i> Monitor Activity
+      </a>
+
+      <div class="nav-label" style="margin-top: 10px;">Content Management</div>
+      <a href="{{ url_for('upload_video') }}">
+        <i class="bi bi-film"></i> Upload Video
+      </a>
+      <a href="{{ url_for('list_videos') }}">
+        <i class="bi bi-folder-fill"></i> Manage Videos
+      </a>
+      <a href="{{ url_for('upload_document') }}">
+        <i class="bi bi-file-earmark-text"></i> Upload Documents
+      </a>
+      <a href="{{ url_for('manage_documents') }}">
+        <i class="bi bi-folder2-open"></i> Manage Documents
+      </a>
+
+      <div class="nav-label" style="margin-top: 10px;">Exam Management</div>
+      <a href="{{ url_for('upload_exam') }}">
+        <i class="bi bi-file-earmark-check"></i> Upload Exam
+      </a>
+      <a href="{{ url_for('view_results') }}">
+        <i class="bi bi-clipboard-data"></i> View Results
+      </a>
+      <a href="{{ url_for('manage_quizzes') }}">
+        <i class="bi bi-question-circle"></i> Manage Questions
+      </a>
+
+      <div class="nav-label" style="margin-top: 10px;">System Setup</div>
+      <a href="{{ url_for('add_course') }}">
+        <i class="bi bi-plus-circle"></i> Add Course
+      </a>
+      <a href="{{ url_for('manage_courses') }}">
+        <i class="bi bi-book"></i> Manage Courses
+      </a>
+      <a href="{{ url_for('add_subject') }}">
+        <i class="bi bi-plus-square"></i> Add Subject
+      </a>
+      <a href="{{ url_for('show_credentials') }}">
+        <i class="bi bi-key-fill"></i> Manage Credentials
+      </a>
+    </div>
+
+    <div class="sidebar-footer">
+      <a href="{{ url_for('logout') }}" class="logout-btn">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </a>
     </div>
   </div>
 
   <!-- Main Content -->
   <div class="main-content">
-    <div class="dashboard-card">
-      <h1>SUMMIT TECHNICAL COLLEGE</h1>
-      <h3>Welcome, {{ username }}</h3>
-      <p>Admin Dashboard - Manage your application here</p>
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <h1>Admin <span>Dashboard</span></h1>
+      <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+        <span class="admin-badge"><i class="bi bi-shield-check me-1"></i>Administrator</span>
+        <span class="date-time"><i class="bi bi-calendar3 me-1"></i>{{ current_year }}</span>
+      </div>
     </div>
 
-    <h3>Quick Actions</h3>
+    <!-- Welcome Card -->
+    <div class="welcome-card">
+      <div>
+        <h2>👋 Welcome back, {{ username }}!</h2>
+        <p>Manage your courses, exams, and students from one central dashboard.</p>
+      </div>
+      <div class="stats-badge">
+        <div class="stat-item">
+          <div class="number">{{ courses|length }}</div>
+          <div class="label">Courses</div>
+        </div>
+        <div class="stat-item">
+          <div class="number">{{ students_count|default(0) }}</div>
+          <div class="label">Students</div>
+        </div>
+        <div class="stat-item">
+          <div class="number">{{ exams_count|default(0) }}</div>
+          <div class="label">Exams</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section-title">
+      <i class="bi bi-lightning-fill" style="color: #1abc9c;"></i> Quick Actions
+    </div>
     <div class="quick-actions">
       <a href="{{ url_for('upload_video') }}">
         <div class="icon">🎥</div>
-        Upload Video
-        <p>Add new learning videos for students</p>
+        <span class="label">Upload Video</span>
+        <span class="desc">Add learning videos</span>
       </a>
       <a href="{{ url_for('list_videos') }}">
         <div class="icon">📂</div>
-        Manage Videos
-        <p>Edit or remove uploaded videos</p>
+        <span class="label">Manage Videos</span>
+        <span class="desc">Edit or remove videos</span>
       </a>
       <a href="{{ url_for('upload_document') }}">
         <div class="icon">📄</div>
-        Upload Documents
-        <p>Share study materials with students</p>
+        <span class="label">Upload Documents</span>
+        <span class="desc">Share study materials</span>
       </a>
       <a href="{{ url_for('manage_documents') }}">
         <div class="icon">🗂</div>
-        Manage Documents
-        <p>Organize and update existing documents</p>
+        <span class="label">Manage Documents</span>
+        <span class="desc">Organize documents</span>
       </a>
       <a href="{{ url_for('upload_exam') }}">
         <div class="icon">📝</div>
-        Upload Exam
-        <p>Prepare and publish exams</p>
+        <span class="label">Upload Exam</span>
+        <span class="desc">Prepare and publish</span>
       </a>
       <a href="{{ url_for('view_results') }}">
         <div class="icon">📑</div>
-        View Results
-        <p>Check student exam results</p>
+        <span class="label">View Results</span>
+        <span class="desc">Check student results</span>
       </a>
       <a href="{{ url_for('add_course') }}">
         <div class="icon">➕</div>
-        Add Course
-        <p>Create new courses</p>
+        <span class="label">Add Course</span>
+        <span class="desc">Create new courses</span>
       </a>
       <a href="{{ url_for('manage_courses') }}">
         <div class="icon">📘</div>
-        Manage Courses
-        <p>Update or delete existing courses</p>
+        <span class="label">Manage Courses</span>
+        <span class="desc">Update or delete</span>
       </a>
       <a href="{{ url_for('add_subject') }}">
         <div class="icon">📖</div>
-        Add Subject
-        <p>Add subjects to courses</p>
+        <span class="label">Add Subject</span>
+        <span class="desc">Add to courses</span>
       </a>
       <a href="{{ url_for('manage_quizzes') }}">
         <div class="icon">❓</div>
-        Manage Questions
-        <p>Create or update quiz questions</p>
+        <span class="label">Manage Questions</span>
+        <span class="desc">Create quiz questions</span>
       </a>
       <a href="{{ url_for('show_credentials') }}">
         <div class="icon">🔑</div>
-        Manage Credentials
-        <p>Update admin/student login access</p>
+        <span class="label">Manage Credentials</span>
+        <span class="desc">Update login access</span>
       </a>
     </div>
   </div>
 
+  <script>
+    // Toggle sidebar on mobile
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('active');
+    }
+
+    // Close sidebar when clicking a link on mobile
+    document.querySelectorAll('.sidebar-nav a').forEach(link => {
+      link.addEventListener('click', function() {
+        if (window.innerWidth <= 768) {
+          toggleSidebar();
+        }
+      });
+    });
+
+    // Auto close on resize to desktop
+    window.addEventListener('resize', function() {
+      if (window.innerWidth > 768) {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+      }
+    });
+  </script>
 </body>
 </html>
