@@ -39,7 +39,9 @@
             <i class="bi bi-trophy fs-2" style="color: #3b82f6;"></i>
           </div>
           <div>
-            <h5 class="fw-bold mb-0" style="color: #0f1724;">{{ (results|sum(attribute='score') / results|sum(attribute='total_marks') * 100)|round|int if results|sum(attribute='total_marks') > 0 else 0 }}%</h5>
+            <h5 class="fw-bold mb-0" style="color: #0f1724;">
+              {{ (results|sum(attribute='score') / results|sum(attribute='total_marks') * 100)|round|int if results|sum(attribute='total_marks') > 0 else 0 }}%
+            </h5>
             <small class="text-muted" style="font-size: 12px;">Average Score</small>
           </div>
         </div>
@@ -52,7 +54,10 @@
             <i class="bi bi-star fs-2" style="color: #eab308;"></i>
           </div>
           <div>
-            <h5 class="fw-bold mb-0" style="color: #0f1724;">{{ results|map(attribute='percentage')|max|default(0)|round|int }}%</h5>
+            <h5 class="fw-bold mb-0" style="color: #0f1724;">
+              {% set highest = results|map(attribute='percentage')|max %}
+              {{ highest|round|int if highest else 0 }}%
+            </h5>
             <small class="text-muted" style="font-size: 12px;">Highest Score</small>
           </div>
         </div>
@@ -65,7 +70,10 @@
             <i class="bi bi-clock fs-2" style="color: #ef4444;"></i>
           </div>
           <div>
-            <h5 class="fw-bold mb-0" style="color: #0f1724;">{{ results|map(attribute='taken_on')|max|default(now)|datetimeformat }}</h5>
+            <h5 class="fw-bold mb-0" style="color: #0f1724; font-size: 14px;">
+              {% set latest = results|map(attribute='taken_on')|max %}
+              {{ latest.strftime('%d/%m/%Y') if latest else 'N/A' }}
+            </h5>
             <small class="text-muted" style="font-size: 12px;">Latest Exam</small>
           </div>
         </div>
