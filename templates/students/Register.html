@@ -3,68 +3,571 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Register - Summit Technical College</title>
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body {
-            background-color: #f4f4f4;
-            padding-top: 100px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .register-form {
-            width: 350px;
-            margin: auto;
-            background: #fff;
-            padding: 30px;
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a2332 0%, #2c3e50 50%, #1a2332 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 30px 20px;
+        }
+
+        .register-container {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .register-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 35px 35px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .register-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Logo Section */
+        .logo-section {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .logo-section img {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            border: 3px solid #1abc9c;
+            padding: 3px;
+            margin-bottom: 10px;
+            background: white;
+        }
+
+        .logo-section h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-section h2 span {
+            color: #1abc9c;
+        }
+
+        .logo-section p {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin: 3px 0 0;
+        }
+
+        /* Flash Messages */
+        #flash-messages {
+            margin-bottom: 18px;
+        }
+
+        .alert {
+            padding: 12px 16px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .alert .btn-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            padding: 0 5px;
+        }
+
+        .alert .btn-close:hover {
+            opacity: 1;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .form-group label i {
+            color: #1abc9c;
+        }
+
+        .form-group .input-group {
+            position: relative;
+        }
+
+        .form-group .input-group i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #adb5bd;
+            font-size: 18px;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            color: #2c3e50;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #1abc9c;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(26, 188, 156, 0.1);
+        }
+
+        .form-control::placeholder {
+            color: #adb5bd;
+        }
+
+        .form-control.password-input {
+            padding-right: 44px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #adb5bd;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+            transition: color 0.3s;
+            z-index: 2;
+        }
+
+        .password-toggle:hover {
+            color: #2c3e50;
+        }
+
+        /* Password Requirements */
+        .password-requirements {
+            margin-top: 8px;
+            padding: 10px 14px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 12px;
+            color: #7f8c8d;
+            display: none;
+        }
+
+        .password-requirements.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        .password-requirements li {
+            list-style: none;
+            padding: 2px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .password-requirements li i {
+            font-size: 14px;
+        }
+
+        .password-requirements li.valid {
+            color: #27ae60;
+        }
+
+        .password-requirements li.invalid {
+            color: #e74c3c;
+        }
+
+        /* Register Button */
+        .btn-register {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #1abc9c, #16a085);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(26, 188, 156, 0.4);
+        }
+
+        .btn-register:active {
+            transform: translateY(0);
+        }
+
+        .btn-register i {
+            font-size: 18px;
+        }
+
+        /* Login Link */
+        .login-section {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .login-section p {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .login-section a {
+            color: #1abc9c;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .login-section a:hover {
+            color: #16a085;
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        .register-footer {
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .register-card {
+                padding: 30px 20px 25px;
+            }
+            .logo-section h2 {
+                font-size: 18px;
+            }
+            .logo-section img {
+                width: 65px;
+                height: 65px;
+            }
+            .form-control {
+                font-size: 13px;
+                padding: 10px 14px 10px 38px;
+            }
+            .btn-register {
+                font-size: 14px;
+                padding: 12px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <div class="register-form">
-        <h3 class="text-center">Register</h3>
+    <div class="register-container">
+        <div class="register-card">
 
-        <!-- Flash messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{{ 'success' if category=='success' else 'danger' }} alert-dismissible fade show mt-2 flash-message" role="alert">
-                {{ message }}
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <form method="POST">
-            <div class="form-group">
-                <label for="username">Username:</label>
-                <input type="text" name="username" class="form-control"
-                       value="{{ username if username else '' }}"
-                       placeholder="Choose a username" required>
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Summit Technical College">
+                <h2>Summit <span>Technical</span></h2>
+                <p>Create your student account</p>
             </div>
 
-            <div class="form-group mt-3">
-                <label for="password">Password:</label>
-                <input type="password" name="password" class="form-control" placeholder="Choose a password" required>
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div id="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category if category in ['success', 'danger', 'warning', 'info'] else 'info' }}">
+                                <i class="bi bi-{% if category == 'success' %}check-circle-fill{% elif category == 'danger' %}exclamation-triangle-fill{% elif category == 'warning' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %}"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-dismiss="alert">&times;</button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Registration Form -->
+            <form method="POST" id="registerForm">
+                <!-- Username -->
+                <div class="form-group">
+                    <label for="username">
+                        <i class="bi bi-person"></i> Username
+                    </label>
+                    <div class="input-group">
+                        <i class="bi bi-person-circle"></i>
+                        <input type="text" name="username" id="username" class="form-control" 
+                               value="{{ username if username else '' }}" 
+                               placeholder="Choose a username" required autofocus>
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                    <label for="password">
+                        <i class="bi bi-lock"></i> Password
+                    </label>
+                    <div class="input-group">
+                        <i class="bi bi-key"></i>
+                        <input type="password" name="password" id="password" class="form-control password-input" 
+                               placeholder="Choose a password" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <i class="bi bi-eye" id="toggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Password Requirements -->
+                <div class="password-requirements" id="passwordRequirements">
+                    <li id="req-length" class="invalid">
+                        <i class="bi bi-x-circle"></i> At least 8 characters
+                    </li>
+                    <li id="req-uppercase" class="invalid">
+                        <i class="bi bi-x-circle"></i> At least one uppercase letter
+                    </li>
+                    <li id="req-lowercase" class="invalid">
+                        <i class="bi bi-x-circle"></i> At least one lowercase letter
+                    </li>
+                    <li id="req-number" class="invalid">
+                        <i class="bi bi-x-circle"></i> At least one number
+                    </li>
+                </div>
+
+                <!-- Register Button -->
+                <button type="submit" class="btn-register" id="registerBtn">
+                    <i class="bi bi-person-plus"></i> Create Account
+                </button>
+            </form>
+
+            <!-- Login Link -->
+            <div class="login-section">
+                <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
             </div>
 
-            <button type="submit" class="btn btn-success btn-block mt-3">Register</button>
-        </form>
+        </div>
 
-        <a href="{{ url_for('login') }}" class="d-block text-center mt-3">Already have an account? Login</a>
+        <!-- Footer -->
+        <div class="register-footer">
+            &copy; {{ current_year }} Summit Technical College. All rights reserved.
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Auto-hide flash after 3 seconds -->
     <script>
-      setTimeout(() => {
-        document.querySelectorAll('.flash-message').forEach(el => {
-          el.classList.remove('show');
-          setTimeout(() => el.remove(), 500); // remove from DOM after fade
+        // Toggle password visibility
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.className = 'bi bi-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.className = 'bi bi-eye';
+            }
+        }
+
+        // Password requirements checker
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordInput = document.getElementById('password');
+            const requirements = document.getElementById('passwordRequirements');
+            
+            passwordInput.addEventListener('focus', function() {
+                requirements.classList.add('show');
+            });
+            
+            passwordInput.addEventListener('blur', function() {
+                // Keep showing if there's text in the field
+                if (this.value.length === 0) {
+                    requirements.classList.remove('show');
+                }
+            });
+
+            passwordInput.addEventListener('input', function() {
+                const value = this.value;
+                
+                // Check length
+                const lengthReq = document.getElementById('req-length');
+                if (value.length >= 8) {
+                    lengthReq.className = 'valid';
+                    lengthReq.innerHTML = '<i class="bi bi-check-circle"></i> At least 8 characters';
+                } else {
+                    lengthReq.className = 'invalid';
+                    lengthReq.innerHTML = '<i class="bi bi-x-circle"></i> At least 8 characters';
+                }
+                
+                // Check uppercase
+                const uppercaseReq = document.getElementById('req-uppercase');
+                if (/[A-Z]/.test(value)) {
+                    uppercaseReq.className = 'valid';
+                    uppercaseReq.innerHTML = '<i class="bi bi-check-circle"></i> At least one uppercase letter';
+                } else {
+                    uppercaseReq.className = 'invalid';
+                    uppercaseReq.innerHTML = '<i class="bi bi-x-circle"></i> At least one uppercase letter';
+                }
+                
+                // Check lowercase
+                const lowercaseReq = document.getElementById('req-lowercase');
+                if (/[a-z]/.test(value)) {
+                    lowercaseReq.className = 'valid';
+                    lowercaseReq.innerHTML = '<i class="bi bi-check-circle"></i> At least one lowercase letter';
+                } else {
+                    lowercaseReq.className = 'invalid';
+                    lowercaseReq.innerHTML = '<i class="bi bi-x-circle"></i> At least one lowercase letter';
+                }
+                
+                // Check number
+                const numberReq = document.getElementById('req-number');
+                if (/\d/.test(value)) {
+                    numberReq.className = 'valid';
+                    numberReq.innerHTML = '<i class="bi bi-check-circle"></i> At least one number';
+                } else {
+                    numberReq.className = 'invalid';
+                    numberReq.innerHTML = '<i class="bi bi-x-circle"></i> At least one number';
+                }
+            });
         });
-      }, 3000); // 3 seconds
+
+        // Auto-dismiss flash messages after 4 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('#flash-messages .alert');
+                alerts.forEach(function(alert) {
+                    alert.style.transition = 'opacity 0.5s ease';
+                    alert.style.opacity = '0';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 500);
+                });
+            }, 4000);
+
+            // Close button for alerts
+            document.querySelectorAll('.alert .btn-close').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const alert = this.closest('.alert');
+                    alert.style.transition = 'opacity 0.3s ease';
+                    alert.style.opacity = '0';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 300);
+                });
+            });
+        });
+
+        // Form validation on submit
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const password = document.getElementById('password').value;
+            
+            // Check password strength
+            if (password.length < 8) {
+                e.preventDefault();
+                alert('Password must be at least 8 characters long.');
+                return false;
+            }
+            
+            if (!/[A-Z]/.test(password)) {
+                e.preventDefault();
+                alert('Password must contain at least one uppercase letter.');
+                return false;
+            }
+            
+            if (!/[a-z]/.test(password)) {
+                e.preventDefault();
+                alert('Password must contain at least one lowercase letter.');
+                return false;
+            }
+            
+            if (!/\d/.test(password)) {
+                e.preventDefault();
+                alert('Password must contain at least one number.');
+                return false;
+            }
+        });
     </script>
+
 </body>
 </html>
