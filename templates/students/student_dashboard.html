@@ -12,6 +12,7 @@
     body {
       min-height: 100vh;
       background-color: #f0f2f5;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
     .sidebar {
@@ -65,161 +66,40 @@
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      background: white;
     }
     
     .exam-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
     }
     
     .exam-card .card-header-custom {
-      padding: 12px 16px;
+      padding: 10px 16px;
       color: white;
       font-weight: 600;
-      font-size: 13px;
+      font-size: 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      min-height: 44px;
     }
     
     .exam-card .card-header-custom .badge-status {
-      font-size: 11px;
-      padding: 4px 12px;
+      font-size: 10px;
+      padding: 3px 12px;
       border-radius: 20px;
-      background: rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.2);
       color: white;
-    }
-    
-    .stats-card {
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-      margin-bottom: 20px;
-      border-left: 4px solid #1abc9c;
-      transition: all 0.3s;
-    }
-    
-    .stats-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-    
-    .stats-number {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #2c3e50;
-    }
-    
-    .stats-label {
-      color: #7f8c8d;
-      font-size: 0.85rem;
       font-weight: 500;
     }
     
-    .score-circle-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 8px 0;
-    }
-    
-    .score-circle {
-      width: 85px;
-      height: 85px;
-      border-radius: 50%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.12);
-      transition: all 0.3s ease;
-    }
-    
-    .score-circle:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 25px rgba(0,0,0,0.2);
-    }
-    
-    .score-circle .score-number {
-      font-size: 22px;
-      font-weight: 700;
-      color: white;
-      line-height: 1;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
-    
-    .score-circle .score-label {
-      font-size: 8px;
-      color: rgba(255,255,255,0.9);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-      margin-top: 1px;
-    }
-    
-    .score-circle.high {
-      background: conic-gradient(#27ae60 0% 0%, #2ecc71 0% 100%);
-    }
-    
-    .score-circle.medium {
-      background: conic-gradient(#f39c12 0% 0%, #f1c40f 0% 100%);
-    }
-    
-    .score-circle.low {
-      background: conic-gradient(#e74c3c 0% 0%, #c0392b 0% 100%);
-    }
-    
-    .score-details {
-      text-align: center;
-      font-size: 0.8rem;
-      color: #555;
-      margin-top: 4px;
-    }
-    
-    .score-details .marks {
-      font-weight: 600;
-      color: #2c3e50;
-    }
-    
-    .score-details .date {
-      font-size: 0.7rem;
-      color: #999;
-    }
-    
-    .profile-info {
-      font-size: 0.85rem;
-      line-height: 1.8;
-    }
-    
-    .profile-info strong {
-      color: #1abc9c;
-    }
-    
-    .message-carousel .carousel-item {
-      background: linear-gradient(135deg, #ebf5ff, #d6eaf8);
-      border-radius: 10px;
-      padding: 15px;
-    }
-    
-    .logout-btn {
-      margin-top: auto;
-      padding-top: 20px;
-      border-top: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .logout-btn a {
-      color: #e74c3c !important;
-    }
-    
-    .logout-btn a:hover {
-      color: #c0392b !important;
+    .exam-card .card-body {
+      padding: 14px 16px 16px;
     }
     
     .exam-title {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
       margin-bottom: 3px;
       word-wrap: break-word;
@@ -227,10 +107,16 @@
       overflow-wrap: break-word;
       white-space: normal;
       line-height: 1.3;
+      color: #2c3e50;
+      min-height: 40px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     
     .exam-meta {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: #7f8c8d;
       display: flex;
       align-items: center;
@@ -241,28 +127,32 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: rgba(255,255,255,0.2);
       color: white;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
     }
     
     .btn-take-exam {
       border-radius: 8px;
       font-weight: 600;
-      font-size: 13px;
-      padding: 8px 16px;
+      font-size: 12px;
+      padding: 6px 14px;
       transition: all 0.3s;
       border: none;
       width: 100%;
+      text-align: center;
+      display: inline-block;
+      text-decoration: none;
     }
     
     .btn-take-exam:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      text-decoration: none;
     }
     
     .btn-take-exam.primary {
@@ -290,11 +180,6 @@
       color: white;
     }
     
-    .btn-take-exam.secondary {
-      background: linear-gradient(135deg, #6c757d, #495057);
-      color: white;
-    }
-    
     .btn-take-exam.purple {
       background: linear-gradient(135deg, #6f42c1, #4a2d7a);
       color: white;
@@ -315,18 +200,156 @@
       color: white;
     }
     
-    .exam-card .card-body {
-      padding: 16px;
+    .btn-take-exam.secondary {
+      background: linear-gradient(135deg, #6c757d, #495057);
+      color: white;
     }
     
-    .badge-completed {
-      background: #27ae60;
+    .btn-take-exam.completed {
+      background: linear-gradient(135deg, #27ae60, #1e7e34);
       color: white;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.7rem;
+    }
+    
+    .btn-take-exam.view-score {
+      background: linear-gradient(135deg, #6f42c1, #4a2d7a);
+      color: white;
+    }
+    
+    /* Circular Score Mini */
+    .score-mini {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    
+    .score-mini-circle {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+    }
+    
+    .score-mini-circle.high {
+      background: #27ae60;
+    }
+    .score-mini-circle.medium {
+      background: #f39c12;
+    }
+    .score-mini-circle.low {
+      background: #e74c3c;
+    }
+    
+    .score-mini-text {
+      font-size: 0.75rem;
+      color: #555;
+    }
+    
+    .score-mini-text .marks {
       font-weight: 600;
-      white-space: nowrap;
+      color: #2c3e50;
+    }
+    
+    .stats-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+      border-left: 4px solid #1abc9c;
+      transition: all 0.3s;
+    }
+    
+    .stats-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .stats-number {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #2c3e50;
+    }
+    
+    .stats-label {
+      color: #7f8c8d;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    
+    .profile-info {
+      font-size: 0.82rem;
+      line-height: 1.8;
+    }
+    
+    .profile-info strong {
+      color: #1abc9c;
+    }
+    
+    .message-carousel .carousel-item {
+      background: linear-gradient(135deg, #ebf5ff, #d6eaf8);
+      border-radius: 10px;
+      padding: 15px;
+    }
+    
+    .logout-btn {
+      margin-top: auto;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .logout-btn a {
+      color: #e74c3c !important;
+    }
+    
+    .logout-btn a:hover {
+      color: #c0392b !important;
+    }
+    
+    /* Search Bar */
+    .search-container {
+      margin-bottom: 16px;
+    }
+    
+    .search-input {
+      border-radius: 10px;
+      border: 1px solid #dee2e6;
+      padding: 10px 16px;
+      font-size: 14px;
+      width: 100%;
+      transition: all 0.3s;
+      background: white;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: #1abc9c;
+      box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.1);
+    }
+    
+    .search-input::placeholder {
+      color: #adb5bd;
+    }
+    
+    .no-exams {
+      text-align: center;
+      padding: 40px 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .no-exams i {
+      font-size: 48px;
+      color: #dee2e6;
+      display: block;
+      margin-bottom: 15px;
     }
 
     @media (max-width: 768px) {
@@ -340,22 +363,15 @@
         margin-bottom: 12px;
       }
       
-      .score-circle {
-        width: 70px;
-        height: 70px;
-      }
-      
-      .score-circle .score-number {
-        font-size: 18px;
+      .exam-title {
+        font-size: 0.8rem;
+        min-height: 32px;
       }
       
       .exam-card .card-header-custom {
-        font-size: 12px;
-        padding: 10px 14px;
-      }
-      
-      .exam-title {
-        font-size: 0.85rem;
+        font-size: 11px;
+        padding: 8px 12px;
+        min-height: 38px;
       }
     }
   </style>
@@ -368,7 +384,7 @@
       <!-- Sidebar -->
       <nav class="col-12 col-md-3 col-lg-2 sidebar d-flex flex-column p-3">
         <div class="text-center mb-3">
-          <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Summit Tech College" class="rounded-circle mb-2" width="75" height="75" style="border: 3px solid #1abc9c;">
+          <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Summit Tech College" class="rounded-circle mb-2" width="70" height="70" style="border: 3px solid #1abc9c; object-fit: cover;">
           <h5 class="text-white">Welcome, {{ username }}</h5>
         </div>
         <hr class="text-white">
@@ -401,8 +417,8 @@
 
       <!-- Main Content -->
       <main class="col px-4 py-3">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h1 style="color: #2c3e50; font-size: 1.8rem; margin: 0;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h1 style="color: #2c3e50; font-size: 1.6rem; margin: 0;">
             <i class="bi bi-mortarboard-fill text-primary me-2"></i>
             Summit Technical College
           </h1>
@@ -425,7 +441,7 @@
         {% endwith %}
 
         <!-- Stats Cards -->
-        <div class="row mb-4">
+        <div class="row mb-3">
           <div class="col-md-4 col-sm-6">
             <div class="stats-card">
               <div class="stats-number">{{ quizzes|length }}</div>
@@ -448,40 +464,38 @@
 
         <!-- Admin Messages Carousel -->
         {% if messages_from_admin %}
-        <div id="messageCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+        <div id="messageCarousel" class="carousel slide mb-3" data-bs-ride="carousel">
           <div class="carousel-inner">
             {% for msg in messages_from_admin %}
             <div class="carousel-item {% if loop.first %}active{% endif %}">
-              <div class="alert alert-info text-center mb-0 py-3" style="background: linear-gradient(135deg, #ebf5ff, #d6eaf8); border: none; border-radius: 10px;">
-                <h5 class="mb-1">📢 From Summit Technical College:</h5>
+              <div class="alert alert-info text-center mb-0 py-2" style="background: linear-gradient(135deg, #ebf5ff, #d6eaf8); border: none; border-radius: 10px;">
                 <p class="mb-0"><span class="text-danger fw-bold">{{ msg.content }}</span></p>
                 <small class="text-muted">Sent on {{ msg.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
               </div>
             </div>
             {% endfor %}
           </div>
-          <button class="carousel-control-prev" type="button" data-bs-target="#messageCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon"></span>
-          </button>
-          <button class="carousel-control-next" type="button" data-bs-target="#messageCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon"></span>
-          </button>
         </div>
         {% endif %}
+
+        <!-- Search Bar -->
+        <div class="search-container">
+          <input type="text" id="searchExams" class="search-input" placeholder="🔍 Search exams by title..." onkeyup="filterExams()">
+        </div>
 
         <!-- Available Exams -->
         <div class="section-title">
           <i class="bi bi-file-earmark-check me-2"></i>Available Exams & Results
-          <span class="badge bg-primary ms-2">{{ quizzes|length }}</span>
+          <span class="badge bg-primary ms-2" id="examCount">{{ quizzes|length }}</span>
         </div>
         
-        <div class="row">
+        <div class="row" id="examContainer">
           {% for exam in quizzes %}
           {% set colors = ['primary', 'success', 'warning', 'danger', 'info', 'purple', 'orange', 'teal', 'pink'] %}
           {% set color_index = loop.index0 % colors|length %}
           {% set btn_color = colors[color_index] %}
           
-          <div class="col-xl-3 col-lg-4 col-md-6 mb-3">
+          <div class="col-xl-3 col-lg-4 col-md-6 mb-3 exam-item" data-title="{{ exam.title|lower }}">
             <div class="card exam-card">
               <div class="card-header-custom" style="background: linear-gradient(135deg, 
                 {% if btn_color == 'primary' %}#007bff, #0056b3
@@ -497,7 +511,7 @@
               );">
                 <span>
                   <span class="exam-number">{{ loop.index }}</span>
-                  <span class="ms-1">{{ exam.duration }} min</span>
+                  <span class="ms-1">{{ exam.duration }}m</span>
                 </span>
                 {% if exam.id in taken_quiz_ids %}
                   <span class="badge-status">
@@ -506,37 +520,28 @@
                 {% else %}
                   <span class="badge-status">
                     <i class="bi bi-{% if exam.status == 'active' %}play-circle-fill{% else %}lock-fill{% endif %} me-1"></i>
-                    {% if exam.status == 'active' %}Available{% else %}Locked{% endif %}
+                    {% if exam.status == 'active' %}Ready{% else %}Locked{% endif %}
                   </span>
                 {% endif %}
               </div>
               <div class="card-body">
                 <div class="exam-title">{{ exam.title }}</div>
                 
-                <!-- Circular Score for Completed Exams -->
+                <!-- Show Score for Completed Exams -->
                 {% if exam.id in taken_quiz_ids %}
                   {% set result = results_by_quiz.get(exam.id) %}
                   {% if result %}
-                    <div class="score-circle-wrapper">
-                      <div class="score-circle 
+                    <div class="score-mini">
+                      <div class="score-mini-circle 
                         {% if result.percentage >= 70 %}high
                         {% elif result.percentage >= 50 %}medium
-                        {% else %}low{% endif %}"
-                        style="background: conic-gradient(
-                          {% if result.percentage >= 70 %}#27ae60 0% {{ result.percentage }}%, #2ecc71 {{ result.percentage }}% 100%
-                          {% elif result.percentage >= 50 %}#f39c12 0% {{ result.percentage }}%, #f1c40f {{ result.percentage }}% 100%
-                          {% else %}#e74c3c 0% {{ result.percentage }}%, #c0392b {{ result.percentage }}% 100%
-                          {% endif %}
-                        );">
-                        <div class="score-circle-inner">
-                          <div class="score-number">{{ "%.0f"|format(result.percentage) }}%</div>
-                          <div class="score-label">Score</div>
-                        </div>
+                        {% else %}low{% endif %}">
+                        {{ "%.0f"|format(result.percentage) }}%
                       </div>
-                    </div>
-                    <div class="score-details">
-                      <div class="marks">{{ result.score }}/{{ result.total_marks }}</div>
-                      <div class="date">{{ result.taken_on.strftime('%d/%m/%Y') }}</div>
+                      <div class="score-mini-text">
+                        <div class="marks">{{ result.score }}/{{ result.total_marks }}</div>
+                        <div style="font-size: 0.6rem; color: #999;">{{ result.taken_on.strftime('%d/%m/%Y') }}</div>
+                      </div>
                     </div>
                   {% endif %}
                 {% endif %}
@@ -561,9 +566,10 @@
           </div>
           {% else %}
           <div class="col-12">
-            <div class="alert alert-info text-center py-4">
-              <i class="bi bi-info-circle fs-4 me-2"></i>
-              <p class="mb-0">No exams available at the moment. Please check back later.</p>
+            <div class="no-exams">
+              <i class="bi bi-inbox"></i>
+              <h5>No Exams Available</h5>
+              <p class="text-muted">There are no active exams for your course at the moment.</p>
             </div>
           </div>
           {% endfor %}
@@ -573,7 +579,7 @@
   </div>
 
   <!-- Footer -->
-  <footer class="text-center py-3 bg-dark text-light mt-auto">
+  <footer class="text-center py-2 bg-dark text-light mt-auto" style="font-size: 0.8rem;">
     &copy; {{ current_year }} Summit Technical College. All rights reserved.
   </footer>
 
@@ -593,6 +599,49 @@
         });
       }, 5000);
     });
+
+    // Search/Filter Exams
+    function filterExams() {
+      const input = document.getElementById('searchExams');
+      const filter = input.value.toLowerCase();
+      const container = document.getElementById('examContainer');
+      const items = container.getElementsByClassName('exam-item');
+      let visibleCount = 0;
+      
+      for (let i = 0; i < items.length; i++) {
+        const title = items[i].getAttribute('data-title');
+        if (title.includes(filter)) {
+          items[i].style.display = '';
+          visibleCount++;
+        } else {
+          items[i].style.display = 'none';
+        }
+      }
+      
+      // Update count
+      document.getElementById('examCount').textContent = visibleCount;
+      
+      // Show message if no results
+      let noResultMsg = document.getElementById('noResultMsg');
+      if (visibleCount === 0 && items.length > 0) {
+        if (!noResultMsg) {
+          noResultMsg = document.createElement('div');
+          noResultMsg.id = 'noResultMsg';
+          noResultMsg.className = 'col-12';
+          noResultMsg.innerHTML = `
+            <div class="no-exams">
+              <i class="bi bi-search"></i>
+              <h5>No exams found</h5>
+              <p class="text-muted">Try searching with different keywords.</p>
+            </div>
+          `;
+          container.appendChild(noResultMsg);
+        }
+        noResultMsg.style.display = '';
+      } else if (noResultMsg) {
+        noResultMsg.style.display = 'none';
+      }
+    }
   </script>
 </body>
 </html>
