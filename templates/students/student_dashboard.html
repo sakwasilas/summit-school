@@ -226,11 +226,31 @@
       height: 100%;
       box-shadow: 0 2px 12px rgba(0,0,0,0.06);
       background: white;
+      position: relative;
     }
 
     .exam-card:hover {
       transform: translateY(-6px);
       box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+    }
+
+    .exam-card.locked {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .exam-card.locked .card-header-custom {
+      filter: grayscale(0.5);
+    }
+
+    .exam-card.locked .lock-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      color: rgba(0,0,0,0.15);
+      z-index: 1;
     }
 
     .exam-card .card-header-custom {
@@ -360,6 +380,77 @@
     .btn-take.purple { background: linear-gradient(135deg, #6f42c1, #4a2d7a); color: white; }
     .btn-take.orange { background: linear-gradient(135deg, #fd7e14, #cc6a10); color: white; }
     .btn-take.secondary { background: linear-gradient(135deg, #6c757d, #495057); color: white; }
+    .btn-take.locked-btn { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
+
+    /* Progress Bar */
+    .progress-container {
+      background: white;
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .progress-container .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f1724;
+      margin-bottom: 8px;
+    }
+
+    .progress-container .progress-label span {
+      color: #1abc9c;
+    }
+
+    .progress-container .progress {
+      height: 8px;
+      border-radius: 10px;
+      background: #e9ecef;
+    }
+
+    .progress-container .progress .progress-bar {
+      background: linear-gradient(90deg, #1abc9c, #16a085);
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
+
+    /* Sequence Indicator */
+    .sequence-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 10px 0 4px;
+      flex-wrap: wrap;
+    }
+
+    .sequence-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #e9ecef;
+      transition: all 0.3s;
+    }
+
+    .sequence-dot.completed {
+      background: #27ae60;
+    }
+
+    .sequence-dot.active {
+      background: #1abc9c;
+      box-shadow: 0 0 12px rgba(26, 188, 156, 0.4);
+    }
+
+    .sequence-dot.locked {
+      background: #dee2e6;
+    }
+
+    .sequence-dot .dot-label {
+      font-size: 8px;
+      color: #999;
+      text-align: center;
+    }
 
     /* Message Carousel */
     .message-carousel .carousel-item {
@@ -517,23 +608,37 @@
           <div class="col-md-4 col-sm-6">
             <div class="stats-card">
               <div class="stats-icon blue"><i class="bi bi-file-earmark-text"></i></div>
-              <div class="stats-number">{{ quizzes|length }}</div>
+              <div class="stats-number" id="totalExams">{{ quizzes|length }}</div>
               <div class="stats-label">Available Exams</div>
             </div>
           </div>
           <div class="col-md-4 col-sm-6">
             <div class="stats-card">
               <div class="stats-icon green"><i class="bi bi-check-circle-fill"></i></div>
-              <div class="stats-number">{{ taken_quiz_ids|length }}</div>
+              <div class="stats-number" id="completedExams">{{ taken_quiz_ids|length }}</div>
               <div class="stats-label">Completed</div>
             </div>
           </div>
           <div class="col-md-4 col-sm-6">
             <div class="stats-card">
               <div class="stats-icon orange"><i class="bi bi-graph-up"></i></div>
-              <div class="stats-number">{{ ((taken_quiz_ids|length / quizzes|length) * 100)|round|int if quizzes|length > 0 else 0 }}%</div>
+              <div class="stats-number" id="completionRate">{{ ((taken_quiz_ids|length / quizzes|length) * 100)|round|int if quizzes|length > 0 else 0 }}%</div>
               <div class="stats-label">Completion Rate</div>
             </div>
+          </div>
+        </div>
+
+        <!-- Progress Container -->
+        <div class="progress-container">
+          <div class="progress-label">
+            <span>📊 Exam Progress</span>
+            <span><span id="completedCount">{{ taken_quiz_ids|length }}</span> / <span id="totalCount">{{ quizzes|length }}</span> completed</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar" id="progressBar" style="width: {{ ((taken_quiz_ids|length / quizzes|length) * 100)|round|int if quizzes|length > 0 else 0 }}%"></div>
+          </div>
+          <div style="margin-top: 10px; font-size: 12px; color: #7f8c8d;">
+            <i class="bi bi-info-circle"></i> Complete each exam in order. The next exam will unlock automatically.
           </div>
         </div>
 
@@ -563,14 +668,18 @@
           <span class="badge bg-primary rounded-pill ms-2">{{ quizzes|length }}</span>
         </div>
 
-        <div class="row g-3">
+        <div class="row g-3" id="examContainer">
           {% for exam in quizzes %}
           {% set colors = ['primary', 'success', 'warning', 'danger', 'info', 'purple', 'orange'] %}
           {% set color_index = loop.index0 % colors|length %}
           {% set btn_color = colors[color_index] %}
           
-          <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="exam-card">
+          <div class="col-xl-3 col-lg-4 col-md-6 exam-item" 
+               data-exam-id="{{ exam.id }}" 
+               data-index="{{ loop.index0 }}"
+               data-completed="{% if exam.id in taken_quiz_ids %}true{% else %}false{% endif %}">
+            <div class="exam-card {% if not loop.first and exam.id not in taken_quiz_ids %}locked{% endif %}" 
+                 id="examCard{{ loop.index0 }}">
               <div class="card-header-custom" style="background: linear-gradient(135deg, 
                 {% if btn_color == 'primary' %}#007bff, #0056b3
                 {% elif btn_color == 'success' %}#28a745, #1e7e34
@@ -616,19 +725,31 @@
                   {% endif %}
                 {% endif %}
                 
+                <!-- Sequence Indicator -->
+                <div class="sequence-indicator">
+                  <span style="font-size: 10px; color: #999; font-weight: 500;">Seq:</span>
+                  {% for i in range(quizzes|length) %}
+                    <div class="sequence-dot 
+                      {% if i < loop.index0 %}completed
+                      {% elif i == loop.index0 %}active
+                      {% else %}locked{% endif %}" 
+                      title="Exam {{ i+1 }}"></div>
+                  {% endfor %}
+                </div>
+                
                 <!-- Action Button -->
                 <div class="mt-2">
-                  {% if exam.status == 'active' and exam.id not in taken_quiz_ids %}
-                    <a href="{{ url_for('take_exam', quiz_id=exam.id) }}" class="btn-take {{ btn_color }}">
-                      <i class="bi bi-play-fill me-1"></i> Take Exam
-                    </a>
-                  {% elif exam.status == 'active' and exam.id in taken_quiz_ids %}
+                  {% if exam.id in taken_quiz_ids %}
                     <a href="{{ url_for('student_dashboard') }}" class="btn-take secondary">
                       <i class="bi bi-house me-1"></i> Dashboard
                     </a>
+                  {% elif loop.index0 == 0 or (loop.index0 > 0 and quizzes[loop.index0 - 1].id in taken_quiz_ids) %}
+                    <a href="{{ url_for('take_exam', quiz_id=exam.id) }}" class="btn-take {{ btn_color }}" data-exam-link="true">
+                      <i class="bi bi-play-fill me-1"></i> Take Exam
+                    </a>
                   {% else %}
-                    <button class="btn-take secondary" disabled>
-                      <i class="bi bi-lock me-1"></i> Not Available
+                    <button class="btn-take locked-btn" disabled>
+                      <i class="bi bi-lock me-1"></i> Complete Previous Exam
                     </button>
                   {% endif %}
                 </div>
@@ -658,8 +779,8 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   
   <script>
-    // Auto-dismiss alerts after 5 seconds
     document.addEventListener('DOMContentLoaded', function() {
+      // Auto-dismiss alerts after 5 seconds
       setTimeout(function() {
         const alerts = document.querySelectorAll('.alert-dismissible');
         alerts.forEach(function(alert) {
@@ -669,6 +790,131 @@
           }
         });
       }, 5000);
+
+      // Function to check if an exam is completed (from backend data)
+      const takenExamIds = {{ taken_quiz_ids|tojson }};
+      
+      // Store completed exams in localStorage for persistence
+      if (takenExamIds && takenExamIds.length > 0) {
+        localStorage.setItem('completedExams', JSON.stringify(takenExamIds));
+      }
+
+      // Function to get completed exams from localStorage
+      function getCompletedExams() {
+        const stored = localStorage.getItem('completedExams');
+        if (stored) {
+          try {
+            return JSON.parse(stored);
+          } catch(e) {
+            return [];
+          }
+        }
+        return [];
+      }
+
+      // Function to check if exam is completed
+      function isExamCompleted(examId) {
+        const completed = getCompletedExams();
+        return completed.includes(examId);
+      }
+
+      // Function to update exam card status
+      function updateExamStatus() {
+        const examItems = document.querySelectorAll('.exam-item');
+        const completed = getCompletedExams();
+        
+        examItems.forEach(function(item, index) {
+          const examId = parseInt(item.dataset.examId);
+          const card = item.querySelector('.exam-card');
+          const btn = item.querySelector('.btn-take');
+          
+          // Check if current exam is completed
+          const isCompleted = completed.includes(examId);
+          
+          // Check if previous exam is completed (for unlocking)
+          let previousCompleted = false;
+          if (index === 0) {
+            previousCompleted = true; // First exam is always unlocked
+          } else {
+            const prevItem = examItems[index - 1];
+            if (prevItem) {
+              const prevId = parseInt(prevItem.dataset.examId);
+              previousCompleted = completed.includes(prevId);
+            }
+          }
+          
+          // Update card state
+          if (isCompleted) {
+            card.classList.remove('locked');
+            item.dataset.completed = 'true';
+          } else if (previousCompleted) {
+            card.classList.remove('locked');
+            item.dataset.completed = 'false';
+          } else {
+            card.classList.add('locked');
+            item.dataset.completed = 'false';
+          }
+        });
+      }
+
+      // Handle exam completion after taking an exam
+      // This will be called when the user returns from an exam
+      function handleExamCompletion(examId) {
+        let completed = getCompletedExams();
+        if (!completed.includes(examId)) {
+          completed.push(examId);
+          localStorage.setItem('completedExams', JSON.stringify(completed));
+          updateExamStatus();
+          updateStats();
+        }
+      }
+
+      // Update stats when exams are completed
+      function updateStats() {
+        const completed = getCompletedExams();
+        const totalExams = parseInt(document.getElementById('totalExams').textContent);
+        const completedCount = completed.length;
+        const rate = Math.round((completedCount / totalExams) * 100) || 0;
+        
+        document.getElementById('completedExams').textContent = completedCount;
+        document.getElementById('completionRate').textContent = rate + '%';
+        document.getElementById('completedCount').textContent = completedCount;
+        document.getElementById('progressBar').style.width = rate + '%';
+        
+        // Update exam cards
+        updateExamStatus();
+      }
+
+      // Check for exam completion on page load
+      // If we came from an exam, check if we need to mark it as complete
+      const urlParams = new URLSearchParams(window.location.search);
+      const completedExamId = urlParams.get('completed_exam');
+      if (completedExamId) {
+        handleExamCompletion(parseInt(completedExamId));
+        // Remove from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // Initial setup
+      updateExamStatus();
+
+      // Intercept exam link clicks to track completion
+      document.querySelectorAll('.btn-take[data-exam-link="true"]').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+          // Let the user take the exam normally
+          // When they return, the page will check for completion
+        });
+      });
+
+      // Check for completed exams from backend on load
+      // This ensures the UI reflects the true state
+      if (takenExamIds && takenExamIds.length > 0) {
+        localStorage.setItem('completedExams', JSON.stringify(takenExamIds));
+        updateExamStatus();
+      }
+
+      console.log('✅ Exam sequencing enabled!');
+      console.log('📊 Completed exams:', getCompletedExams());
     });
   </script>
 </body>
