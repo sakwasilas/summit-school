@@ -1003,8 +1003,8 @@ def student_dashboard():
         # Create a dictionary mapping quiz_id to result for easy lookup in template
         results_by_quiz = {r.quiz_id: r for r in results}
         
-        # Get IDs of taken quizzes
-        taken_quiz_ids = set(results_by_quiz.keys())
+        # Get IDs of taken quizzes - CONVERT SET TO LIST for JSON serialization
+        taken_quiz_ids = list(results_by_quiz.keys())  # <-- FIX: Convert to list
 
       
         available_videos = db.query(Video).filter_by(course_id=student_profile.course_id).all()
@@ -1022,10 +1022,11 @@ def student_dashboard():
             quizzes=available_quizzes,
             videos=available_videos,
             documents=available_documents,
-            taken_quiz_ids=taken_quiz_ids,
-            results_by_quiz=results_by_quiz,  # Add this to pass results data
+            taken_quiz_ids=taken_quiz_ids,  # Now a list, not a set
+            results_by_quiz=results_by_quiz,
             student_profile=student_profile,
-            messages_from_admin=messages
+            messages_from_admin=messages,
+            current_year=datetime.now().year
         )
     finally:
         db.close()
