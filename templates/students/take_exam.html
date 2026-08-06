@@ -476,6 +476,114 @@
       min-width: 150px;
     }
 
+    /* Custom Confirmation Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-box {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 450px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+      from { transform: translateY(-30px) scale(0.95); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .modal-icon {
+      text-align: center;
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .modal-title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+
+    .modal-message {
+      text-align: center;
+      color: #555;
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .modal-message strong {
+      color: #007bff;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .modal-btn {
+      padding: 10px 30px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .modal-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .modal-btn.confirm {
+      background: #28a745;
+      color: white;
+    }
+
+    .modal-btn.confirm:hover {
+      background: #218838;
+    }
+
+    .modal-btn.cancel {
+      background: #dc3545;
+      color: white;
+    }
+
+    .modal-btn.cancel:hover {
+      background: #c82333;
+    }
+
+    .modal-btn.continue {
+      background: #6c757d;
+      color: white;
+    }
+
+    .modal-btn.continue:hover {
+      background: #5a6268;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .header {
@@ -541,6 +649,18 @@
         padding: 12px 20px;
         min-width: 100px;
       }
+
+      .modal-box {
+        padding: 20px;
+      }
+
+      .modal-buttons {
+        flex-direction: column;
+      }
+
+      .modal-btn {
+        width: 100%;
+      }
     }
 
     @media print {
@@ -561,7 +681,7 @@
     </div>
   </div>
 
-  <!-- Timer - Now in its own container with proper positioning -->
+  <!-- Timer -->
   {% if not show_result %}
     <div class="timer-container">
       <div id="timer">
@@ -586,7 +706,7 @@
     </p>
   </div>
 
-  <!-- Result Display - Only shown when show_result is True -->
+  <!-- Result Display -->
   {% if show_result %}
     <div class="result-container show" id="resultContainer">
       <h2 style="margin-bottom: 20px; color: #212529;">Exam Results</h2>
@@ -627,7 +747,7 @@
     </div>
   {% endif %}
 
-  <!-- Exam Form - Only shown when show_result is False -->
+  <!-- Exam Form -->
   {% if not show_result %}
     <form method="POST" id="exam-form">
       <div class="question-container">
@@ -671,7 +791,7 @@
         {% endfor %}
       </div>
 
-      <!-- Question Navigator (Mini Grid) -->
+      <!-- Question Navigator -->
       <div class="question-navigator" id="questionNavigator">
         {% for q in questions %}
           <div class="nav-dot" data-page="{{ loop.index0 }}" onclick="goToPage({{ loop.index0 }})">
@@ -696,7 +816,9 @@
           <button type="button" class="nav-btn primary" id="nextBtn" onclick="changePage(1)">
             Next ▶
           </button>
-          <button type="submit" class="nav-btn success" id="submitExamBtn">Submit Exam</button>
+          <button type="button" class="nav-btn success" id="submitExamBtn" onclick="showSubmitModal()">
+            Submit Exam
+          </button>
         </div>
       </div>
 
@@ -707,10 +829,31 @@
     </form>
   {% endif %}
 
+  <!-- Custom Confirmation Modal -->
+  <div class="modal-overlay" id="submitModal">
+    <div class="modal-box">
+      <div class="modal-icon">📝</div>
+      <div class="modal-title">Submit Exam?</div>
+      <div class="modal-message">
+        You have answered <strong id="modalAnsweredCount">0</strong> out of <strong id="modalTotalCount">0</strong> questions.
+        <br><br>
+        <span style="color: #dc3545;" id="modalUnansweredWarning"></span>
+        <br><br>
+        <strong>Are you sure you want to submit?</strong>
+        <br>
+        <span style="color: #6c757d; font-size: 13px;">You cannot change your answers after submitting.</span>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn continue" onclick="closeModal()">Go Back</button>
+        <button class="modal-btn confirm" onclick="submitExam()">Yes, Submit</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Only initialize timer and navigation if exam is not submitted
     {% if not show_result %}
-      // Timer functionality with Hours:Minutes:Seconds format
+      // Timer functionality
       let totalSeconds = {{ quiz.duration * 60 }};
       const countdownEl = document.getElementById('countdown');
       const form = document.getElementById('exam-form');
@@ -721,7 +864,6 @@
         let minutes = Math.floor((totalSeconds % 3600) / 60);
         let seconds = totalSeconds % 60;
         
-        // Format the time display
         let timeString = '';
         if (hours > 0) {
           timeString += hours + 'h ';
@@ -757,29 +899,22 @@
       const progressBar = document.getElementById('progressBar');
       const answeredCountDisplay = document.getElementById('answeredCount');
       const navDots = document.querySelectorAll('.nav-dot');
-
-      // Track which questions are answered
       const answered = new Array(totalPages).fill(false);
 
       function updatePage() {
-        // Hide all pages
         pages.forEach((page, index) => {
           page.classList.toggle('active', index === currentPage);
         });
 
-        // Update buttons
         prevBtn.disabled = currentPage === 0;
         nextBtn.disabled = currentPage === totalPages - 1;
 
-        // Update page display
         currentPageDisplay.textContent = currentPage + 1;
         totalPagesDisplay.textContent = totalPages;
 
-        // Update progress bar
         const progress = ((currentPage + 1) / totalPages) * 100;
         progressBar.style.width = progress + '%';
 
-        // Update nav dots
         navDots.forEach((dot, index) => {
           dot.classList.toggle('active', index === currentPage);
           if (answered[index]) {
@@ -789,7 +924,6 @@
           }
         });
 
-        // Update answered count
         const answeredCount = answered.filter(Boolean).length;
         answeredCountDisplay.textContent = answeredCount;
       }
@@ -819,9 +953,54 @@
         }
       }
 
-      // Restore answers on page load (in case of browser back/forward)
+      // Show custom modal
+      function showSubmitModal() {
+        const answeredCount = answered.filter(Boolean).length;
+        const totalCount = totalPages;
+        const unansweredCount = totalCount - answeredCount;
+        
+        document.getElementById('modalAnsweredCount').textContent = answeredCount;
+        document.getElementById('modalTotalCount').textContent = totalCount;
+        
+        const warningElement = document.getElementById('modalUnansweredWarning');
+        if (unansweredCount > 0) {
+          warningElement.innerHTML = `⚠️ You have <strong>${unansweredCount}</strong> unanswered question${unansweredCount > 1 ? 's' : ''}.`;
+        } else {
+          warningElement.innerHTML = '✅ All questions answered!';
+          warningElement.style.color = '#28a745';
+        }
+        
+        document.getElementById('submitModal').classList.add('show');
+      }
+
+      function closeModal() {
+        document.getElementById('submitModal').classList.remove('show');
+      }
+
+      function submitExam() {
+        document.getElementById('submitModal').classList.remove('show');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+        submitBtn.classList.add('disabled-red');
+        form.submit();
+      }
+
+      // Close modal on escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeModal();
+        }
+      });
+
+      // Close modal on click outside
+      document.getElementById('submitModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeModal();
+        }
+      });
+
+      // Restore answers on page load
       document.addEventListener('DOMContentLoaded', function() {
-        // Check all radio buttons and mark answered
         document.querySelectorAll('input[type="radio"]').forEach(radio => {
           if (radio.checked) {
             const questionBlock = radio.closest('.question-page');
@@ -833,7 +1012,6 @@
             }
           }
         });
-
         updatePage();
       });
 
@@ -850,33 +1028,12 @@
         }
       });
 
-      // Form submission handler
-      form.addEventListener('submit', function(e) {
-        // Check if all questions are answered
-        const answeredCount = answered.filter(Boolean).length;
-        if (answeredCount < totalPages) {
-          const confirmSubmit = confirm(
-            `You have answered ${answeredCount} out of ${totalPages} questions.\n\n` +
-            `Unanswered questions: ${totalPages - answeredCount}\n\n` +
-            'Are you sure you want to submit?'
-          );
-          if (!confirmSubmit) {
-            e.preventDefault();
-            return;
-          }
-        }
-
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
-        submitBtn.classList.add('disabled-red');
-      });
     {% else %}
       // Animate the circular score display
       document.addEventListener('DOMContentLoaded', function() {
         const percentage = {{ percentage }};
         const circle = document.getElementById('resultCircle');
         
-        // Animate the circle
         setTimeout(function() {
           const degrees = (percentage / 100) * 360;
           circle.style.background = `conic-gradient(
@@ -885,7 +1042,6 @@
           )`;
         }, 300);
 
-        // Animate the score number
         const scoreElement = document.getElementById('resultScore');
         let currentScore = 0;
         const targetScore = Math.round(percentage);
