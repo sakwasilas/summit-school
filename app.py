@@ -84,7 +84,7 @@ def logout():
     return redirect(url_for('login'))
 
 '''
-admin dashboard
+admin dashboard - UPDATED with student and exam counts
 '''
 @app.route('/admin_dashboard')
 def admin_dashboard():
@@ -93,7 +93,21 @@ def admin_dashboard():
     db = SessionLocal()
     try:
         courses = db.query(Course).all()
-        return render_template('admin/admin_dashboard.html', courses=courses, username=session.get('username'))
+        
+        # Get total number of students
+        students_count = db.query(StudentProfile).count()
+        
+        # Get total number of exams (quizzes)
+        exams_count = db.query(Quiz).count()
+        
+        return render_template(
+            'admin/admin_dashboard.html', 
+            courses=courses, 
+            username=session.get('username'),
+            students_count=students_count,
+            exams_count=exams_count,
+            current_year=datetime.now().year
+        )
     finally:
         db.close()
 
