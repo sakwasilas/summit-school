@@ -11,14 +11,16 @@
   <style>
     body {
       min-height: 100vh;
-      background-color: #f8f9fa;
+      background-color: #f0f2f5;
     }
     
     .sidebar {
-      background: linear-gradient(180deg, #2c3e50, #1a252f);
+      background: linear-gradient(180deg, #1a2332, #2c3e50);
       color: white;
       min-height: 100vh;
       padding: 20px;
+      position: sticky;
+      top: 0;
     }
     
     .sidebar a {
@@ -35,50 +37,84 @@
     .sidebar .nav-link {
       color: #ecf0f1;
       padding: 8px 0;
+      transition: all 0.3s;
     }
     
     .sidebar .nav-link:hover {
       color: #1abc9c;
+      padding-left: 5px;
     }
     
     .section-title {
-      font-weight: bold;
+      font-weight: 700;
       margin-top: 1.5rem;
       margin-bottom: .75rem;
       color: #2c3e50;
       border-bottom: 3px solid #1abc9c;
       padding-bottom: 8px;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     
     .exam-card {
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: all 0.3s ease;
       height: 100%;
-      position: relative;
+      border: none;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     }
     
     .exam-card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+    
+    .exam-card .card-header-custom {
+      padding: 12px 16px;
+      color: white;
+      font-weight: 600;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .exam-card .card-header-custom .badge-status {
+      font-size: 11px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.25);
+      color: white;
     }
     
     .stats-card {
       background: white;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 20px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.05);
       margin-bottom: 20px;
       border-left: 4px solid #1abc9c;
+      transition: all 0.3s;
+    }
+    
+    .stats-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
     
     .stats-number {
       font-size: 2rem;
-      font-weight: bold;
+      font-weight: 700;
       color: #2c3e50;
     }
     
     .stats-label {
       color: #7f8c8d;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      font-weight: 500;
     }
     
     .score-circle-wrapper {
@@ -86,52 +122,42 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      margin: 10px 0;
+      padding: 8px 0;
     }
     
     .score-circle {
-      width: 100px;
-      height: 100px;
+      width: 85px;
+      height: 85px;
       border-radius: 50%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       position: relative;
-      margin: 5px auto;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      transition: all 0.5s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+      transition: all 0.3s ease;
     }
     
     .score-circle:hover {
       transform: scale(1.05);
-      box-shadow: 0 6px 30px rgba(0,0,0,0.25);
-    }
-    
-    .score-circle-inner {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
+      box-shadow: 0 6px 25px rgba(0,0,0,0.2);
     }
     
     .score-circle .score-number {
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 700;
       color: white;
       line-height: 1;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
     
     .score-circle .score-label {
-      font-size: 10px;
+      font-size: 8px;
       color: rgba(255,255,255,0.9);
       text-transform: uppercase;
-      letter-spacing: 2px;
+      letter-spacing: 1.5px;
       text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-      margin-top: 2px;
+      margin-top: 1px;
     }
     
     .score-circle.high {
@@ -148,9 +174,9 @@
     
     .score-details {
       text-align: center;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: #555;
-      margin-top: 5px;
+      margin-top: 4px;
     }
     
     .score-details .marks {
@@ -159,22 +185,17 @@
     }
     
     .score-details .date {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: #999;
     }
     
     .profile-info {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       line-height: 1.8;
     }
     
     .profile-info strong {
       color: #1abc9c;
-    }
-    
-    .badge-status {
-      font-size: 0.85rem;
-      padding: 5px 12px;
     }
     
     .message-carousel .carousel-item {
@@ -197,29 +218,113 @@
       color: #c0392b !important;
     }
     
-    .exam-title-full {
-      font-size: 0.95rem;
+    .exam-title {
+      font-size: 0.9rem;
       font-weight: 600;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
       word-wrap: break-word;
       word-break: break-word;
       overflow-wrap: break-word;
       white-space: normal;
-      line-height: 1.4;
-      max-width: 100%;
+      line-height: 1.3;
     }
     
     .exam-meta {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: #7f8c8d;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
     
-    .completed-badge {
+    .exam-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    
+    .btn-take-exam {
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 8px 16px;
+      transition: all 0.3s;
+      border: none;
+      width: 100%;
+    }
+    
+    .btn-take-exam:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    .btn-take-exam.primary {
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      color: white;
+    }
+    
+    .btn-take-exam.success {
+      background: linear-gradient(135deg, #28a745, #1e7e34);
+      color: white;
+    }
+    
+    .btn-take-exam.warning {
+      background: linear-gradient(135deg, #ffc107, #e0a800);
+      color: #212529;
+    }
+    
+    .btn-take-exam.danger {
+      background: linear-gradient(135deg, #dc3545, #bd2130);
+      color: white;
+    }
+    
+    .btn-take-exam.info {
+      background: linear-gradient(135deg, #17a2b8, #0d7a8a);
+      color: white;
+    }
+    
+    .btn-take-exam.secondary {
+      background: linear-gradient(135deg, #6c757d, #495057);
+      color: white;
+    }
+    
+    .btn-take-exam.purple {
+      background: linear-gradient(135deg, #6f42c1, #4a2d7a);
+      color: white;
+    }
+    
+    .btn-take-exam.orange {
+      background: linear-gradient(135deg, #fd7e14, #cc6a10);
+      color: white;
+    }
+    
+    .btn-take-exam.teal {
+      background: linear-gradient(135deg, #20c997, #15856e);
+      color: white;
+    }
+    
+    .btn-take-exam.pink {
+      background: linear-gradient(135deg, #e83e8c, #b31a6a);
+      color: white;
+    }
+    
+    .exam-card .card-body {
+      padding: 16px;
+    }
+    
+    .badge-completed {
       background: #27ae60;
       color: white;
-      padding: 4px 12px;
+      padding: 4px 10px;
       border-radius: 20px;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       font-weight: 600;
       white-space: nowrap;
     }
@@ -228,19 +333,29 @@
       .sidebar {
         min-height: auto;
         margin-bottom: 20px;
+        position: relative;
       }
       
       .stats-card {
-        margin-bottom: 15px;
+        margin-bottom: 12px;
       }
       
       .score-circle {
-        width: 80px;
-        height: 80px;
+        width: 70px;
+        height: 70px;
       }
       
       .score-circle .score-number {
-        font-size: 20px;
+        font-size: 18px;
+      }
+      
+      .exam-card .card-header-custom {
+        font-size: 12px;
+        padding: 10px 14px;
+      }
+      
+      .exam-title {
+        font-size: 0.85rem;
       }
     }
   </style>
@@ -260,7 +375,7 @@
         
         <div class="profile-info">
           <p class="mb-1"><strong>👤 Name:</strong> {{ student_profile.full_name }}</p>
-          <p class="mb-1"><strong>🎓 Admin no:</strong> {{ student_profile.admission_number }}</p>
+          <p class="mb-1"><strong>🎓 Reg No:</strong> {{ student_profile.admission_number }}</p>
           <p class="mb-1"><strong>📚 Course:</strong> {{ student_profile.course.name }}</p>
           <p class="mb-1"><strong>📊 Level:</strong> {{ student_profile.course.level }}</p>
           <p class="mb-1"><strong>📱 Phone:</strong> {{ student_profile.phone_number }}</p>
@@ -286,10 +401,15 @@
 
       <!-- Main Content -->
       <main class="col px-4 py-3">
-        <h1 class="text-center mb-4" style="color: #2c3e50;">
-          <i class="bi bi-mortarboard-fill text-primary me-2"></i>
-          Summit Technical College
-        </h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1 style="color: #2c3e50; font-size: 1.8rem; margin: 0;">
+            <i class="bi bi-mortarboard-fill text-primary me-2"></i>
+            Summit Technical College
+          </h1>
+          <div class="text-muted small">
+            <i class="bi bi-calendar me-1"></i>{{ current_year }}
+          </div>
+        </div>
 
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -315,7 +435,7 @@
           <div class="col-md-4 col-sm-6">
             <div class="stats-card" style="border-left-color: #27ae60;">
               <div class="stats-number">{{ taken_quiz_ids|length }}</div>
-              <div class="stats-label"><i class="bi bi-check-circle-fill me-1" style="color: #27ae60;"></i>Completed Exams</div>
+              <div class="stats-label"><i class="bi bi-check-circle-fill me-1" style="color: #27ae60;"></i>Completed</div>
             </div>
           </div>
           <div class="col-md-4 col-sm-6">
@@ -328,11 +448,11 @@
 
         <!-- Admin Messages Carousel -->
         {% if messages_from_admin %}
-        <div id="messageCarousel" class="carousel slide mb-4 message-carousel" data-bs-ride="carousel">
+        <div id="messageCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
           <div class="carousel-inner">
             {% for msg in messages_from_admin %}
             <div class="carousel-item {% if loop.first %}active{% endif %}">
-              <div class="alert alert-info text-center mb-0 py-3" style="background: linear-gradient(135deg, #ebf5ff, #d6eaf8); border: none;">
+              <div class="alert alert-info text-center mb-0 py-3" style="background: linear-gradient(135deg, #ebf5ff, #d6eaf8); border: none; border-radius: 10px;">
                 <h5 class="mb-1">📢 From Summit Technical College:</h5>
                 <p class="mb-0"><span class="text-danger fw-bold">{{ msg.content }}</span></p>
                 <small class="text-muted">Sent on {{ msg.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
@@ -349,38 +469,51 @@
         </div>
         {% endif %}
 
-        <!-- Available Exams with Circular Score -->
+        <!-- Available Exams -->
         <div class="section-title">
           <i class="bi bi-file-earmark-check me-2"></i>Available Exams & Results
+          <span class="badge bg-primary ms-2">{{ quizzes|length }}</span>
         </div>
         
         <div class="row">
           {% for exam in quizzes %}
-          <div class="col-lg-4 col-md-6 mb-3">
+          {% set colors = ['primary', 'success', 'warning', 'danger', 'info', 'purple', 'orange', 'teal', 'pink'] %}
+          {% set color_index = loop.index0 % colors|length %}
+          {% set btn_color = colors[color_index] %}
+          
+          <div class="col-xl-3 col-lg-4 col-md-6 mb-3">
             <div class="card exam-card">
+              <div class="card-header-custom" style="background: linear-gradient(135deg, 
+                {% if btn_color == 'primary' %}#007bff, #0056b3
+                {% elif btn_color == 'success' %}#28a745, #1e7e34
+                {% elif btn_color == 'warning' %}#ffc107, #e0a800
+                {% elif btn_color == 'danger' %}#dc3545, #bd2130
+                {% elif btn_color == 'info' %}#17a2b8, #0d7a8a
+                {% elif btn_color == 'purple' %}#6f42c1, #4a2d7a
+                {% elif btn_color == 'orange' %}#fd7e14, #cc6a10
+                {% elif btn_color == 'teal' %}#20c997, #15856e
+                {% elif btn_color == 'pink' %}#e83e8c, #b31a6a
+                {% endif %}
+              );">
+                <span>
+                  <span class="exam-number">{{ loop.index }}</span>
+                  <span class="ms-1">{{ exam.duration }} min</span>
+                </span>
+                {% if exam.id in taken_quiz_ids %}
+                  <span class="badge-status">
+                    <i class="bi bi-check-circle-fill me-1"></i>Done
+                  </span>
+                {% else %}
+                  <span class="badge-status">
+                    <i class="bi bi-{% if exam.status == 'active' %}play-circle-fill{% else %}lock-fill{% endif %} me-1"></i>
+                    {% if exam.status == 'active' %}Available{% else %}Locked{% endif %}
+                  </span>
+                {% endif %}
+              </div>
               <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div style="flex: 1; min-width: 0;">
-                    <div class="exam-title-full">{{ exam.title }}</div>
-                    <div class="exam-meta">
-                      <i class="bi bi-clock me-1"></i>{{ exam.duration }} minutes
-                    </div>
-                  </div>
-                  <div style="flex-shrink: 0; margin-left: 10px;">
-                    {% if exam.id in taken_quiz_ids %}
-                      <span class="completed-badge">
-                        <i class="bi bi-check-circle-fill me-1"></i>Completed
-                      </span>
-                    {% else %}
-                      <span class="badge bg-{% if exam.status == 'active' %}primary{% else %}secondary{% endif %} badge-status">
-                        <i class="bi bi-{% if exam.status == 'active' %}play-circle-fill{% else %}lock-fill{% endif %} me-1"></i>
-                        {% if exam.status == 'active' %}Available{% else %}Locked{% endif %}
-                      </span>
-                    {% endif %}
-                  </div>
-                </div>
+                <div class="exam-title">{{ exam.title }}</div>
                 
-                <!-- Circular Score Display for Completed Exams -->
+                <!-- Circular Score for Completed Exams -->
                 {% if exam.id in taken_quiz_ids %}
                   {% set result = results_by_quiz.get(exam.id) %}
                   {% if result %}
@@ -402,23 +535,23 @@
                       </div>
                     </div>
                     <div class="score-details">
-                      <div class="marks">{{ result.score }}/{{ result.total_marks }} marks</div>
-                      <div class="date"><i class="bi bi-calendar me-1"></i>{{ result.taken_on.strftime('%d/%m/%Y') }}</div>
+                      <div class="marks">{{ result.score }}/{{ result.total_marks }}</div>
+                      <div class="date">{{ result.taken_on.strftime('%d/%m/%Y') }}</div>
                     </div>
                   {% endif %}
                 {% endif %}
                 
-                <div class="mt-3">
+                <div class="mt-2">
                   {% if exam.status == 'active' and exam.id not in taken_quiz_ids %}
-                    <a href="{{ url_for('take_exam', quiz_id=exam.id) }}" class="btn btn-primary btn-sm w-100">
+                    <a href="{{ url_for('take_exam', quiz_id=exam.id) }}" class="btn-take-exam {{ btn_color }}">
                       <i class="bi bi-play-fill me-1"></i>Take Exam
                     </a>
                   {% elif exam.status == 'active' and exam.id in taken_quiz_ids %}
-                    <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary btn-sm w-100">
-                      <i class="bi bi-house me-1"></i>Back to Dashboard
+                    <a href="{{ url_for('student_dashboard') }}" class="btn-take-exam secondary">
+                      <i class="bi bi-house me-1"></i>Dashboard
                     </a>
                   {% else %}
-                    <button class="btn btn-secondary btn-sm w-100" disabled>
+                    <button class="btn-take-exam secondary" disabled>
                       <i class="bi bi-lock me-1"></i>Not Available
                     </button>
                   {% endif %}
@@ -428,8 +561,9 @@
           </div>
           {% else %}
           <div class="col-12">
-            <div class="alert alert-info text-center">
-              <i class="bi bi-info-circle me-2"></i>No exams available at the moment.
+            <div class="alert alert-info text-center py-4">
+              <i class="bi bi-info-circle fs-4 me-2"></i>
+              <p class="mb-0">No exams available at the moment. Please check back later.</p>
             </div>
           </div>
           {% endfor %}
