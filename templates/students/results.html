@@ -1,40 +1,394 @@
-style {% extends 'base.html' %}
-{% block content %}
-  <h2 style="font-family: Arial, sans-serif; color: #333; text-align: center; margin-top: 20px;">
-    Your Exam Results
-  </h2>
+{% extends 'base.html' %}
 
+{% block content %}
+<style>
+  .results-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .results-header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .results-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f1724;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .results-header h2 i {
+    color: #1abc9c;
+  }
+
+  .results-header p {
+    color: #7f8c8d;
+    font-size: 15px;
+  }
+
+  .results-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+  }
+
+  .stat-box {
+    background: white;
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border-left: 4px solid #1abc9c;
+    transition: transform 0.2s;
+  }
+
+  .stat-box:hover {
+    transform: translateY(-3px);
+  }
+
+  .stat-box .number {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f1724;
+  }
+
+  .stat-box .label {
+    font-size: 12px;
+    color: #7f8c8d;
+    font-weight: 500;
+  }
+
+  .stat-box:nth-child(2) { border-left-color: #3b82f6; }
+  .stat-box:nth-child(3) { border-left-color: #f59e0b; }
+  .stat-box:nth-child(4) { border-left-color: #8b5cf6; }
+
+  .table-wrapper {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    overflow: hidden;
+    margin-bottom: 25px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    background: linear-gradient(135deg, #0f1724, #1a2332);
+  }
+
+  thead th {
+    padding: 14px 20px;
+    text-align: left;
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  tbody tr {
+    transition: background 0.2s;
+  }
+
+  tbody tr:hover {
+    background: #f8f9fa;
+  }
+
+  tbody td {
+    padding: 14px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+    color: #2c3e50;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .score-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  .score-badge.high {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .score-badge.medium {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .score-badge.low {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .subject-cell {
+    font-weight: 500;
+    color: #0f1724;
+  }
+
+  .btn-dashboard {
+    display: inline-block;
+    padding: 11px 30px;
+    background: linear-gradient(135deg, #1abc9c, #16a085);
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-dashboard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(26, 188, 156, 0.3);
+    color: white;
+  }
+
+  .btn-dashboard i {
+    margin-right: 8px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  }
+
+  .empty-state i {
+    font-size: 56px;
+    color: #dee2e6;
+    display: block;
+    margin-bottom: 15px;
+  }
+
+  .empty-state h4 {
+    color: #0f1724;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .empty-state p {
+    color: #7f8c8d;
+    font-size: 14px;
+  }
+
+  .empty-state .btn-dashboard {
+    margin-top: 15px;
+  }
+
+  .footer-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .footer-actions .info {
+    color: #7f8c8d;
+    font-size: 13px;
+  }
+
+  .footer-actions .info i {
+    margin-right: 6px;
+  }
+
+  @media (max-width: 768px) {
+    .results-container {
+      padding: 12px;
+    }
+
+    .results-header h2 {
+      font-size: 22px;
+    }
+
+    .results-stats {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .stat-box {
+      padding: 12px 14px;
+    }
+
+    .stat-box .number {
+      font-size: 20px;
+    }
+
+    thead th, tbody td {
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      min-width: 500px;
+    }
+
+    .footer-actions {
+      flex-direction: column;
+      align-items: stretch;
+      text-align: center;
+    }
+
+    .btn-dashboard {
+      width: 100%;
+      text-align: center;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .results-stats {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-box .number {
+      font-size: 18px;
+    }
+
+    thead th, tbody td {
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .score-badge {
+      font-size: 11px;
+      padding: 3px 10px;
+    }
+  }
+</style>
+
+<div class="results-container">
+  
+  <!-- Header -->
+  <div class="results-header">
+    <h2>
+      <i class="bi bi-bar-chart-fill"></i> Your Exam Results
+    </h2>
+    <p>Track your performance across all completed exams</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="results-stats">
+    <div class="stat-box">
+      <div class="number">{{ results|length if results else 0 }}</div>
+      <div class="label">📝 Total Exams</div>
+    </div>
+    <div class="stat-box">
+      <div class="number">
+        {% if results %}
+          {{ (results|sum(attribute='score') / results|sum(attribute='total_marks') * 100)|round|int if results|sum(attribute='total_marks') > 0 else 0 }}%
+        {% else %}
+          0%
+        {% endif %}
+      </div>
+      <div class="label">📊 Average Score</div>
+    </div>
+    <div class="stat-box">
+      <div class="number">
+        {% if results %}
+          {{ results|map(attribute='percentage')|max|default(0)|round|int }}%
+        {% else %}
+          0%
+        {% endif %}
+      </div>
+      <div class="label">🏆 Best Score</div>
+    </div>
+    <div class="stat-box">
+      <div class="number">
+        {% if results %}
+          {% set latest = results|map(attribute='taken_on')|max %}
+          {{ latest.strftime('%d/%m/%y') if latest else 'N/A' }}
+        {% else %}
+          N/A
+        {% endif %}
+      </div>
+      <div class="label">📅 Latest Exam</div>
+    </div>
+  </div>
+
+  <!-- Results Table -->
   {% if results %}
-    <table style="width: 80%; margin: 20px auto; border-collapse: collapse; font-family: Arial, sans-serif; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-      <thead>
-        <tr style="background-color: #f2f2f2; color: #333;">
-          <th style="padding: 12px; border: 1px solid #ccc;">Subject</th>
-          <th style="padding: 12px; border: 1px solid #ccc;">Score</th>
-          <th style="padding: 12px; border: 1px solid #ccc;">Percentage</th>
-          <th style="padding: 12px; border: 1px solid #ccc;">Date Taken</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for res in results %}
-          <tr style="text-align: center;">
-            <td style="padding: 10px; border: 1px solid #ccc;">{{ res.quiz.title }}</td>
-            <td style="padding: 10px; border: 1px solid #ccc;">{{ res.score }} / {{ res.total_marks }}</td>
-            <td style="padding: 10px; border: 1px solid #ccc;">{{ res.percentage }}%</td>
-            <td style="padding: 10px; border: 1px solid #ccc;">{{ res.taken_on.strftime('%Y-%m-%d %H:%M') }}</td>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Score</th>
+            <th>Percentage</th>
+            <th>Date Taken</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for res in results %}
+            <tr>
+              <td class="subject-cell">{{ res.quiz.title }}</td>
+              <td>
+                <strong>{{ res.score }}</strong> / {{ res.total_marks }}
+              </td>
+              <td>
+                <span class="score-badge 
+                  {% if res.percentage >= 70 %}high
+                  {% elif res.percentage >= 50 %}medium
+                  {% else %}low{% endif %}">
+                  {{ res.percentage }}%
+                </span>
+              </td>
+              <td>{{ res.taken_on.strftime('%d/%m/%Y %H:%M') }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-actions">
+      <span class="info">
+        <i class="bi bi-info-circle"></i>
+        Showing {{ results|length }} result{{ 's' if results|length > 1 else '' }}
+      </span>
+      <a href="{{ url_for('student_dashboard') }}" class="btn-dashboard">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+      </a>
+    </div>
+
   {% else %}
-    <p style="text-align: center; font-family: Arial, sans-serif; color: #666; margin-top: 30px;">
-      No exam results available yet.
-    </p>
+    <!-- Empty State -->
+    <div class="empty-state">
+      <i class="bi bi-inbox"></i>
+      <h4>No Exam Results Yet</h4>
+      <p>You haven't taken any exams yet. Start by taking your first exam from the dashboard.</p>
+      <a href="{{ url_for('student_dashboard') }}" class="btn-dashboard">
+        <i class="bi bi-house"></i> Go to Dashboard
+      </a>
+    </div>
   {% endif %}
 
-  <!-- Back to Dashboard Button -->
-  <div style="text-align: center; margin-top: 40px;">
-    <a href="{{ url_for('student_dashboard') }}" style="display: inline-block; padding: 10px 20px; background-color: #007BFF; color: white; text-decoration: none; border-radius: 5px; font-family: Arial, sans-serif;">
-      &larr; Back to Dashboard
-    </a>
-  </div>
+</div>
 {% endblock %}
