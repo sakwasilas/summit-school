@@ -4,133 +4,259 @@
 
 {% block styles %}
 <style>
-    h2 {
-        margin-bottom: 1rem;
-        font-weight: bold;
-        color: #2c3e50;
-    }
-
-    p {
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
-        color: #333;
-    }
-
-    .quiz-info {
+    body {
         background: #f8f9fa;
-        padding: 15px 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        border-left: 4px solid #007bff;
     }
 
-    .quiz-info p {
-        margin-bottom: 5px;
+    .review-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
     }
 
-    table.table {
-        margin-top: 1.5rem;
-        background-color: #fff;
-        border-collapse: collapse;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    .page-header {
+        background: linear-gradient(135deg, #0f1724, #1a2332);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .page-header h2 {
+        margin: 0;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .page-header .quiz-meta {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
         font-size: 0.95rem;
-        width: 100%;
+        color: rgba(255,255,255,0.8);
     }
 
-    table.table thead {
-        background-color: #343a40;
-        color: #fff;
-    }
-
-    table.table thead th {
-        padding: 12px 15px;
-        text-align: left;
-        font-weight: 600;
-    }
-
-    table.table tbody td {
-        padding: 12px 15px;
-        vertical-align: top;
-        border-bottom: 1px solid #dee2e6;
-    }
-
-    table.table tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    table.table td:nth-child(1) {
-        text-align: center;
-        font-weight: bold;
-        width: 50px;
-    }
-
-    table.table td:nth-child(2) {
-        width: 30%;
-    }
-
-    table.table td:nth-child(3) {
-        white-space: pre-line;
-        font-size: 0.95rem;
-        color: #444;
-        line-height: 1.6;
-    }
-
-    table.table td:nth-child(4) {
-        text-align: center;
-        font-weight: bold;
-    }
-
-    table.table td:nth-child(5) {
-        text-align: center;
-        font-weight: bold;
-    }
-
-    .correct-answer {
-        display: inline-block;
-        background: #d4edda;
-        color: #155724;
-        padding: 3px 12px;
+    .page-header .quiz-meta span {
+        background: rgba(255,255,255,0.1);
+        padding: 5px 15px;
         border-radius: 20px;
-        font-size: 0.9rem;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #1abc9c;
+        text-decoration: none;
+        margin-bottom: 15px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        background: white;
+        padding: 8px 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .back-link:hover {
+        color: #16a085;
+        transform: translateX(-5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    /* Question Display - Exam Format */
+    .question-item {
+        background: white;
+        border-radius: 10px;
+        padding: 20px 25px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border-left: 4px solid #007bff;
+        transition: all 0.3s ease;
+    }
+
+    .question-item:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+
+    .question-number {
+        font-weight: 700;
+        color: #007bff;
+        font-size: 1.05rem;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .question-number .marks-badge {
+        background: #e9ecef;
+        color: #495057;
+        padding: 2px 15px;
+        border-radius: 20px;
+        font-size: 0.85rem;
         font-weight: 600;
     }
 
-    .option-text {
-        padding: 2px 0;
+    .question-text {
+        font-size: 1.05rem;
+        line-height: 1.7;
+        color: #212529;
+        margin-bottom: 12px;
+        padding: 5px 0;
+    }
+
+    .question-image {
+        margin: 10px 0 15px;
+        max-width: 100%;
+    }
+
+    .question-image img {
+        max-width: 300px;
+        max-height: 200px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .options-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 30px;
+        margin: 12px 0 8px;
+    }
+
+    .option-item {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 1rem;
+        line-height: 1.5;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        transition: background 0.2s ease;
+    }
+
+    .option-item:hover {
+        background: #f8f9fa;
     }
 
     .option-label {
-        font-weight: 600;
+        font-weight: 700;
         color: #495057;
-        margin-right: 5px;
+        min-width: 24px;
+        display: inline-block;
     }
 
-    .form-actions {
-        margin-top: 2rem;
+    .option-text {
+        color: #212529;
+        word-wrap: break-word;
+    }
+
+    .correct-answer-box {
+        margin-top: 10px;
+        padding: 8px 15px;
+        background: #d4edda;
+        border-radius: 6px;
+        display: inline-block;
+        font-weight: 600;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .correct-answer-box i {
+        margin-right: 8px;
+    }
+
+    .extra-content {
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: #fff3cd;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        color: #856404;
+        border: 1px solid #ffc107;
+    }
+
+    /* Summary Section */
+    .summary-section {
+        background: white;
+        border-radius: 10px;
+        padding: 20px 25px;
+        margin: 25px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         display: flex;
-        gap: 1rem;
+        justify-content: space-between;
+        align-items: center;
         flex-wrap: wrap;
-        padding: 20px 0;
+        gap: 15px;
+        border-top: 4px solid #007bff;
+    }
+
+    .summary-section .stats {
+        display: flex;
+        gap: 25px;
+        flex-wrap: wrap;
+    }
+
+    .summary-section .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95rem;
+        color: #495057;
+    }
+
+    .summary-section .stat-item strong {
+        color: #0f1724;
+        font-size: 1.1rem;
+    }
+
+    .summary-section .stat-item .number {
+        background: #e9ecef;
+        padding: 2px 12px;
+        border-radius: 20px;
+        font-weight: 700;
+        color: #007bff;
+    }
+
+    /* Action Buttons */
+    .action-section {
+        background: white;
+        border-radius: 10px;
+        padding: 20px 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-top: 20px;
         border-top: 2px solid #e9ecef;
     }
 
     .btn {
-        padding: 0.7rem 2rem;
+        padding: 10px 30px;
         font-size: 1rem;
-        font-weight: 500;
-        border-radius: 6px;
+        font-weight: 600;
+        border-radius: 8px;
         border: none;
         cursor: pointer;
         transition: all 0.3s ease;
-        text-decoration: none;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        text-decoration: none;
     }
 
     .btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15);
     }
 
     .btn-success {
@@ -160,34 +286,13 @@
         background: linear-gradient(135deg, #495057, #343a40);
     }
 
-    .back-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        color: #007bff;
-        text-decoration: none;
-        margin-bottom: 20px;
-        font-weight: 500;
-        transition: all 0.3s ease;
+    .btn-warning {
+        background: linear-gradient(135deg, #ffc107, #e0a800);
+        color: #212529;
     }
 
-    .back-link:hover {
-        color: #0056b3;
-        transform: translateX(-5px);
-    }
-
-    .stats-badge {
-        display: inline-block;
-        background: #e9ecef;
-        padding: 5px 15px;
-        border-radius: 20px;
-        font-size: 0.9rem;
-        color: #495057;
-        margin-right: 10px;
-    }
-
-    .stats-badge strong {
-        color: #007bff;
+    .btn-warning:hover {
+        background: linear-gradient(135deg, #e0a800, #c69500);
     }
 
     .alert-warning {
@@ -197,177 +302,240 @@
         padding: 15px 20px;
         border-radius: 8px;
         margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
 
     .alert-warning i {
-        margin-right: 10px;
+        font-size: 1.2rem;
     }
 
+    /* Responsive */
     @media (max-width: 768px) {
-        table.table {
-            font-size: 0.85rem;
+        .page-header {
+            flex-direction: column;
+            text-align: center;
+            padding: 15px 20px;
         }
 
-        table.table thead th,
-        table.table tbody td {
-            padding: 8px 10px;
+        .page-header .quiz-meta {
+            justify-content: center;
+            margin-top: 10px;
         }
 
-        .form-actions {
+        .options-grid {
+            grid-template-columns: 1fr;
+            gap: 5px;
+        }
+
+        .question-item {
+            padding: 15px;
+        }
+
+        .question-number {
+            font-size: 0.95rem;
+        }
+
+        .question-text {
+            font-size: 0.95rem;
+        }
+
+        .option-item {
+            font-size: 0.9rem;
+        }
+
+        .summary-section {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .summary-section .stats {
+            justify-content: center;
+        }
+
+        .action-section {
             flex-direction: column;
         }
 
-        .btn {
+        .action-section .btn {
             width: 100%;
             justify-content: center;
         }
 
-        .quiz-info {
-            padding: 12px 15px;
-        }
-
-        .stats-badge {
+        .correct-answer-box {
             display: block;
-            margin-bottom: 5px;
+            text-align: center;
         }
     }
 
     @media print {
-        .form-actions, .back-link {
+        .back-link,
+        .action-section,
+        .alert-warning {
             display: none !important;
         }
-        .table {
-            font-size: 0.8rem;
+
+        .page-header {
+            background: #0f1724 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .question-item {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            border-left-color: #007bff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .correct-answer-box {
+            background: #d4edda !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="review-container">
     <!-- Back Link -->
     <a href="{{ url_for('admin_dashboard') }}" class="back-link">
         <i class="fas fa-arrow-left"></i> Back to Dashboard
     </a>
 
     <!-- Page Header -->
-    <h2>
-        <i class="fas fa-file-alt text-primary me-2"></i> Review Uploaded Quiz
-    </h2>
-
-    <!-- Quiz Information -->
-    <div class="quiz-info">
-        <div class="row">
-            <div class="col-md-6">
-                <p><strong>📝 Title:</strong> {{ quiz.title }}</p>
-                <p><strong>⏱️ Duration:</strong> {{ quiz.duration }} minutes</p>
-            </div>
-            <div class="col-md-6">
-                <p><strong>📊 Questions:</strong> {{ questions|length }}</p>
-                <p><strong>📅 Created:</strong> {{ quiz.created_at.strftime('%Y-%m-%d %H:%M') if quiz.created_at else 'N/A' }}</p>
-            </div>
+    <div class="page-header">
+        <h2>
+            <i class="fas fa-file-alt"></i> Review Uploaded Quiz
+        </h2>
+        <div class="quiz-meta">
+            <span><i class="fas fa-book"></i> {{ quiz.title }}</span>
+            <span><i class="fas fa-clock"></i> {{ quiz.duration }} minutes</span>
+            <span><i class="fas fa-question-circle"></i> {{ questions|length }} Questions</span>
+            <span><i class="fas fa-star"></i> Total: {{ questions|sum(attribute='marks') }} Marks</span>
         </div>
     </div>
 
     <!-- Warning Message -->
     <div class="alert-warning">
         <i class="fas fa-exclamation-triangle"></i>
-        <strong>Please review all questions carefully before confirming.</strong>
-        Once confirmed, the quiz will be available to students.
+        <div>
+            <strong>Please review all questions carefully before confirming.</strong>
+            Once confirmed, the quiz will be available to students.
+        </div>
     </div>
 
-    <!-- Questions Table -->
-    <div class="table-responsive">
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Question</th>
-                    <th>Options</th>
-                    <th>Correct</th>
-                    <th>Marks</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for q in questions %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>
-                        <div style="font-weight: 500;">{{ q.question_text }}</div>
-                        {% if q.image %}
-                            <div class="mt-2">
-                                <img src="{{ url_for('static', filename='question_images/' ~ q.image) }}" 
-                                     alt="Question image" 
-                                     style="max-width: 200px; max-height: 150px; border-radius: 5px; border: 1px solid #dee2e6;">
-                            </div>
-                        {% endif %}
-                        {% if q.extra_content %}
-                            <div class="mt-1 text-muted small">
-                                <i class="fas fa-info-circle"></i> {{ q.extra_content }}
-                            </div>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="option-text">
-                            <span class="option-label">A.</span> {{ q.option_a }}
-                        </div>
-                        <div class="option-text">
-                            <span class="option-label">B.</span> {{ q.option_b }}
-                        </div>
-                        <div class="option-text">
-                            <span class="option-label">C.</span> {{ q.option_c }}
-                        </div>
-                        <div class="option-text">
-                            <span class="option-label">D.</span> {{ q.option_d }}
-                        </div>
-                    </td>
-                    <td>
-                        <span class="correct-answer">{{ q.correct_option|upper }}</span>
-                    </td>
-                    <td>
-                        <span class="badge bg-primary">{{ q.marks }}</span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    <!-- Questions Display - Exam Format -->
+    {% for q in questions %}
+    <div class="question-item">
+        <div class="question-number">
+            <span>{{ loop.index }}.</span>
+            <span class="marks-badge"><i class="fas fa-star"></i> {{ q.marks }} Marks</span>
+        </div>
 
-    <!-- Summary Stats -->
-    <div class="mt-3">
-        <span class="stats-badge">
-            <i class="fas fa-list"></i> Total: <strong>{{ questions|length }}</strong> questions
-        </span>
-        <span class="stats-badge">
-            <i class="fas fa-check-circle text-success"></i> 
-            All questions have options: <strong>{{ questions|selectattr('option_a')|list|length }}</strong>
-        </span>
-        <span class="stats-badge">
-            <i class="fas fa-star text-warning"></i> 
-            Total marks: <strong>{{ questions|sum(attribute='marks') }}</strong>
-        </span>
+        <div class="question-text">
+            {{ q.question_text }}
+        </div>
+
+        {% if q.image %}
+        <div class="question-image">
+            <img src="{{ url_for('static', filename='question_images/' ~ q.image) }}" 
+                 alt="Question image" 
+                 class="img-fluid">
+        </div>
+        {% endif %}
+
+        <div class="options-grid">
+            <div class="option-item">
+                <span class="option-label">A.</span>
+                <span class="option-text">{{ q.option_a }}</span>
+            </div>
+            <div class="option-item">
+                <span class="option-label">B.</span>
+                <span class="option-text">{{ q.option_b }}</span>
+            </div>
+            <div class="option-item">
+                <span class="option-label">C.</span>
+                <span class="option-text">{{ q.option_c }}</span>
+            </div>
+            <div class="option-item">
+                <span class="option-label">D.</span>
+                <span class="option-text">{{ q.option_d }}</span>
+            </div>
+        </div>
+
+        <div class="correct-answer-box">
+            <i class="fas fa-check-circle"></i> 
+            <strong>Answer:</strong> {{ q.correct_option|upper }}
+        </div>
+
+        {% if q.extra_content %}
+        <div class="extra-content">
+            <i class="fas fa-info-circle"></i> {{ q.extra_content }}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- Summary Section -->
+    <div class="summary-section">
+        <div class="stats">
+            <div class="stat-item">
+                <i class="fas fa-list"></i>
+                <strong>Total Questions:</strong>
+                <span class="number">{{ questions|length }}</span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-star"></i>
+                <strong>Total Marks:</strong>
+                <span class="number">{{ questions|sum(attribute='marks') }}</span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-check-circle text-success"></i>
+                <strong>All Options Complete:</strong>
+                <span class="number">
+                    {% set complete = questions|selectattr('option_a')|list|length %}
+                    {{ complete }}/{{ questions|length }}
+                </span>
+            </div>
+        </div>
+        <div>
+            <span class="badge bg-info text-white p-2">
+                <i class="fas fa-print"></i> Print Ready
+            </span>
+        </div>
     </div>
 
     <!-- Action Buttons -->
-    <form method="post" class="form-actions">
-        <button type="submit" name="action" value="confirm" class="btn btn-success">
-            <i class="fas fa-check-circle"></i> Confirm & Save Quiz
-        </button>
-        <button type="submit" name="action" value="delete" class="btn btn-danger" 
-                onclick="return confirm('⚠️ Are you sure you want to delete this quiz? This action cannot be undone!');">
-            <i class="fas fa-trash-alt"></i> Delete Quiz
-        </button>
+    <div class="action-section">
+        <form method="post" style="display: inline;">
+            <button type="submit" name="action" value="confirm" class="btn btn-success">
+                <i class="fas fa-check-circle"></i> Confirm & Save Quiz
+            </button>
+        </form>
+        <form method="post" style="display: inline;">
+            <button type="submit" name="action" value="delete" class="btn btn-danger" 
+                    onclick="return confirm('⚠️ Are you sure you want to delete this quiz? All questions will be permanently removed!');">
+                <i class="fas fa-trash-alt"></i> Delete Quiz
+            </button>
+        </form>
         <a href="{{ url_for('upload_exam') }}" class="btn btn-secondary">
             <i class="fas fa-upload"></i> Upload Another
         </a>
-    </form>
+        <button onclick="window.print()" class="btn btn-warning">
+            <i class="fas fa-print"></i> Print Preview
+        </button>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Add confirmation for delete button (additional safety)
+        // Add confirmation for delete button
         const deleteBtn = document.querySelector('button[value="delete"]');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', function(e) {
@@ -377,24 +545,25 @@
             });
         }
 
-        // Auto scroll to table if there are many questions
-        if (document.querySelectorAll('tbody tr').length > 10) {
-            const table = document.querySelector('.table-responsive');
-            if (table) {
-                table.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }
-
-        // Add keyboard shortcut (Ctrl+S to confirm)
+        // Keyboard shortcut: Ctrl+S to confirm
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
                 const confirmBtn = document.querySelector('button[value="confirm"]');
                 if (confirmBtn) {
-                    confirmBtn.click();
+                    if (confirm('Confirm quiz with ' + document.querySelectorAll('.question-item').length + ' questions?')) {
+                        confirmBtn.click();
+                    }
                 }
             }
         });
+
+        // Add print instructions
+        console.log('📝 Quiz Review Loaded:');
+        console.log('   - Questions: ' + document.querySelectorAll('.question-item').length);
+        console.log('   - Total Marks: ' + document.querySelector('.stat-item .number')?.textContent);
+        console.log('   - Press Ctrl+S to confirm');
+        console.log('   - Press Ctrl+P to print');
     });
 </script>
 {% endblock %}
