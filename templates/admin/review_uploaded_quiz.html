@@ -86,13 +86,6 @@
         transform: translateY(-2px);
     }
 
-    .question-number {
-        font-weight: 700;
-        color: #007bff;
-        font-size: 1.05rem;
-        margin-bottom: 8px;
-    }
-
     .question-text {
         font-size: 1.05rem;
         line-height: 1.7;
@@ -321,10 +314,6 @@
             padding: 15px;
         }
 
-        .question-number {
-            font-size: 0.95rem;
-        }
-
         .question-text {
             font-size: 0.95rem;
         }
@@ -419,8 +408,8 @@
     <!-- Questions Display - Exam Format -->
     {% for q in questions %}
     <div class="question-item">
-        <div class="question-number">{{ loop.index }}.</div>
-
+        <!-- Remove the separate question number display since it's already in the question text -->
+        
         <div class="question-text">
             {{ q.question_text }}
         </div>
