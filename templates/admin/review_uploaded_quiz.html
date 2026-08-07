@@ -32,6 +32,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
+        font-size: 1.5rem;
     }
 
     .page-header .quiz-meta {
@@ -90,19 +91,6 @@
         color: #007bff;
         font-size: 1.05rem;
         margin-bottom: 8px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-
-    .question-number .marks-badge {
-        background: #e9ecef;
-        color: #495057;
-        padding: 2px 15px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 600;
     }
 
     .question-text {
@@ -431,10 +419,7 @@
     <!-- Questions Display - Exam Format -->
     {% for q in questions %}
     <div class="question-item">
-        <div class="question-number">
-            <span>{{ loop.index }}.</span>
-            <span class="marks-badge"><i class="fas fa-star"></i> {{ q.marks }} Marks</span>
-        </div>
+        <div class="question-number">{{ loop.index }}.</div>
 
         <div class="question-text">
             {{ q.question_text }}
@@ -558,7 +543,6 @@
             }
         });
 
-        // Add print instructions
         console.log('📝 Quiz Review Loaded:');
         console.log('   - Questions: ' + document.querySelectorAll('.question-item').length);
         console.log('   - Total Marks: ' + document.querySelector('.stat-item .number')?.textContent);
