@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Take Exam - {{ quiz.title }}</title>
   <style>
+    /* ===== RESET & BASE ===== */
     * {
       margin: 0;
       padding: 0;
@@ -13,23 +14,23 @@
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
       padding: 20px;
       background-color: #f0f2f5;
-      color: #222;
+      color: #1a1a2e;
       min-height: 100vh;
     }
 
+    /* ===== HEADER ===== */
     .header {
       display: flex;
       align-items: center;
       gap: 15px;
-      background: linear-gradient(135deg, #007bff, #0056b3);
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
       color: white;
       padding: 15px 25px;
-      border-radius: 10px;
+      border-radius: 12px;
       margin-bottom: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
       flex-wrap: wrap;
     }
 
@@ -49,20 +50,17 @@
     }
 
     .student-info {
-      background: rgba(255,255,255,0.15);
+      background: rgba(255, 255, 255, 0.15);
       padding: 8px 18px;
       border-radius: 20px;
-      font-size: 16px;
+      font-size: 15px;
       display: flex;
       align-items: center;
       gap: 10px;
       backdrop-filter: blur(5px);
     }
 
-    .student-info i {
-      font-style: normal;
-    }
-
+    /* ===== TIMER ===== */
     .timer-container {
       text-align: right;
       margin-bottom: 15px;
@@ -70,9 +68,9 @@
 
     #timer {
       background: #ffc107;
-      color: #212529;
+      color: #1a1a2e;
       font-weight: bold;
-      padding: 10px 20px;
+      padding: 10px 24px;
       border-radius: 8px;
       font-size: 1.2em;
       display: inline-block;
@@ -80,39 +78,59 @@
       border: 2px solid #e0a800;
     }
 
-    h2 {
-      color: #333;
-      margin-bottom: 5px;
+    #timer.warning {
+      background: #ff6b6b;
+      color: white;
+      border-color: #c0392b;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* ===== TITLE ===== */
+    .exam-title {
+      text-align: center;
+      color: #c0392b;
+      font-size: 1.8em;
+      margin: 10px 0 5px;
+      font-weight: 700;
     }
 
     .duration-info {
-      font-weight: bold;
-      margin-bottom: 20px;
-      color: #555;
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 10px;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 15px;
+      padding: 0 5px;
     }
 
+    /* ===== INFO BOX ===== */
     .info-box {
       background: #fff3cd;
-      border-left: 5px solid #ffa502;
+      border-left: 6px solid #f39c12;
       padding: 15px 20px;
       margin-bottom: 20px;
       border-radius: 8px;
+      font-size: 0.95em;
     }
 
     .info-box p {
-      margin: 5px 0;
+      margin: 4px 0;
     }
 
+    /* ===== FORM ===== */
     form {
       background: white;
       padding: 25px;
-      border-radius: 10px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     .question-container {
@@ -130,23 +148,24 @@
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(15px); }
+      from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
+    /* ===== QUESTION BLOCK ===== */
     .question-block {
       border: 1px solid #e1e8ed;
       padding: 25px;
-      border-radius: 10px;
+      border-radius: 12px;
       background: #fafbfc;
     }
 
     .question-block img {
       max-width: 100%;
       height: auto;
-      margin-top: 15px;
+      margin: 15px 0;
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     }
 
     .question-header {
@@ -156,26 +175,29 @@
       margin-bottom: 15px;
       padding-bottom: 12px;
       border-bottom: 2px solid #e9ecef;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .question-number {
-      font-weight: bold;
-      color: #007bff;
+      font-weight: 700;
+      color: #1a1a2e;
       font-size: 1.1em;
     }
 
     .question-status {
-      font-size: 0.9em;
-      color: #999;
-      padding: 4px 12px;
-      border-radius: 12px;
+      font-size: 0.85em;
+      color: #6c757d;
+      padding: 4px 14px;
+      border-radius: 20px;
       background: #f1f3f5;
+      transition: all 0.3s;
     }
 
     .question-status.answered {
       background: #d4edda;
       color: #155724;
-      font-weight: bold;
+      font-weight: 600;
     }
 
     .question-text {
@@ -185,6 +207,7 @@
       font-size: 1.05em;
     }
 
+    /* ===== OPTIONS ===== */
     .options {
       margin-top: 10px;
     }
@@ -192,20 +215,20 @@
     .option-line {
       display: flex;
       align-items: flex-start;
-      gap: 12px;
-      margin: 12px 0;
+      gap: 14px;
+      margin: 10px 0;
       cursor: pointer;
       padding: 12px 16px;
       border-radius: 8px;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
       border: 2px solid transparent;
       background: white;
     }
 
     .option-line:hover {
-      background-color: #f8f9fa;
-      border-color: #dee2e6;
-      transform: translateX(5px);
+      background-color: #f0f7ff;
+      border-color: #007bff;
+      transform: translateX(4px);
     }
 
     .option-line input[type="radio"] {
@@ -224,7 +247,7 @@
       font-size: 1em;
     }
 
-    /* Navigation */
+    /* ===== NAVIGATION ===== */
     .navigation {
       display: flex;
       justify-content: space-between;
@@ -243,7 +266,7 @@
     }
 
     .nav-btn {
-      background-color: #6c757d;
+      background: #6c757d;
       color: white;
       border: none;
       padding: 11px 24px;
@@ -251,19 +274,18 @@
       cursor: pointer;
       font-size: 14px;
       font-weight: 500;
-      transition: all 0.3s;
+      transition: all 0.3s ease;
     }
 
     .nav-btn:hover:not(:disabled) {
-      background-color: #5a6268;
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
     }
 
     .nav-btn:disabled {
-      opacity: 0.5;
+      opacity: 0.4;
       cursor: not-allowed;
-      transform: none;
+      transform: none !important;
     }
 
     .nav-btn.primary {
@@ -271,7 +293,7 @@
     }
 
     .nav-btn.primary:hover:not(:disabled) {
-      background: linear-gradient(135deg, #0056b3, #004085);
+      background: linear-gradient(135deg, #0056b3, #003d80);
     }
 
     .nav-btn.success {
@@ -279,7 +301,7 @@
     }
 
     .nav-btn.success:hover:not(:disabled) {
-      background: linear-gradient(135deg, #1e7e34, #155724);
+      background: linear-gradient(135deg, #1e7e34, #145523);
     }
 
     .nav-btn.danger {
@@ -290,9 +312,14 @@
       background: linear-gradient(135deg, #bd2130, #8b1a2b);
     }
 
+    .nav-btn.disabled-red {
+      background: #dc3545 !important;
+      opacity: 0.7;
+    }
+
     .progress-info {
       font-size: 0.95em;
-      color: #555;
+      color: #2c3e50;
       padding: 10px 16px;
       background: #f8f9fa;
       border-radius: 8px;
@@ -303,10 +330,11 @@
       font-weight: 600;
     }
 
+    /* ===== PROGRESS BAR ===== */
     .progress-bar-container {
       width: 100%;
       height: 8px;
-      background-color: #e9ecef;
+      background: #e9ecef;
       border-radius: 4px;
       margin-top: 20px;
       overflow: hidden;
@@ -319,13 +347,13 @@
       border-radius: 4px;
     }
 
-    /* Question Navigator (mini grid) */
+    /* ===== QUESTION NAVIGATOR ===== */
     .question-navigator {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 20px;
-      padding: 18px;
+      padding: 16px 18px;
       background: #f8f9fa;
       border-radius: 10px;
       border: 1px solid #dee2e6;
@@ -343,21 +371,21 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
+      transition: all 0.2s ease;
       color: #495057;
     }
 
     .nav-dot:hover {
-      transform: scale(1.1);
+      transform: scale(1.08);
       border-color: #007bff;
-      box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+      box-shadow: 0 2px 10px rgba(0, 123, 255, 0.25);
     }
 
     .nav-dot.active {
       background: #007bff;
       color: white;
       border-color: #007bff;
-      box-shadow: 0 2px 8px rgba(0,123,255,0.4);
+      box-shadow: 0 2px 10px rgba(0, 123, 255, 0.35);
     }
 
     .nav-dot.answered {
@@ -371,13 +399,13 @@
       border-color: #007bff;
     }
 
-    /* Result Display - Circular Score */
+    /* ===== RESULT DISPLAY ===== */
     .result-container {
       display: none;
       text-align: center;
       padding: 40px 20px;
       background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-      border-radius: 15px;
+      border-radius: 16px;
       margin: 20px 0;
     }
 
@@ -397,17 +425,13 @@
       width: 200px;
       height: 200px;
       border-radius: 50%;
-      background: conic-gradient(
-        #007bff 0% 0%,
-        #e9ecef 0% 100%
-      );
+      background: conic-gradient(#007bff 0% 0%, #e9ecef 0% 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
       margin: 20px auto;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-      transition: all 0.5s ease;
+      box-shadow: 0 8px 35px rgba(0, 0, 0, 0.12);
+      transition: all 0.8s ease;
     }
 
     .result-circle-inner {
@@ -419,7 +443,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05);
     }
 
     .result-score {
@@ -432,13 +456,13 @@
     .result-label {
       font-size: 14px;
       color: #6c757d;
-      margin-top: 5px;
+      margin-top: 4px;
     }
 
     .result-details {
       margin-top: 25px;
       display: flex;
-      gap: 40px;
+      gap: 20px;
       justify-content: center;
       flex-wrap: wrap;
     }
@@ -447,8 +471,8 @@
       background: white;
       padding: 15px 25px;
       border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      min-width: 120px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+      min-width: 110px;
     }
 
     .result-detail-item .label {
@@ -460,7 +484,7 @@
     .result-detail-item .value {
       font-size: 24px;
       font-weight: 600;
-      color: #212529;
+      color: #1a1a2e;
       margin-top: 5px;
     }
 
@@ -476,7 +500,7 @@
       min-width: 150px;
     }
 
-    /* Custom Confirmation Modal */
+    /* ===== MODAL ===== */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -488,7 +512,7 @@
       z-index: 9999;
       justify-content: center;
       align-items: center;
-      backdrop-filter: blur(5px);
+      backdrop-filter: blur(4px);
     }
 
     .modal-overlay.show {
@@ -501,7 +525,7 @@
       padding: 30px;
       max-width: 450px;
       width: 90%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
       animation: modalSlideIn 0.3s ease;
     }
 
@@ -520,7 +544,7 @@
       text-align: center;
       font-size: 20px;
       font-weight: 600;
-      color: #2c3e50;
+      color: #1a1a2e;
       margin-bottom: 10px;
     }
 
@@ -549,12 +573,12 @@
       font-size: 15px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.3s ease;
     }
 
     .modal-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
     }
 
     .modal-btn.confirm {
@@ -584,14 +608,35 @@
       background: #5a6268;
     }
 
-    /* Responsive */
+    /* ===== AUTO-SAVE INDICATOR ===== */
+    .save-indicator {
+      font-size: 12px;
+      color: #6c757d;
+      text-align: right;
+      padding: 5px 0;
+      opacity: 0.7;
+    }
+
+    .save-indicator.saved {
+      color: #28a745;
+      opacity: 1;
+    }
+
+    .save-indicator.saving {
+      color: #ffc107;
+      opacity: 1;
+    }
+
+    /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
+      body { padding: 12px; }
+
       .header {
         flex-direction: column;
         text-align: center;
         padding: 15px;
       }
-      
+
       .student-info {
         width: 100%;
         justify-content: center;
@@ -605,26 +650,40 @@
         display: block;
         width: 100%;
         text-align: center;
+        padding: 8px 16px;
+        font-size: 1em;
       }
-      
+
+      .exam-title {
+        font-size: 1.3em;
+      }
+
       .navigation {
         flex-direction: column;
         align-items: stretch;
       }
-      
+
       .nav-buttons {
         justify-content: center;
       }
-      
+
+      .nav-btn {
+        padding: 10px 18px;
+        font-size: 13px;
+        flex: 1;
+        text-align: center;
+      }
+
       .question-navigator {
         justify-content: center;
         gap: 6px;
+        padding: 12px;
       }
 
       .nav-dot {
-        width: 32px;
-        height: 32px;
-        font-size: 11px;
+        width: 34px;
+        height: 34px;
+        font-size: 12px;
       }
 
       .result-circle {
@@ -642,12 +701,12 @@
       }
 
       .result-details {
-        gap: 15px;
+        gap: 12px;
       }
 
       .result-detail-item {
-        padding: 12px 20px;
-        min-width: 100px;
+        padding: 12px 18px;
+        min-width: 90px;
       }
 
       .modal-box {
@@ -660,20 +719,39 @@
 
       .modal-btn {
         width: 100%;
+        padding: 12px;
+      }
+
+      .option-line {
+        padding: 10px 12px;
       }
     }
 
     @media print {
-      #timer, .nav-buttons, .question-navigator {
+      #timer,
+      .nav-buttons,
+      .question-navigator,
+      .save-indicator {
         display: none !important;
+      }
+
+      .question-page {
+        display: block !important;
+        page-break-after: always;
+      }
+
+      .question-block {
+        border: none;
+        background: white;
       }
     }
   </style>
 </head>
 
 <body>
+  <!-- HEADER -->
   <div class="header">
-    <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Summit Tech College" />
+    <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Summit Technical College Logo" />
     <h1>SUMMIT TECHNICAL COLLEGE</h1>
     <div class="student-info">
       <span>👤</span>
@@ -681,7 +759,7 @@
     </div>
   </div>
 
-  <!-- Timer -->
+  <!-- TIMER -->
   {% if not show_result %}
     <div class="timer-container">
       <div id="timer">
@@ -690,28 +768,31 @@
     </div>
   {% endif %}
 
-  <h2><strong><center><font color="red">SUBJECT</font>: {{ quiz.title }}</center></strong></h2>
+  <!-- TITLE -->
+  <h1 class="exam-title">SUBJECT: {{ quiz.title }}</h1>
+
   <div class="duration-info">
-    <span>Duration: {{ quiz.duration }} minutes</span>
-    <span>Total Questions: {{ questions|length }}</span>
+    <span>⏱️ Duration: {{ quiz.duration }} minutes</span>
+    <span>📝 Total Questions: {{ questions|length }}</span>
   </div>
 
+  <!-- INFO BOX -->
   <div class="info-box">
-    <p><strong>Time Allowed:</strong> {{ quiz.duration }} minutes.</p>
+    <p><strong>📋 Time Allowed:</strong> {{ quiz.duration }} minutes.</p>
     <p>
-      This paper is made up of {{ questions|length }} Multiple Choice Questions.<br>
+      This paper is made up of <strong>{{ questions|length }}</strong> Multiple Choice Questions.<br>
       Answer ALL questions by indicating the letter (A, B, C or D) that represents the correct answer.<br>
-      Each question is allocated two (2) marks.<br>
-      <strong>Do NOT write anything on this paper.</strong>
+      Each question is allocated <strong>two (2) marks</strong>.<br>
+      <strong>⚠️ Do NOT write anything on this paper.</strong>
     </p>
   </div>
 
-  <!-- Result Display -->
+  <!-- RESULT DISPLAY -->
   {% if show_result %}
-    <div class="result-container show" id="resultContainer">
-      <h2 style="margin-bottom: 20px; color: #212529;">Exam Results</h2>
+    <div class="result-container show" id="resultContainer" role="region" aria-label="Exam Results">
+      <h2 style="margin-bottom: 20px; color: #1a1a2e;">📊 Exam Results</h2>
       <div class="result-circle-wrapper">
-        <div class="result-circle" id="resultCircle">
+        <div class="result-circle" id="resultCircle" role="img" aria-label="Score percentage circle">
           <div class="result-circle-inner">
             <div class="result-score" id="resultScore">{{ "%.1f"|format(percentage) }}%</div>
             <div class="result-label">Score</div>
@@ -720,19 +801,19 @@
       </div>
       <div class="result-details">
         <div class="result-detail-item">
-          <span class="label">Correct Answers</span>
+          <span class="label">✅ Correct</span>
           <span class="value">{{ score }}</span>
         </div>
         <div class="result-detail-item">
-          <span class="label">Total Questions</span>
+          <span class="label">📝 Total Questions</span>
           <span class="value">{{ total_marks // 2 if total_marks > 0 else questions|length }}</span>
         </div>
         <div class="result-detail-item">
-          <span class="label">Total Marks</span>
+          <span class="label">⭐ Total Marks</span>
           <span class="value">{{ total_marks }}</span>
         </div>
         <div class="result-detail-item">
-          <span class="label">Percentage</span>
+          <span class="label">📈 Percentage</span>
           <span class="value">{{ "%.1f"|format(percentage) }}%</span>
         </div>
       </div>
@@ -743,46 +824,74 @@
         <button class="nav-btn success" onclick="window.location.href='{{ url_for('student_results') }}'">
           📝 All Results
         </button>
+        <button class="nav-btn" onclick="window.print()">🖨️ Print Results</button>
       </div>
     </div>
   {% endif %}
 
-  <!-- Exam Form -->
+  <!-- EXAM FORM -->
   {% if not show_result %}
-    <form method="POST" id="exam-form">
+    <form method="POST" id="exam-form" novalidate>
+      <input type="hidden" name="exam_id" value="{{ quiz.id }}">
+      <input type="hidden" name="student_id" value="{{ student.id }}">
+
       <div class="question-container">
         {% for question in questions %}
-          <div class="question-page {% if loop.first %}active{% endif %}" data-page="{{ loop.index0 }}" data-total="{{ questions|length }}">
+          <div class="question-page {% if loop.first %}active{% endif %}" 
+               data-page="{{ loop.index0 }}" 
+               data-total="{{ questions|length }}"
+               data-question-id="{{ question.id }}"
+               role="group"
+               aria-label="Question {{ loop.index }} of {{ questions|length }}">
+            
             <div class="question-block">
               <div class="question-header">
-                <span class="question-number">Question {{ loop.index }} of {{ questions|length }}</span>
-                <span class="question-status" id="status-{{ loop.index0 }}">Not Answered</span>
+                <span class="question-number">📌 Question {{ loop.index }} of {{ questions|length }}</span>
+                <span class="question-status" id="status-{{ loop.index0 }}">⏳ Not Answered</span>
               </div>
-              
+
               <div class="question-text">{{ question.question_text }}</div>
 
               {% if question.image %}
-                <img src="{{ url_for('static', filename='question_images/' ~ question.image) }}" alt="Question Image">
+                <img src="{{ url_for('static', filename='question_images/' ~ question.image) }}" 
+                     alt="Image for question {{ loop.index }}" 
+                     loading="lazy">
               {% endif %}
 
-              <div class="options">
+              <div class="options" role="radiogroup" aria-label="Options for question {{ loop.index }}">
                 <label class="option-line">
-                  <input type="radio" name="question_{{ question.id }}" value="a" onchange="markAnswered({{ loop.index0 }})">
+                  <input type="radio" 
+                         name="question_{{ question.id }}" 
+                         value="a" 
+                         onchange="markAnswered({{ loop.index0 }})"
+                         aria-label="Option A">
                   <div class="option-text">{{ question.option_a }}</div>
                 </label>
 
                 <label class="option-line">
-                  <input type="radio" name="question_{{ question.id }}" value="b" onchange="markAnswered({{ loop.index0 }})">
+                  <input type="radio" 
+                         name="question_{{ question.id }}" 
+                         value="b" 
+                         onchange="markAnswered({{ loop.index0 }})"
+                         aria-label="Option B">
                   <div class="option-text">{{ question.option_b }}</div>
                 </label>
 
                 <label class="option-line">
-                  <input type="radio" name="question_{{ question.id }}" value="c" onchange="markAnswered({{ loop.index0 }})">
+                  <input type="radio" 
+                         name="question_{{ question.id }}" 
+                         value="c" 
+                         onchange="markAnswered({{ loop.index0 }})"
+                         aria-label="Option C">
                   <div class="option-text">{{ question.option_c }}</div>
                 </label>
 
                 <label class="option-line">
-                  <input type="radio" name="question_{{ question.id }}" value="d" onchange="markAnswered({{ loop.index0 }})">
+                  <input type="radio" 
+                         name="question_{{ question.id }}" 
+                         value="d" 
+                         onchange="markAnswered({{ loop.index0 }})"
+                         aria-label="Option D">
                   <div class="option-text">{{ question.option_d }}</div>
                 </label>
               </div>
@@ -791,24 +900,31 @@
         {% endfor %}
       </div>
 
-      <!-- Question Navigator -->
-      <div class="question-navigator" id="questionNavigator">
+      <!-- AUTO-SAVE INDICATOR -->
+      <div class="save-indicator" id="saveIndicator">💾 All answers saved</div>
+
+      <!-- QUESTION NAVIGATOR -->
+      <div class="question-navigator" id="questionNavigator" role="navigation" aria-label="Question navigation">
         {% for q in questions %}
-          <div class="nav-dot" data-page="{{ loop.index0 }}" onclick="goToPage({{ loop.index0 }})">
+          <button class="nav-dot" 
+                  data-page="{{ loop.index0 }}" 
+                  onclick="goToPage({{ loop.index0 }})"
+                  aria-label="Go to question {{ loop.index }}"
+                  title="Question {{ loop.index }}">
             {{ loop.index }}
-          </div>
+          </button>
         {% endfor %}
       </div>
 
-      <!-- Navigation -->
+      <!-- NAVIGATION -->
       <div class="navigation">
         <div class="progress-info">
           <span id="currentPageDisplay">1</span> / <span id="totalPagesDisplay">{{ questions|length }}</span>
           <span style="margin-left: 15px;">
-            Answered: <span id="answeredCount">0</span> / {{ questions|length }}
+            ✅ Answered: <span id="answeredCount">0</span> / {{ questions|length }}
           </span>
         </div>
-        
+
         <div class="nav-buttons">
           <button type="button" class="nav-btn" id="prevBtn" onclick="changePage(-1)" disabled>
             ◀ Previous
@@ -817,80 +933,53 @@
             Next ▶
           </button>
           <button type="button" class="nav-btn success" id="submitExamBtn" onclick="showSubmitModal()">
-            Submit Exam
+            📤 Submit Exam
           </button>
         </div>
       </div>
 
-      <!-- Progress Bar -->
-      <div class="progress-bar-container">
+      <!-- PROGRESS BAR -->
+      <div class="progress-bar-container" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
         <div class="progress-bar" id="progressBar" style="width: 0%"></div>
       </div>
     </form>
   {% endif %}
 
-  <!-- Custom Confirmation Modal -->
-  <div class="modal-overlay" id="submitModal">
+  <!-- CONFIRMATION MODAL -->
+  <div class="modal-overlay" id="submitModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-box">
       <div class="modal-icon">📝</div>
-      <div class="modal-title">Submit Exam?</div>
+      <div class="modal-title" id="modalTitle">Submit Exam?</div>
       <div class="modal-message">
         You have answered <strong id="modalAnsweredCount">0</strong> out of <strong id="modalTotalCount">0</strong> questions.
         <br><br>
-        <span style="color: #dc3545;" id="modalUnansweredWarning"></span>
+        <span id="modalUnansweredWarning"></span>
         <br><br>
         <strong>Are you sure you want to submit?</strong>
         <br>
-        <span style="color: #6c757d; font-size: 13px;">You cannot change your answers after submitting.</span>
+        <span style="color: #6c757d; font-size: 13px;">⚠️ You cannot change your answers after submitting.</span>
       </div>
       <div class="modal-buttons">
-        <button class="modal-btn continue" onclick="closeModal()">Go Back</button>
-        <button class="modal-btn confirm" onclick="submitExam()">Yes, Submit</button>
+        <button class="modal-btn continue" onclick="closeModal()">← Go Back</button>
+        <button class="modal-btn confirm" onclick="submitExam()">✅ Yes, Submit</button>
       </div>
     </div>
   </div>
 
+  <!-- ============================================================ -->
+  <!-- JAVASCRIPT -->
+  <!-- ============================================================ -->
   <script>
-    // Only initialize timer and navigation if exam is not submitted
-    {% if not show_result %}
-      // Timer functionality
-      let totalSeconds = {{ quiz.duration * 60 }};
-      const countdownEl = document.getElementById('countdown');
-      const form = document.getElementById('exam-form');
-      const submitBtn = document.getElementById('submitExamBtn');
+    (function() {
+      'use strict';
 
-      function updateTimer() {
-        let hours = Math.floor(totalSeconds / 3600);
-        let minutes = Math.floor((totalSeconds % 3600) / 60);
-        let seconds = totalSeconds % 60;
-        
-        let timeString = '';
-        if (hours > 0) {
-          timeString += hours + 'h ';
-        }
-        timeString += String(minutes).padStart(2, '0') + 'm ';
-        timeString += String(seconds).padStart(2, '0') + 's';
-        
-        countdownEl.textContent = timeString;
-
-        if (totalSeconds <= 0) {
-          clearInterval(timerInterval);
-          alert("⏰ Time's up! Submitting exam...");
-          submitBtn.disabled = true;
-          submitBtn.textContent = 'Submitting...';
-          submitBtn.classList.add('disabled-red');
-          form.submit();
-        }
-
-        totalSeconds--;
-      }
-
-      const timerInterval = setInterval(updateTimer, 1000);
-      updateTimer();
-
-      // Question navigation
-      let currentPage = 0;
+      // --- CONFIG ---
       const totalPages = {{ questions|length }};
+      const totalSeconds = {{ quiz.duration * 60 }};
+      let currentPage = 0;
+      const answered = new Array(totalPages).fill(false);
+
+      // --- DOM REFS ---
       const pages = document.querySelectorAll('.question-page');
       const prevBtn = document.getElementById('prevBtn');
       const nextBtn = document.getElementById('nextBtn');
@@ -899,126 +988,195 @@
       const progressBar = document.getElementById('progressBar');
       const answeredCountDisplay = document.getElementById('answeredCount');
       const navDots = document.querySelectorAll('.nav-dot');
-      const answered = new Array(totalPages).fill(false);
+      const form = document.getElementById('exam-form');
+      const submitBtn = document.getElementById('submitExamBtn');
+      const saveIndicator = document.getElementById('saveIndicator');
 
+      // --- UPDATE PAGE ---
       function updatePage() {
         pages.forEach((page, index) => {
           page.classList.toggle('active', index === currentPage);
         });
 
-        prevBtn.disabled = currentPage === 0;
-        nextBtn.disabled = currentPage === totalPages - 1;
+        prevBtn.disabled = (currentPage === 0);
+        nextBtn.disabled = (currentPage === totalPages - 1);
 
         currentPageDisplay.textContent = currentPage + 1;
         totalPagesDisplay.textContent = totalPages;
 
         const progress = ((currentPage + 1) / totalPages) * 100;
         progressBar.style.width = progress + '%';
+        document.querySelector('.progress-bar-container').setAttribute('aria-valuenow', Math.round(progress));
 
         navDots.forEach((dot, index) => {
           dot.classList.toggle('active', index === currentPage);
-          if (answered[index]) {
-            dot.classList.add('answered');
-          } else {
-            dot.classList.remove('answered');
-          }
+          dot.classList.toggle('answered', answered[index]);
         });
 
         const answeredCount = answered.filter(Boolean).length;
         answeredCountDisplay.textContent = answeredCount;
+        updateProgressBarColor(answeredCount);
       }
 
-      function changePage(delta) {
+      function updateProgressBarColor(answeredCount) {
+        const ratio = answeredCount / totalPages;
+        if (ratio === 1) {
+          progressBar.style.background = 'linear-gradient(90deg, #28a745, #20c997)';
+        } else if (ratio >= 0.5) {
+          progressBar.style.background = 'linear-gradient(90deg, #ffc107, #ff9800)';
+        } else {
+          progressBar.style.background = 'linear-gradient(90deg, #007bff, #00c6ff)';
+        }
+      }
+
+      // --- NAVIGATION ---
+      window.changePage = function(delta) {
         const newPage = currentPage + delta;
         if (newPage >= 0 && newPage < totalPages) {
           currentPage = newPage;
           updatePage();
+          saveCurrentAnswer();
         }
-      }
+      };
 
-      function goToPage(pageIndex) {
-        if (pageIndex >= 0 && pageIndex < totalPages) {
+      window.goToPage = function(pageIndex) {
+        if (pageIndex >= 0 && pageIndex < totalPages && pageIndex !== currentPage) {
+          saveCurrentAnswer();
           currentPage = pageIndex;
           updatePage();
         }
-      }
+      };
 
-      function markAnswered(pageIndex) {
+      // --- MARK ANSWERED ---
+      window.markAnswered = function(pageIndex) {
         const statusElement = document.getElementById(`status-${pageIndex}`);
         if (statusElement) {
           answered[pageIndex] = true;
-          statusElement.textContent = 'Answered ✓';
+          statusElement.textContent = '✅ Answered';
           statusElement.className = 'question-status answered';
           updatePage();
+          showSaveIndicator('saving');
+          autoSave();
+        }
+      };
+
+      // --- AUTO-SAVE (LocalStorage) ---
+      function saveCurrentAnswer() {
+        const currentPageEl = pages[currentPage];
+        if (!currentPageEl) return;
+        const questionId = currentPageEl.dataset.questionId;
+        const selected = document.querySelector(`input[name="question_${questionId}"]:checked`);
+        if (selected) {
+          const answers = JSON.parse(localStorage.getItem('exam_answers') || '{}');
+          answers[questionId] = selected.value;
+          localStorage.setItem('exam_answers', JSON.stringify(answers));
         }
       }
 
-      // Show custom modal
-      function showSubmitModal() {
-        const answeredCount = answered.filter(Boolean).length;
-        const totalCount = totalPages;
-        const unansweredCount = totalCount - answeredCount;
-        
-        document.getElementById('modalAnsweredCount').textContent = answeredCount;
-        document.getElementById('modalTotalCount').textContent = totalCount;
-        
-        const warningElement = document.getElementById('modalUnansweredWarning');
-        if (unansweredCount > 0) {
-          warningElement.innerHTML = `⚠️ You have <strong>${unansweredCount}</strong> unanswered question${unansweredCount > 1 ? 's' : ''}.`;
-        } else {
-          warningElement.innerHTML = '✅ All questions answered!';
-          warningElement.style.color = '#28a745';
+      function autoSave() {
+        const currentPageEl = pages[currentPage];
+        if (!currentPageEl) return;
+        const questionId = currentPageEl.dataset.questionId;
+        const selected = document.querySelector(`input[name="question_${questionId}"]:checked`);
+        if (selected) {
+          const answers = JSON.parse(localStorage.getItem('exam_answers') || '{}');
+          answers[questionId] = selected.value;
+          localStorage.setItem('exam_answers', JSON.stringify(answers));
+          showSaveIndicator('saved');
         }
-        
-        document.getElementById('submitModal').classList.add('show');
       }
 
-      function closeModal() {
-        document.getElementById('submitModal').classList.remove('show');
+      function showSaveIndicator(state) {
+        if (state === 'saving') {
+          saveIndicator.textContent = '⏳ Saving...';
+          saveIndicator.className = 'save-indicator saving';
+        } else if (state === 'saved') {
+          saveIndicator.textContent = '💾 All answers saved';
+          saveIndicator.className = 'save-indicator saved';
+        }
+        clearTimeout(saveIndicator._timeout);
+        saveIndicator._timeout = setTimeout(() => {
+          saveIndicator.className = 'save-indicator';
+          saveIndicator.textContent = '💾 All answers saved';
+        }, 1500);
       }
 
-      function submitExam() {
-        document.getElementById('submitModal').classList.remove('show');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
-        submitBtn.classList.add('disabled-red');
-        form.submit();
-      }
-
-      // Close modal on escape key
-      document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-          closeModal();
-        }
-      });
-
-      // Close modal on click outside
-      document.getElementById('submitModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-          closeModal();
-        }
-      });
-
-      // Restore answers on page load
-      document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('input[type="radio"]').forEach(radio => {
-          if (radio.checked) {
-            const questionBlock = radio.closest('.question-page');
-            if (questionBlock) {
-              const pageIndex = parseInt(questionBlock.dataset.page);
-              if (!isNaN(pageIndex)) {
-                markAnswered(pageIndex);
+      // --- RESTORE ANSWERS ---
+      function restoreAnswers() {
+        const saved = JSON.parse(localStorage.getItem('exam_answers') || '{}');
+        for (const [qId, value] of Object.entries(saved)) {
+          const radio = document.querySelector(`input[name="question_${qId}"][value="${value}"]`);
+          if (radio) {
+            radio.checked = true;
+            const pageEl = radio.closest('.question-page');
+            if (pageEl) {
+              const idx = parseInt(pageEl.dataset.page);
+              if (!isNaN(idx)) {
+                answered[idx] = true;
+                const status = document.getElementById(`status-${idx}`);
+                if (status) {
+                  status.textContent = '✅ Answered';
+                  status.className = 'question-status answered';
+                }
               }
             }
           }
-        });
+        }
         updatePage();
+      }
+
+      // --- MODAL ---
+      window.showSubmitModal = function() {
+        const answeredCount = answered.filter(Boolean).length;
+        const unansweredCount = totalPages - answeredCount;
+
+        document.getElementById('modalAnsweredCount').textContent = answeredCount;
+        document.getElementById('modalTotalCount').textContent = totalPages;
+
+        const warningEl = document.getElementById('modalUnansweredWarning');
+        if (unansweredCount > 0) {
+          warningEl.innerHTML = `⚠️ You have <strong>${unansweredCount}</strong> unanswered question${unansweredCount > 1 ? 's' : ''}.`;
+          warningEl.style.color = '#dc3545';
+        } else {
+          warningEl.innerHTML = '✅ All questions answered!';
+          warningEl.style.color = '#28a745';
+        }
+
+        document.getElementById('submitModal').classList.add('show');
+      };
+
+      window.closeModal = function() {
+        document.getElementById('submitModal').classList.remove('show');
+      };
+
+      window.submitExam = function() {
+        document.getElementById('submitModal').classList.remove('show');
+        saveCurrentAnswer();
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Submitting...';
+        submitBtn.classList.add('disabled-red');
+        clearInterval(window.timerInterval);
+        form.submit();
+      };
+
+      // --- PAGE LEAVE WARNING ---
+      window.addEventListener('beforeunload', function(e) {
+        const answeredCount = answered.filter(Boolean).length;
+        if (answeredCount < totalPages) {
+          e.preventDefault();
+          e.returnValue = 'You have unanswered questions. Are you sure you want to leave?';
+          return e.returnValue;
+        }
       });
 
-      // Keyboard navigation
+      // --- KEYBOARD NAV ---
       document.addEventListener('keydown', function(e) {
         if (e.target.tagName === 'INPUT' && e.target.type === 'radio') return;
-        
+        if (document.getElementById('submitModal').classList.contains('show')) {
+          if (e.key === 'Escape') closeModal();
+          return;
+        }
+
         if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
           e.preventDefault();
           changePage(1);
@@ -1028,40 +1186,77 @@
         }
       });
 
-    {% else %}
-      // Animate the circular score display
+      // --- TIMER ---
+      let remainingSeconds = totalSeconds;
+      const countdownEl = document.getElementById('countdown');
+      const timerEl = document.getElementById('timer');
+
+      function updateTimer() {
+        if (remainingSeconds <= 0) {
+          clearInterval(window.timerInterval);
+          countdownEl.textContent = '⏰ Time\'s up!';
+          alert('⏰ Time\'s up! Submitting exam...');
+          submitBtn.disabled = true;
+          submitBtn.textContent = '⏳ Submitting...';
+          submitBtn.classList.add('disabled-red');
+          form.submit();
+          return;
+        }
+
+        const hours = Math.floor(remainingSeconds / 3600);
+        const minutes = Math.floor((remainingSeconds % 3600) / 60);
+        const seconds = remainingSeconds % 60;
+
+        let timeString = '';
+        if (hours > 0) timeString += hours + 'h ';
+        timeString += String(minutes).padStart(2, '0') + 'm ';
+        timeString += String(seconds).padStart(2, '0') + 's';
+
+        countdownEl.textContent = timeString;
+
+        // Warning when < 5 min
+        if (remainingSeconds <= 300) {
+          timerEl.classList.add('warning');
+        }
+
+        remainingSeconds--;
+      }
+
+      window.timerInterval = setInterval(updateTimer, 1000);
+      updateTimer();
+
+      // --- INIT ---
       document.addEventListener('DOMContentLoaded', function() {
-        const percentage = {{ percentage }};
-        const circle = document.getElementById('resultCircle');
-        
-        setTimeout(function() {
-          const degrees = (percentage / 100) * 360;
-          circle.style.background = `conic-gradient(
-            #007bff 0% ${percentage}%,
-            #e9ecef ${percentage}% 100%
-          )`;
-        }, 300);
+        restoreAnswers();
+        updatePage();
 
-        const scoreElement = document.getElementById('resultScore');
-        let currentScore = 0;
-        const targetScore = Math.round(percentage);
-        const duration = 1500;
-        const steps = 30;
-        const increment = targetScore / steps;
-        let step = 0;
+        // Close modal on overlay click
+        document.getElementById('submitModal').addEventListener('click', function(e) {
+          if (e.target === this) closeModal();
+        });
 
-        const animateScore = setInterval(function() {
-          step++;
-          if (step >= steps) {
-            scoreElement.textContent = targetScore + '%';
-            clearInterval(animateScore);
-          } else {
-            currentScore += increment;
-            scoreElement.textContent = Math.round(currentScore) + '%';
+        // Escape key closes modal
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && document.getElementById('submitModal').classList.contains('show')) {
+            closeModal();
           }
-        }, duration / steps);
+        });
+
+        // Auto-save on radio change
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+          radio.addEventListener('change', function() {
+            const pageEl = this.closest('.question-page');
+            if (pageEl) {
+              const idx = parseInt(pageEl.dataset.page);
+              if (!isNaN(idx)) {
+                markAnswered(idx);
+              }
+            }
+          });
+        });
       });
-    {% endif %}
+
+    })();
   </script>
 </body>
 </html>
