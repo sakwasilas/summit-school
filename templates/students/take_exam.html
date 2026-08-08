@@ -76,6 +76,7 @@
       display: inline-block;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       border: 2px solid #e0a800;
+      transition: all 0.3s ease;
     }
 
     #timer.warning {
@@ -342,7 +343,7 @@
 
     .progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, #28a745, #20c997);
+      background: linear-gradient(90deg, #007bff, #00c6ff);
       transition: width 0.4s ease;
       border-radius: 4px;
     }
@@ -397,6 +398,29 @@
     .nav-dot.answered.active {
       background: #007bff;
       border-color: #007bff;
+    }
+
+    /* ===== AUTO-SAVE INDICATOR ===== */
+    .save-indicator {
+      font-size: 13px;
+      color: #6c757d;
+      text-align: right;
+      padding: 8px 0 5px;
+      opacity: 0.7;
+      transition: all 0.3s ease;
+      min-height: 30px;
+    }
+
+    .save-indicator.saved {
+      color: #28a745;
+      opacity: 1;
+      font-weight: 500;
+    }
+
+    .save-indicator.saving {
+      color: #ffc107;
+      opacity: 1;
+      font-weight: 500;
     }
 
     /* ===== RESULT DISPLAY ===== */
@@ -608,25 +632,6 @@
       background: #5a6268;
     }
 
-    /* ===== AUTO-SAVE INDICATOR ===== */
-    .save-indicator {
-      font-size: 12px;
-      color: #6c757d;
-      text-align: right;
-      padding: 5px 0;
-      opacity: 0.7;
-    }
-
-    .save-indicator.saved {
-      color: #28a745;
-      opacity: 1;
-    }
-
-    .save-indicator.saving {
-      color: #ffc107;
-      opacity: 1;
-    }
-
     /* ===== RESPONSIVE ===== */
     @media (max-width: 768px) {
       body { padding: 12px; }
@@ -749,7 +754,7 @@
 </head>
 
 <body>
-  <!-- HEADER -->
+  <!-- ===== HEADER ===== -->
   <div class="header">
     <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Summit Technical College Logo" />
     <h1>SUMMIT TECHNICAL COLLEGE</h1>
@@ -759,7 +764,7 @@
     </div>
   </div>
 
-  <!-- TIMER -->
+  <!-- ===== TIMER ===== -->
   {% if not show_result %}
     <div class="timer-container">
       <div id="timer">
@@ -768,7 +773,7 @@
     </div>
   {% endif %}
 
-  <!-- TITLE -->
+  <!-- ===== TITLE ===== -->
   <h1 class="exam-title">SUBJECT: {{ quiz.title }}</h1>
 
   <div class="duration-info">
@@ -776,7 +781,7 @@
     <span>📝 Total Questions: {{ questions|length }}</span>
   </div>
 
-  <!-- INFO BOX -->
+  <!-- ===== INFO BOX ===== -->
   <div class="info-box">
     <p><strong>📋 Time Allowed:</strong> {{ quiz.duration }} minutes.</p>
     <p>
@@ -787,7 +792,7 @@
     </p>
   </div>
 
-  <!-- RESULT DISPLAY -->
+  <!-- ===== RESULT DISPLAY ===== -->
   {% if show_result %}
     <div class="result-container show" id="resultContainer" role="region" aria-label="Exam Results">
       <h2 style="margin-bottom: 20px; color: #1a1a2e;">📊 Exam Results</h2>
@@ -829,7 +834,7 @@
     </div>
   {% endif %}
 
-  <!-- EXAM FORM -->
+  <!-- ===== EXAM FORM ===== -->
   {% if not show_result %}
     <form method="POST" id="exam-form" novalidate>
       <input type="hidden" name="exam_id" value="{{ quiz.id }}">
@@ -865,7 +870,7 @@
                          value="a" 
                          onchange="markAnswered({{ loop.index0 }})"
                          aria-label="Option A">
-                  <div class="option-text">{{ question.option_a }}</div>
+                  <span class="option-text">{{ question.option_a }}</span>
                 </label>
 
                 <label class="option-line">
@@ -874,7 +879,7 @@
                          value="b" 
                          onchange="markAnswered({{ loop.index0 }})"
                          aria-label="Option B">
-                  <div class="option-text">{{ question.option_b }}</div>
+                  <span class="option-text">{{ question.option_b }}</span>
                 </label>
 
                 <label class="option-line">
@@ -883,7 +888,7 @@
                          value="c" 
                          onchange="markAnswered({{ loop.index0 }})"
                          aria-label="Option C">
-                  <div class="option-text">{{ question.option_c }}</div>
+                  <span class="option-text">{{ question.option_c }}</span>
                 </label>
 
                 <label class="option-line">
@@ -892,7 +897,7 @@
                          value="d" 
                          onchange="markAnswered({{ loop.index0 }})"
                          aria-label="Option D">
-                  <div class="option-text">{{ question.option_d }}</div>
+                  <span class="option-text">{{ question.option_d }}</span>
                 </label>
               </div>
             </div>
@@ -900,13 +905,13 @@
         {% endfor %}
       </div>
 
-      <!-- AUTO-SAVE INDICATOR -->
+      <!-- ===== AUTO-SAVE INDICATOR ===== -->
       <div class="save-indicator" id="saveIndicator">💾 All answers saved</div>
 
-      <!-- QUESTION NAVIGATOR -->
+      <!-- ===== QUESTION NAVIGATOR ===== -->
       <div class="question-navigator" id="questionNavigator" role="navigation" aria-label="Question navigation">
         {% for q in questions %}
-          <button class="nav-dot" 
+          <button type="button" class="nav-dot" 
                   data-page="{{ loop.index0 }}" 
                   onclick="goToPage({{ loop.index0 }})"
                   aria-label="Go to question {{ loop.index }}"
@@ -916,7 +921,7 @@
         {% endfor %}
       </div>
 
-      <!-- NAVIGATION -->
+      <!-- ===== NAVIGATION ===== -->
       <div class="navigation">
         <div class="progress-info">
           <span id="currentPageDisplay">1</span> / <span id="totalPagesDisplay">{{ questions|length }}</span>
@@ -938,14 +943,14 @@
         </div>
       </div>
 
-      <!-- PROGRESS BAR -->
+      <!-- ===== PROGRESS BAR ===== -->
       <div class="progress-bar-container" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
         <div class="progress-bar" id="progressBar" style="width: 0%"></div>
       </div>
     </form>
   {% endif %}
 
-  <!-- CONFIRMATION MODAL -->
+  <!-- ===== CONFIRMATION MODAL ===== -->
   <div class="modal-overlay" id="submitModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-box">
       <div class="modal-icon">📝</div>
@@ -978,6 +983,8 @@
       const totalSeconds = {{ quiz.duration * 60 }};
       let currentPage = 0;
       const answered = new Array(totalPages).fill(false);
+      let hasNavigatedAway = false;
+      let isSubmitting = false;
 
       // --- DOM REFS ---
       const pages = document.querySelectorAll('.question-page');
@@ -1006,7 +1013,10 @@
 
         const progress = ((currentPage + 1) / totalPages) * 100;
         progressBar.style.width = progress + '%';
-        document.querySelector('.progress-bar-container').setAttribute('aria-valuenow', Math.round(progress));
+        const progressContainer = document.querySelector('.progress-bar-container');
+        if (progressContainer) {
+          progressContainer.setAttribute('aria-valuenow', Math.round(progress));
+        }
 
         navDots.forEach((dot, index) => {
           dot.classList.toggle('active', index === currentPage);
@@ -1016,6 +1026,9 @@
         const answeredCount = answered.filter(Boolean).length;
         answeredCountDisplay.textContent = answeredCount;
         updateProgressBarColor(answeredCount);
+        
+        // Mark current page as "seen" in session
+        sessionStorage.setItem('last_question_page_' + {{ quiz.id }}, currentPage);
       }
 
       function updateProgressBarColor(answeredCount) {
@@ -1031,16 +1044,19 @@
 
       // --- NAVIGATION ---
       window.changePage = function(delta) {
+        if (isSubmitting) return;
         const newPage = currentPage + delta;
         if (newPage >= 0 && newPage < totalPages) {
+          saveCurrentAnswer();
           currentPage = newPage;
           updatePage();
-          saveCurrentAnswer();
         }
       };
 
       window.goToPage = function(pageIndex) {
-        if (pageIndex >= 0 && pageIndex < totalPages && pageIndex !== currentPage) {
+        if (isSubmitting) return;
+        if (pageIndex === currentPage) return;
+        if (pageIndex >= 0 && pageIndex < totalPages) {
           saveCurrentAnswer();
           currentPage = pageIndex;
           updatePage();
@@ -1055,38 +1071,47 @@
           statusElement.textContent = '✅ Answered';
           statusElement.className = 'question-status answered';
           updatePage();
-          showSaveIndicator('saving');
           autoSave();
+          showSaveIndicator('saved');
         }
       };
 
       // --- AUTO-SAVE (LocalStorage) ---
-      function saveCurrentAnswer() {
+      function getCurrentQuestionId() {
         const currentPageEl = pages[currentPage];
-        if (!currentPageEl) return;
-        const questionId = currentPageEl.dataset.questionId;
+        if (!currentPageEl) return null;
+        return currentPageEl.dataset.questionId;
+      }
+
+      function saveCurrentAnswer() {
+        const questionId = getCurrentQuestionId();
+        if (!questionId) return;
+        
         const selected = document.querySelector(`input[name="question_${questionId}"]:checked`);
         if (selected) {
-          const answers = JSON.parse(localStorage.getItem('exam_answers') || '{}');
+          const answers = JSON.parse(localStorage.getItem('exam_answers_' + {{ quiz.id }}) || '{}');
           answers[questionId] = selected.value;
-          localStorage.setItem('exam_answers', JSON.stringify(answers));
+          localStorage.setItem('exam_answers_' + {{ quiz.id }}, JSON.stringify(answers));
+          showSaveIndicator('saved');
         }
       }
 
       function autoSave() {
-        const currentPageEl = pages[currentPage];
-        if (!currentPageEl) return;
-        const questionId = currentPageEl.dataset.questionId;
+        const questionId = getCurrentQuestionId();
+        if (!questionId) return;
+        
         const selected = document.querySelector(`input[name="question_${questionId}"]:checked`);
         if (selected) {
-          const answers = JSON.parse(localStorage.getItem('exam_answers') || '{}');
+          const answers = JSON.parse(localStorage.getItem('exam_answers_' + {{ quiz.id }}) || '{}');
           answers[questionId] = selected.value;
-          localStorage.setItem('exam_answers', JSON.stringify(answers));
+          localStorage.setItem('exam_answers_' + {{ quiz.id }}, JSON.stringify(answers));
           showSaveIndicator('saved');
         }
       }
 
       function showSaveIndicator(state) {
+        if (!saveIndicator) return;
+        
         if (state === 'saving') {
           saveIndicator.textContent = '⏳ Saving...';
           saveIndicator.className = 'save-indicator saving';
@@ -1094,16 +1119,19 @@
           saveIndicator.textContent = '💾 All answers saved';
           saveIndicator.className = 'save-indicator saved';
         }
+        
         clearTimeout(saveIndicator._timeout);
         saveIndicator._timeout = setTimeout(() => {
-          saveIndicator.className = 'save-indicator';
-          saveIndicator.textContent = '💾 All answers saved';
+          if (saveIndicator) {
+            saveIndicator.className = 'save-indicator';
+            saveIndicator.textContent = '💾 All answers saved';
+          }
         }, 1500);
       }
 
       // --- RESTORE ANSWERS ---
       function restoreAnswers() {
-        const saved = JSON.parse(localStorage.getItem('exam_answers') || '{}');
+        const saved = JSON.parse(localStorage.getItem('exam_answers_' + {{ quiz.id }}) || '{}');
         for (const [qId, value] of Object.entries(saved)) {
           const radio = document.querySelector(`input[name="question_${qId}"][value="${value}"]`);
           if (radio) {
@@ -1125,21 +1153,40 @@
         updatePage();
       }
 
+      // --- RESTORE LAST PAGE ---
+      function restoreLastPage() {
+        const lastPage = sessionStorage.getItem('last_question_page_' + {{ quiz.id }});
+        if (lastPage !== null) {
+          const page = parseInt(lastPage);
+          if (!isNaN(page) && page >= 0 && page < totalPages) {
+            currentPage = page;
+          }
+        }
+        updatePage();
+      }
+
       // --- MODAL ---
       window.showSubmitModal = function() {
+        if (isSubmitting) return;
+        
         const answeredCount = answered.filter(Boolean).length;
         const unansweredCount = totalPages - answeredCount;
 
-        document.getElementById('modalAnsweredCount').textContent = answeredCount;
-        document.getElementById('modalTotalCount').textContent = totalPages;
-
+        const modalAnswered = document.getElementById('modalAnsweredCount');
+        const modalTotal = document.getElementById('modalTotalCount');
         const warningEl = document.getElementById('modalUnansweredWarning');
-        if (unansweredCount > 0) {
-          warningEl.innerHTML = `⚠️ You have <strong>${unansweredCount}</strong> unanswered question${unansweredCount > 1 ? 's' : ''}.`;
-          warningEl.style.color = '#dc3545';
-        } else {
-          warningEl.innerHTML = '✅ All questions answered!';
-          warningEl.style.color = '#28a745';
+
+        if (modalAnswered) modalAnswered.textContent = answeredCount;
+        if (modalTotal) modalTotal.textContent = totalPages;
+
+        if (warningEl) {
+          if (unansweredCount > 0) {
+            warningEl.innerHTML = `⚠️ You have <strong>${unansweredCount}</strong> unanswered question${unansweredCount > 1 ? 's' : ''}.`;
+            warningEl.style.color = '#dc3545';
+          } else {
+            warningEl.innerHTML = '✅ All questions answered!';
+            warningEl.style.color = '#28a745';
+          }
         }
 
         document.getElementById('submitModal').classList.add('show');
@@ -1150,17 +1197,28 @@
       };
 
       window.submitExam = function() {
+        if (isSubmitting) return;
+        isSubmitting = true;
+        hasNavigatedAway = true;
+        
         document.getElementById('submitModal').classList.remove('show');
         saveCurrentAnswer();
+        
         submitBtn.disabled = true;
         submitBtn.textContent = '⏳ Submitting...';
         submitBtn.classList.add('disabled-red');
-        clearInterval(window.timerInterval);
+        
+        if (window.timerInterval) {
+          clearInterval(window.timerInterval);
+        }
+        
         form.submit();
       };
 
       // --- PAGE LEAVE WARNING ---
       window.addEventListener('beforeunload', function(e) {
+        if (hasNavigatedAway || isSubmitting) return;
+        
         const answeredCount = answered.filter(Boolean).length;
         if (answeredCount < totalPages) {
           e.preventDefault();
@@ -1172,6 +1230,7 @@
       // --- KEYBOARD NAV ---
       document.addEventListener('keydown', function(e) {
         if (e.target.tagName === 'INPUT' && e.target.type === 'radio') return;
+        
         if (document.getElementById('submitModal').classList.contains('show')) {
           if (e.key === 'Escape') closeModal();
           return;
@@ -1194,8 +1253,10 @@
       function updateTimer() {
         if (remainingSeconds <= 0) {
           clearInterval(window.timerInterval);
-          countdownEl.textContent = '⏰ Time\'s up!';
+          if (countdownEl) countdownEl.textContent = '⏰ Time\'s up!';
           alert('⏰ Time\'s up! Submitting exam...');
+          hasNavigatedAway = true;
+          isSubmitting = true;
           submitBtn.disabled = true;
           submitBtn.textContent = '⏳ Submitting...';
           submitBtn.classList.add('disabled-red');
@@ -1212,10 +1273,9 @@
         timeString += String(minutes).padStart(2, '0') + 'm ';
         timeString += String(seconds).padStart(2, '0') + 's';
 
-        countdownEl.textContent = timeString;
+        if (countdownEl) countdownEl.textContent = timeString;
 
-        // Warning when < 5 min
-        if (remainingSeconds <= 300) {
+        if (remainingSeconds <= 300 && timerEl) {
           timerEl.classList.add('warning');
         }
 
@@ -1228,21 +1288,22 @@
       // --- INIT ---
       document.addEventListener('DOMContentLoaded', function() {
         restoreAnswers();
+        restoreLastPage();
         updatePage();
 
-        // Close modal on overlay click
-        document.getElementById('submitModal').addEventListener('click', function(e) {
-          if (e.target === this) closeModal();
-        });
+        const modal = document.getElementById('submitModal');
+        if (modal) {
+          modal.addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+          });
+        }
 
-        // Escape key closes modal
         document.addEventListener('keydown', function(e) {
           if (e.key === 'Escape' && document.getElementById('submitModal').classList.contains('show')) {
             closeModal();
           }
         });
 
-        // Auto-save on radio change
         document.querySelectorAll('input[type="radio"]').forEach(radio => {
           radio.addEventListener('change', function() {
             const pageEl = this.closest('.question-page');
@@ -1254,6 +1315,14 @@
             }
           });
         });
+
+        sessionStorage.setItem('exam_started_' + {{ quiz.id }}, 'true');
+      });
+
+      window.addEventListener('unload', function() {
+        if (!isSubmitting) {
+          saveCurrentAnswer();
+        }
       });
 
     })();
