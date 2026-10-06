@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Course</title>
+    <style>
+        /* Body Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Form Styles */
+        form {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 440px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+            background-color: white;
+        }
+
+        input[type="text"]:focus,
+        select:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        a {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #007bff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 14px;
+            font-size: 13px;
+        }
+        .alert-warning { background: #fff3cd; color: #856404; }
+        .alert-danger  { background: #f8d7da; color: #721c24; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-info    { background: #d1ecf1; color: #0c5460; }
+
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: -6px;
+            margin-bottom: 8px;
+        }
+
+        .no-depts-warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        .no-depts-warning a {
+            display: inline;
+            color: #856404;
+            font-weight: 700;
+            text-decoration: underline;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <form method="POST" action="{{ url_for('add_course') }}">
+        <a href="{{ url_for('admin_dashboard') }}">← Back to Dashboard</a>
+
+        <h2>Add New Course</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for cat, msg in messages %}
+            <div class="alert alert-{{ cat }}">{{ msg }}</div>
+          {% endfor %}
+        {% endwith %}
+
+        {% if not departments %}
+          <div class="no-depts-warning">
+            ⚠ No departments exist yet.
+            <a href="{{ url_for('manage_departments') }}">Create one first</a>
+            before adding a course.
+          </div>
+        {% endif %}
+
+        <label for="course_name">Course Name</label>
+        <input type="text" id="course_name" name="course_name"
+               placeholder="e.g. DIPLOMA IN INFORMATION COMMUNICATION TECHNOLOGY"
+               required>
+
+        <label for="course_level">Course Level</label>
+        <input type="text" id="course_level" name="course_level"
+               placeholder="e.g. Diploma, Certificate, Artisan"
+               required>
+
+        <label for="department_id">Department</label>
+        <select id="department_id" name="department_id" required
+                {% if not departments %}disabled{% endif %}>
+            <option value="">— choose department —</option>
+            {% for d in departments %}
+                <option value="{{ d.id }}">
+                    {{ d.name }}{% if d.code %} ({{ d.code }}){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+        <div class="hint">The department this course belongs to (e.g. ICT, Business, Artisan).</div>
+
+        <button type="submit" {% if not departments %}disabled style="opacity:0.6; cursor:not-allowed;"{% endif %}>
+            Add Course
+        </button>
+
+        <a href="{{ url_for('manage_departments') }}">
+            Manage Departments
+        </a>
+    </form>
+
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Edit Student</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .form-container {
+      background: #fff;
+      padding: 30px 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .page-title {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .page-title h1 {
+      font-size: 24px;
+      margin: 0;
+      color: #007bff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .page-title h2 {
+      font-size: 20px;
+      margin: 10px 0 0;
+      color: #2c3e50;
+    }
+
+    form {
+      display: grid;
+      gap: 18px;
+    }
+
+    label {
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: block;
+      color: #34495e;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    input:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 5px rgba(0,123,255,0.3);
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    button {
+      padding: 12px 18px;
+      border: 0;
+      background: #007bff;
+      color: white;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    .back-link {
+      text-decoration: none;
+      font-size: 14px;
+      color: #007bff;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+
+    .back-link:hover {
+      color: #0056b3;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .form-container {
+        padding: 20px 15px;
+      }
+      .page-title h1 {
+        font-size: 20px;
+      }
+      .page-title h2 {
+        font-size: 18px;
+      }
+      button {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .back-link {
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <!-- Title Section -->
+    <div class="page-title">
+      <h1>Summit Technical College</h1>
+      <h2>Edit Student: {{ user.username }}</h2>
+    </div>
+
+    <!-- Form -->
+    <form method="POST">
+      <div>
+        <label>Username</label>
+        <input type="text" name="username" value="{{ user.username }}" required />
+      </div>
+      <div>
+        <label>Password</label>
+        <input type="text" name="password" value="{{ user.password }}" required />
+      </div>
+      <div>
+        <label>Full Name</label>
+        <input type="text" name="full_name" value="{{ profile.full_name }}" required />
+      </div>
+      <div>
+        <label>Exam Type</label>
+        <input type="text" name="exam_type" value="{{ profile.exam_type }}" required />
+      </div>
+      <div>
+        <label>Contact No</label>
+        <input type="text" name="phone_number" value="{{ profile.phone_number }}" required />
+      </div>
+
+      <div class="form-actions">
+        <button type="submit">💾 Save</button>
+        <a href="{{ url_for('manage_students') }}" class="back-link">← Back</a>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

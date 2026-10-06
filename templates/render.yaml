@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: flask-app
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn main:app"
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        value: "postgresql://summit_347t_user:ZWXX4Du4KK7KfPlhpyTw2O2SMg4cz2l1@dpg-d2okroq4d50c73a2bghg-a.oregon-postgres.render.com:5432/summit_347t?sslmode=require"
