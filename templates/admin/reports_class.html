@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Class Reports — {{ semester.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 24px 28px 40px;
+            color: #0f1724;
+        }
+        .back-link { color: #4a5568; text-decoration: none; font-size: 13px; }
+        .back-link:hover { text-decoration: underline; }
+
+        h1 { font-size: 26px; font-weight: 800; color: #0f1724; margin: 10px 0 6px; }
+
+        .meta {
+            color: #7f8c8d; font-size: 13px;
+            display: flex; gap: 16px; flex-wrap: wrap;
+        }
+        .meta i { color: #1abc9c; font-size: 12px; }
+
+        .search-box {
+            position: relative;
+            max-width: 300px;
+        }
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8894a3;
+        }
+        .search-box input {
+            padding-left: 38px;
+            border-radius: 10px;
+            border: 1px solid #e0e6ed;
+        }
+        .search-box input:focus {
+            border-color: #1abc9c;
+            box-shadow: 0 0 0 3px rgba(26,188,156,0.15);
+        }
+
+        .btn-export {
+            background: white;
+            color: #0f1724;
+            border: 1px solid #d0dbe6;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+            height: 40px;
+        }
+        .btn-export i { color: #1abc9c; }
+        .btn-export:hover {
+            background: #eafaf6;
+            border-color: #1abc9c;
+            color: #0f1724;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 2px 14px rgba(0,0,0,0.06);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .marks-table { margin: 0; font-size: 13px; }
+        .marks-table thead th {
+            background: #1a2332;
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 14px 16px;
+            border: none;
+            white-space: nowrap;
+        }
+        .marks-table tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #eef2f5;
+            vertical-align: middle;
+            font-size: 13px;
+        }
+        .marks-table tbody tr:last-child td { border-bottom: none; }
+        .marks-table tbody tr:hover { background: #f9fbfd; }
+
+        .student-name { font-weight: 700; color: #0f1724; }
+        .student-reg {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #5a7fbf;
+            background: #eef2f7;
+            padding: 2px 8px;
+            border-radius: 5px;
+            display: inline-block;
+            font-weight: 600;
+            margin-top: 3px;
+        }
+
+        .grade-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .grade-chip.g1 { background: #d4edda; color: #155724; }
+        .grade-chip.g2 { background: #d1f2eb; color: #0e6251; }
+        .grade-chip.g3 { background: #d1ecf1; color: #0c5460; }
+        .grade-chip.g4 { background: #e7f3fa; color: #0c5460; }
+        .grade-chip.g5 { background: #fff3cd; color: #856404; }
+        .grade-chip.g6 { background: #ffe5cc; color: #8a4b08; }
+        .grade-chip.g7 { background: #f8d7da; color: #721c24; }
+
+        .btn-download {
+            background: #1abc9c; color: white;
+            padding: 7px 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .btn-download:hover { background: #16a085; color: white; }
+
+        .result-pill {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+        .result-pill.distinction { background: #d4edda; color: #155724; }
+        .result-pill.credit { background: #d1ecf1; color: #0c5460; }
+        .result-pill.pass { background: #fff3cd; color: #856404; }
+        .result-pill.refer { background: #f8d7da; color: #721c24; }
+        .result-pill.empty { background: #f0f2f5; color: #95a5a6; font-style: italic; }
+
+        .empty-state {
+            padding: 70px 20px;
+            text-align: center;
+            color: #95a5a6;
+        }
+        .empty-state i { font-size: 52px; color: #dee2e6; display: block; margin-bottom: 14px; }
+    </style>
+</head>
+<body>
+
+<a href="{{ url_for('admin_reports_picker') }}" class="back-link">
+    <i class="bi bi-arrow-left"></i> Back to reports picker
+</a>
+
+<div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-3 mt-2">
+    <div>
+        <h1>{{ semester.course.name }}</h1>
+        <div class="meta">
+            <span><i class="bi bi-calendar3"></i> {{ semester.name }}</span>
+            <span><i class="bi bi-people-fill"></i>
+                {{ total_students }} student{{ 's' if total_students != 1 else '' }}
+            </span>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" id="studentSearch" class="form-control"
+                   placeholder="Search student name or reg no…"
+                   autocomplete="off">
+        </div>
+
+        {% if hod_mode %}
+        <a href="{{ url_for('hod_reports_class_export', semester_id=semester.id) }}"
+           class="btn-export">
+            <i class="bi bi-file-earmark-excel"></i> Export to Excel
+        </a>
+        {% else %}
+        <a href="{{ url_for('admin_reports_class_export', semester_id=semester.id) }}"
+           class="btn-export">
+            <i class="bi bi-file-earmark-excel"></i> Export to Excel
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="table-card">
+    {% if student_summary %}
+    <div class="table-responsive">
+        <table class="table marks-table" id="reportsTable">
+            <thead>
+                <tr>
+                    <th style="width: 60px;">#</th>
+                    <th>Student</th>
+                    <th style="width: 110px; text-align: center;">Subjects</th>
+                    <th style="width: 100px; text-align: center;">Average</th>
+                    <th style="width: 80px; text-align: center;">Grade</th>
+                    <th style="width: 150px; text-align: center;">Overall Result</th>
+                    <th style="width: 180px; text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in student_summary %}
+                <tr data-search="{{ item.student.full_name|lower }} {{ item.student.admission_number|lower }}">
+                    <td class="text-muted">{{ loop.index }}</td>
+                    <td>
+                        <div class="student-name">{{ item.student.full_name }}</div>
+                        <span class="student-reg">{{ item.student.admission_number }}</span>
+                    </td>
+                    <td style="text-align: center;">
+                        {% if item.is_knec %}
+                            {{ item.subjects_count }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center; font-weight: 700;">
+                        {% if item.avg is not none %}
+                            {{ '%.2f'|format(item.avg) }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        {% if item.overall_grade %}
+                            <span class="grade-chip g{{ item.overall_grade }}">{{ item.overall_grade }}</span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        {% if item.overall_result %}
+                            <span class="result-pill {{ item.overall_result|lower }}">
+                                {{ item.overall_result }}
+                            </span>
+                        {% else %}
+                            <span class="result-pill empty">No marks</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        {% if item.is_knec %}
+                            <a href="{{ url_for('admin_report_student', student_id=item.student.id, semester_id=semester.id) }}"
+                               target="_blank"
+                               class="btn-download">
+                                <i class="bi bi-download"></i> Transcript
+                            </a>
+                        {% else %}
+                            <span class="text-muted small">Online exams only</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr id="noMatchRow" style="display: none;">
+                    <td colspan="7" style="text-align: center; padding: 40px; color: #95a5a6; font-style: italic;">
+                        <i class="bi bi-search"></i> No students match your search.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <h5 style="color:#4a5568;">No students</h5>
+        <p style="font-size:13px;">No students are enrolled in this course.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('studentSearch');
+    const table = document.getElementById('reportsTable');
+    if (!searchInput || !table) return;
+
+    const rows = Array.from(table.querySelectorAll('tbody tr[data-search]'));
+    const noMatch = document.getElementById('noMatchRow');
+
+    searchInput.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+        let visible = 0;
+
+        rows.forEach(row => {
+            const show = !q || row.dataset.search.includes(q);
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        if (noMatch) {
+            noMatch.style.display = visible === 0 ? '' : 'none';
+        }
+    });
+});
+</script>
+
+</body>
+</html>

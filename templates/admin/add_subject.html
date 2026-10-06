@@ -30,6 +30,7 @@
             margin-bottom: 15px;
             border: 1px solid #ccc;
             border-radius: 4px;
+            box-sizing: border-box;
         }
         button {
             padding: 10px;
@@ -43,32 +44,53 @@
             background-color: #2980b9;
         }
         .back-button {
-    font-size: 16px;          /* Adjust the text size */
-    font-weight: bold;        /* Make the text bold */
-    color: #fff;              /* White text color */
-    background-color: #007bff; /* A blue background */
-    padding: 10px 20px;       /* Padding for top/bottom and left/right */
-    border-radius: 5px;       /* Rounded corners */
-    text-decoration: none;    /* Remove underline */
-    transition: background-color 0.3s ease; /* Smooth background color transition */
-}
-
-.back-button:hover {
-    background-color: #0056b3; /* Darker blue when hovered */
-}
-
-.back-button:active {
-    background-color: #004085; /* Even darker blue when clicked */
-}
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #007bff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .back-button:hover {
+            background-color: #0056b3;
+        }
+        .back-button:active {
+            background-color: #004085;
+        }
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: -10px;
+            margin-bottom: 15px;
+        }
+        .alert {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 14px;
+            font-size: 13px;
+        }
+        .alert-warning { background: #fff3cd; color: #856404; }
+        .alert-danger  { background: #f8d7da; color: #721c24; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-info    { background: #d1ecf1; color: #0c5460; }
     </style>
 </head>
 <body>
     <div class="container">
-       <a href="{{ url_for('admin_dashboard') }}" class="back-button">Back to Dashboard</a>
+        <a href="{{ url_for('admin_dashboard') }}" class="back-button">Back to Dashboard</a>
         <h3>Add a Subject</h3>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for cat, msg in messages %}
+            <div class="alert alert-{{ cat }}">{{ msg }}</div>
+          {% endfor %}
+        {% endwith %}
+
         <form method="POST">
             <label for="course_id">Select Course</label>
-            <select name="course_id" required>
+            <select name="course_id" id="course_id" required>
                 <option value="">Select a course</option>
                 {% for course in courses %}
                     <option value="{{ course.id }}">{{ course.name }} ({{ course.level }})</option>
@@ -76,10 +98,56 @@
             </select>
 
             <label for="subject_name">Subject Name</label>
-            <input type="text" name="subject_name" placeholder="Enter subject name" required>
+            <input type="text" name="subject_name"
+                   placeholder="e.g. 2906/102 FINANCIAL ACCOUNTING" required>
+
+            <label for="semester_id">Semester</label>
+            <select name="semester_id" id="semester_id">
+                <option value="">— none (show in all semesters) —</option>
+                {% for s in semesters %}
+                    <option value="{{ s.id }}" data-course="{{ s.course_id }}">
+                        {{ s.course.name }} — {{ s.name }}{% if s.is_current %} (current){% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+            <p class="hint">Leave blank for non-KNEC courses.</p>
+
+            <label for="module">Module</label>
+            <input type="text" name="module" id="module"
+                   placeholder="e.g. MODULE 1">
+            <p class="hint">Optional — used for KNEC-style courses.</p>
 
             <button type="submit">Add Subject</button>
         </form>
     </div>
+
+    <script>
+        // Filter the semester dropdown to only show semesters
+        // belonging to the currently selected course.
+        const courseSelect = document.getElementById('course_id');
+        const semesterSelect = document.getElementById('semester_id');
+        const allSemesterOptions = Array.from(semesterSelect.querySelectorAll('option[data-course]'));
+
+        function filterSemesters() {
+            const courseId = courseSelect.value;
+            // Remove existing course-specific options
+            allSemesterOptions.forEach(opt => opt.remove());
+
+            // Re-add only the ones matching the selected course
+            if (courseId) {
+                allSemesterOptions
+                    .filter(opt => opt.dataset.course === courseId)
+                    .forEach(opt => semesterSelect.appendChild(opt));
+            }
+
+            // Reset selection if the previously selected semester no longer applies
+            if (semesterSelect.value && !semesterSelect.querySelector(`option[value="${semesterSelect.value}"]`)) {
+                semesterSelect.value = "";
+            }
+        }
+
+        courseSelect.addEventListener('change', filterSemesters);
+        filterSemesters();
+    </script>
 </body>
 </html>

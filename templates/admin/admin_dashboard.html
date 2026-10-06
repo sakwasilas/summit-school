@@ -312,31 +312,6 @@
       margin-top: 4px;
     }
 
-    /* Color variants for icons */
-    .quick-actions a:nth-child(1) .icon { background: #e8f4f8; color: #17a2b8; }
-    .quick-actions a:nth-child(2) .icon { background: #e8f5e9; color: #28a745; }
-    .quick-actions a:nth-child(3) .icon { background: #fff3e0; color: #fd7e14; }
-    .quick-actions a:nth-child(4) .icon { background: #fce4ec; color: #e83e8c; }
-    .quick-actions a:nth-child(5) .icon { background: #e8eaf6; color: #6f42c1; }
-    .quick-actions a:nth-child(6) .icon { background: #e0f7fa; color: #00bcd4; }
-    .quick-actions a:nth-child(7) .icon { background: #f1f8e9; color: #8bc34a; }
-    .quick-actions a:nth-child(8) .icon { background: #fff8e1; color: #ffc107; }
-    .quick-actions a:nth-child(9) .icon { background: #fce4ec; color: #e91e63; }
-    .quick-actions a:nth-child(10) .icon { background: #e8eaf6; color: #3f51b5; }
-    .quick-actions a:nth-child(11) .icon { background: #f3e5f5; color: #9c27b0; }
-
-    .quick-actions a:hover:nth-child(1) .icon { background: #17a2b8; color: white; }
-    .quick-actions a:hover:nth-child(2) .icon { background: #28a745; color: white; }
-    .quick-actions a:hover:nth-child(3) .icon { background: #fd7e14; color: white; }
-    .quick-actions a:hover:nth-child(4) .icon { background: #e83e8c; color: white; }
-    .quick-actions a:hover:nth-child(5) .icon { background: #6f42c1; color: white; }
-    .quick-actions a:hover:nth-child(6) .icon { background: #00bcd4; color: white; }
-    .quick-actions a:hover:nth-child(7) .icon { background: #8bc34a; color: white; }
-    .quick-actions a:hover:nth-child(8) .icon { background: #ffc107; color: white; }
-    .quick-actions a:hover:nth-child(9) .icon { background: #e91e63; color: white; }
-    .quick-actions a:hover:nth-child(10) .icon { background: #3f51b5; color: white; }
-    .quick-actions a:hover:nth-child(11) .icon { background: #9c27b0; color: white; }
-
     /* ===== RESPONSIVE ===== */
     @media (max-width: 1024px) {
       .main-content {
@@ -382,7 +357,6 @@
         height: 50px;
         font-size: 24px;
       }
-      /* Mobile toggle button */
       .menu-toggle {
         display: flex !important;
       }
@@ -410,7 +384,6 @@
       }
     }
 
-    /* Mobile Menu Toggle Button */
     .menu-toggle {
       display: none;
       background: #2c3e50;
@@ -431,7 +404,6 @@
       background: #1a2332;
     }
 
-    /* Overlay for mobile */
     .sidebar-overlay {
       display: none;
       position: fixed;
@@ -473,20 +445,6 @@
         <i class="bi bi-graph-up-arrow"></i> Monitor Activity
       </a>
 
-      <div class="nav-label" style="margin-top: 10px;">Content Management</div>
-      <a href="{{ url_for('upload_video') }}">
-        <i class="bi bi-film"></i> Upload Video
-      </a>
-      <a href="{{ url_for('list_videos') }}">
-        <i class="bi bi-folder-fill"></i> Manage Videos
-      </a>
-      <a href="{{ url_for('upload_document') }}">
-        <i class="bi bi-file-earmark-text"></i> Upload Documents
-      </a>
-      <a href="{{ url_for('manage_documents') }}">
-        <i class="bi bi-folder2-open"></i> Manage Documents
-      </a>
-
       <div class="nav-label" style="margin-top: 10px;">Exam Management</div>
       <a href="{{ url_for('upload_exam') }}">
         <i class="bi bi-file-earmark-check"></i> Upload Exam
@@ -497,8 +455,17 @@
       <a href="{{ url_for('manage_quizzes') }}">
         <i class="bi bi-question-circle"></i> Manage Questions
       </a>
+      <a href="{{ url_for('admin_marks_picker') }}">
+        <i class="bi bi-pencil-square"></i> Enter KNEC Marks
+      </a>
+      <a href="{{ url_for('admin_reports_picker') }}">
+        <i class="bi bi-printer"></i> Print Reports
+      </a>
 
       <div class="nav-label" style="margin-top: 10px;">System Setup</div>
+      <a href="{{ url_for('manage_departments') }}">
+        <i class="bi bi-building"></i> Manage Departments
+      </a>
       <a href="{{ url_for('add_course') }}">
         <i class="bi bi-plus-circle"></i> Add Course
       </a>
@@ -507,6 +474,12 @@
       </a>
       <a href="{{ url_for('add_subject') }}">
         <i class="bi bi-plus-square"></i> Add Subject
+      </a>
+      <a href="{{ url_for('manage_semesters') }}">
+        <i class="bi bi-calendar3"></i> Manage Semesters
+      </a>
+      <a href="{{ url_for('manage_hods') }}">
+        <i class="bi bi-person-badge"></i> Manage HODs
       </a>
       <a href="{{ url_for('show_credentials') }}">
         <i class="bi bi-key-fill"></i> Manage Credentials
@@ -539,6 +512,10 @@
       </div>
       <div class="stats-badge">
         <div class="stat-item">
+          <div class="number">{{ departments_count|default(0) }}</div>
+          <div class="label">Departments</div>
+        </div>
+        <div class="stat-item">
           <div class="number">{{ courses|length }}</div>
           <div class="label">Courses</div>
         </div>
@@ -558,26 +535,6 @@
       <i class="bi bi-lightning-fill" style="color: #1abc9c;"></i> Quick Actions
     </div>
     <div class="quick-actions">
-      <a href="{{ url_for('upload_video') }}">
-        <div class="icon">🎥</div>
-        <span class="label">Upload Video</span>
-        <span class="desc">Add learning videos</span>
-      </a>
-      <a href="{{ url_for('list_videos') }}">
-        <div class="icon">📂</div>
-        <span class="label">Manage Videos</span>
-        <span class="desc">Edit or remove videos</span>
-      </a>
-      <a href="{{ url_for('upload_document') }}">
-        <div class="icon">📄</div>
-        <span class="label">Upload Documents</span>
-        <span class="desc">Share study materials</span>
-      </a>
-      <a href="{{ url_for('manage_documents') }}">
-        <div class="icon">🗂</div>
-        <span class="label">Manage Documents</span>
-        <span class="desc">Organize documents</span>
-      </a>
       <a href="{{ url_for('upload_exam') }}">
         <div class="icon">📝</div>
         <span class="label">Upload Exam</span>
@@ -587,6 +544,11 @@
         <div class="icon">📑</div>
         <span class="label">View Results</span>
         <span class="desc">Check student results</span>
+      </a>
+      <a href="{{ url_for('manage_departments') }}">
+        <div class="icon">🏢</div>
+        <span class="label">Manage Departments</span>
+        <span class="desc">ICT, Business, Artisan</span>
       </a>
       <a href="{{ url_for('add_course') }}">
         <div class="icon">➕</div>
@@ -608,6 +570,26 @@
         <span class="label">Manage Questions</span>
         <span class="desc">Create quiz questions</span>
       </a>
+      <a href="{{ url_for('manage_semesters') }}">
+        <div class="icon">🗓️</div>
+        <span class="label">Manage Semesters</span>
+        <span class="desc">Term-by-term setup</span>
+      </a>
+      <a href="{{ url_for('admin_marks_picker') }}">
+        <div class="icon">✍️</div>
+        <span class="label">Enter KNEC Marks</span>
+        <span class="desc">Type CAT / Final scores</span>
+      </a>
+      <a href="{{ url_for('admin_reports_picker') }}">
+        <div class="icon">🖨️</div>
+        <span class="label">Print Reports</span>
+        <span class="desc">Download transcripts</span>
+      </a>
+      <a href="{{ url_for('manage_hods') }}">
+        <div class="icon">👔</div>
+        <span class="label">Manage HODs</span>
+        <span class="desc">Heads of Department</span>
+      </a>
       <a href="{{ url_for('show_credentials') }}">
         <div class="icon">🔑</div>
         <span class="label">Manage Credentials</span>
@@ -617,7 +599,6 @@
   </div>
 
   <script>
-    // Toggle sidebar on mobile
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebar');
       const overlay = document.getElementById('sidebarOverlay');
@@ -625,7 +606,6 @@
       overlay.classList.toggle('active');
     }
 
-    // Close sidebar when clicking a link on mobile
     document.querySelectorAll('.sidebar-nav a').forEach(link => {
       link.addEventListener('click', function() {
         if (window.innerWidth <= 768) {
@@ -634,7 +614,6 @@
       });
     });
 
-    // Auto close on resize to desktop
     window.addEventListener('resize', function() {
       if (window.innerWidth > 768) {
         document.getElementById('sidebar').classList.remove('open');
