@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz Results</title>
+    <style>
+        /* Your styles here */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+            margin-bottom: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        label {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        select {
+            margin-right: 20px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 6px 12px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+    <h1>Summit Technical College</h1>
+    <h2>Quiz Results</h2>
+
+    <!-- Filter Form -->
+    <form method="POST">
+        <label>Filter by Course:</label>
+        <select name="course">
+            <option value="">All Courses</option>
+            {% for course in courses %}
+                <option value="{{ course.id }}" {% if selected_course == course.id|string %}selected{% endif %}>
+                    {{ course.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label>Filter by Subject:</label>
+        <select name="subject">
+            <option value="">All Subjects</option>
+            {% for subject in subjects %}
+                <option value="{{ subject.id }}" {% if selected_subject == subject.id|string %}selected{% endif %}>
+                    {{ subject.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Filter</button>
+        <button name="export" value="true">Export to Excel</button>
+    </form>
+
+    <!-- Results Table -->
+    {% if results %}
+    <table>
+        <thead>
+            <tr>
+                <th>Full Name</th>
+                <th>Course</th>
+                <th>Subject</th>
+                <th>Quiz</th>
+                <th>Score</th>
+                <th>Total</th>
+                <th>Percentage</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in results %}
+            <tr>
+                <td>{{ r.student.full_name if r.student else 'N/A' }}</td>
+                <td>{{ r.quiz.course.name if r.quiz.course else 'N/A' }}</td>
+                <td>{{ r.quiz.subject.name if r.quiz.subject else 'N/A' }}</td>
+                <td>{{ r.quiz.title }}</td>
+                <td>{{ r.score }}</td>
+                <td>{{ r.total_marks }}</td>
+                <td>{{ "%.1f"|format(r.percentage) }}%</td>
+                <td>{{ r.taken_on.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>No results found for the selected filters.</p>
+    {% endif %}
+
+</body>
+</html>
