@@ -6,190 +6,559 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <style>
-        body { background: #f5f7fb; font-family: 'Segoe UI', sans-serif; padding: 28px; color: #253047; }
-        .wrap { max-width: 1100px; margin: 0 auto; }
-        .back-link { color: #4a5568; text-decoration: none; font-size: 13px; }
-        .back-link:hover { text-decoration: underline; }
-        h1 { font-size: 26px; font-weight: 800; margin: 12px 0 6px; }
-        .subtitle { color: #7f8c8d; font-size: 13px; margin-bottom: 22px; }
+        * { box-sizing: border-box; }
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            color: #0f1724;
+            margin: 0;
+            padding: 26px 32px;
+        }
+        .page-wrap { max-width: 1350px; margin: 0 auto; }
 
-        .search-wrapper { position: relative; max-width: 340px; margin-bottom: 22px; }
-        .search-wrapper i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
-        .search-wrapper input {
-            width: 100%; height: 44px;
-            border: 1px solid #dfe6ed; border-radius: 12px;
-            padding: 0 15px 0 42px; font-size: 13px;
-            box-shadow: 0 2px 8px rgba(0,0,0,.04);
-        }
-        .search-wrapper input:focus {
-            border-color: #1abc9c;
-            box-shadow: 0 0 0 3px rgba(26,188,156,.15);
-            outline: none;
-        }
-
-        .student-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 16px;
-        }
-        .student-card {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid #eef2f5;
-            box-shadow: 0 2px 12px rgba(0,0,0,.05);
+        /* BACK LINK */
+        .back-link {
+            font-size: 13px;
+            color: #64748b;
             text-decoration: none;
-            color: #253047;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .back-link:hover { color: #1abc9c; }
+
+        /* ============ BLUE STAT CARD ============ */
+        .stat-card {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border-radius: 16px;
+            padding: 26px 30px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(37,99,235,0.25);
             display: flex;
-            gap: 14px;
-            transition: all .25s;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
         }
-        .student-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 28px rgba(0,0,0,.1);
-            border-color: #1abc9c;
-            color: #253047;
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            right: -40px;
+            top: -40px;
+            width: 200px;
+            height: 200px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 50%;
         }
-        .avatar {
-            width: 48px; height: 48px;
-            border-radius: 12px;
-            background: #eef4ff;
-            color: #2563eb;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 800; font-size: 16px;
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            right: 40px;
+            bottom: -60px;
+            width: 140px;
+            height: 140px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+        }
+        .stat-left { position: relative; z-index: 1; }
+        .stat-left .label {
+            font-size: 12px;
+            font-weight: 700;
             text-transform: uppercase;
-            flex-shrink: 0;
+            letter-spacing: 1.2px;
+            opacity: 0.85;
         }
-        .sc-body { flex: 1; min-width: 0; }
-        .sc-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
-        .sc-reg {
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            color: #5a7fbf;
-            background: #eef2f7;
-            padding: 2px 8px;
-            border-radius: 5px;
-            display: inline-block;
-            font-weight: 600;
+        .stat-left .big-num {
+            font-size: 44px;
+            font-weight: 800;
+            line-height: 1;
+            margin: 8px 0 4px;
         }
-        .sc-course {
-            font-size: 11px;
-            color: #8894a3;
-            margin-top: 6px;
+        .stat-left .sub {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        .stat-meta {
             display: flex;
+            gap: 26px;
+            position: relative;
+            z-index: 1;
+            flex-wrap: wrap;
+        }
+        .stat-meta .meta-item { text-align: center; }
+        .stat-meta .meta-item .num {
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .stat-meta .meta-item .lbl {
+            font-size: 11px;
+            opacity: 0.85;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 3px;
+        }
+        .stat-meta .meta-item.active .num::before {
+            content: '●';
+            color: #6ee7b7;
+            font-size: 14px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        .stat-meta .meta-item.blocked .num::before {
+            content: '●';
+            color: #fca5a5;
+            font-size: 14px;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        .stat-icon {
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 130px;
+            opacity: 0.08;
+            z-index: 0;
+            line-height: 1;
+        }
+
+        /* SEARCH */
+        .search-wrap {
+            position: relative;
+            max-width: 420px;
+            margin-bottom: 18px;
+        }
+        .search-wrap i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 15px;
+        }
+        .search-wrap input {
+            width: 100%;
+            padding: 11px 14px 11px 40px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 13.5px;
+            background: white;
+            outline: none;
+            transition: all .15s;
+        }
+        .search-wrap input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+        }
+
+        /* FLASH */
+        .flash {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .flash.success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .flash.danger  { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+        .flash.warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+
+        /* TABLE */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        table.students-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+        table.students-table thead th {
+            background: #1e293b;
+            color: #ffffff;
+            text-align: left;
+            padding: 14px 16px;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border: 1px solid #1e293b;
+            white-space: nowrap;
+        }
+        table.students-table tbody td {
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        table.students-table tbody tr:nth-child(even) td {
+            background: #f9fbfc;
+        }
+        table.students-table tbody tr:hover td {
+            background: #eff6ff;
+        }
+
+        /* BADGES */
+        .adm-no {
+            font-family: 'Consolas', monospace;
+            font-weight: 700;
+            color: #0369a1;
+            background: #e0f2fe;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .status-badge {
+            display: inline-flex;
             align-items: center;
             gap: 5px;
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .sc-arrow {
-            align-self: center;
-            color: #cbd5e1;
-            font-size: 18px;
-            transition: all .2s;
+        .status-active  { background: #d1fae5; color: #065f46; }
+        .status-blocked { background: #fee2e2; color: #991b1b; }
+        .status-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            display: inline-block;
         }
-        .student-card:hover .sc-arrow {
-            color: #1abc9c;
-            transform: translateX(3px);
-        }
+        .status-active  .status-dot { background: #10b981; }
+        .status-blocked .status-dot { background: #ef4444; }
 
-        .no-match {
-            display: none;
-            text-align: center;
-            padding: 60px 20px;
-            color: #94a3b8;
-        }
-        .no-match i { font-size: 40px; display: block; margin-bottom: 12px; }
-
-        .empty {
+        /* MODULE DROPDOWN */
+        .module-select {
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 12.5px;
             background: white;
-            border-radius: 16px;
-            padding: 70px 20px;
+            font-weight: 600;
+            color: #1e40af;
+            cursor: pointer;
+            width: 100%;
+            min-width: 130px;
+        }
+        .module-select:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        .module-select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+        }
+
+        /* ACTION BUTTONS */
+        .actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: nowrap;
+        }
+        .act-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 7px;
+            font-size: 11.5px;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+        .act-btn:hover { transform: translateY(-1px); }
+        .act-marks   { background: #dbeafe; color: #1e40af; }
+        .act-marks:hover { background: #3b82f6; color: white; }
+        .act-promote { background: #f3e8ff; color: #6d28d9; }
+        .act-promote:hover { background: #8b5cf6; color: white; }
+        .act-block   { background: #fef3c7; color: #92400e; }
+        .act-block:hover { background: #f59e0b; color: white; }
+        .act-unblock { background: #d1fae5; color: #065f46; }
+        .act-unblock:hover { background: #10b981; color: white; }
+        .act-delete  { background: #fee2e2; color: #991b1b; }
+        .act-delete:hover { background: #ef4444; color: white; }
+
+        /* EMPTY */
+        .empty {
+            padding: 50px 20px;
             text-align: center;
             color: #94a3b8;
-            box-shadow: 0 2px 12px rgba(0,0,0,.05);
+            font-size: 13.5px;
         }
-        .empty i { font-size: 52px; display: block; margin-bottom: 14px; color: #cbd5e1; }
+
+        /* PAGINATION */
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-top: 1px solid #e2e8f0;
+            background: #fafbfc;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .pagination-info {
+            font-size: 12.5px;
+            color: #64748b;
+        }
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .pagination-controls button {
+            min-width: 34px;
+            height: 34px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #475569;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s;
+            padding: 0 10px;
+        }
+        .pagination-controls button:hover:not(:disabled) {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            color: #2563eb;
+        }
+        .pagination-controls button.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+        .pagination-controls button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
-<div class="wrap">
+<div class="page-wrap">
 
     <a href="{{ url_for('hod_dashboard') }}" class="back-link">
         <i class="bi bi-arrow-left"></i> Back to dashboard
     </a>
 
-    <h1>Students — {{ department.name }}</h1>
-    <p class="subtitle">
-        {{ students|length }} student{{ 's' if students|length != 1 else '' }} in this department.
-        Click a student to enter or edit all their marks at once.
-    </p>
+    <!-- ============ BLUE STAT CARD ============ -->
+    <div class="stat-card">
+        <div class="stat-left">
+            <div class="label">Students in {{ department.name }}</div>
+            <div class="big-num">{{ students|length }}</div>
+            <div class="sub">Manage enrollment, marks, modules &amp; promotion</div>
+        </div>
+        <div class="stat-meta">
+            <div class="meta-item active">
+                <div class="num">{{ students|rejectattr('blocked')|list|length }}</div>
+                <div class="lbl">Active</div>
+            </div>
+            <div class="meta-item blocked">
+                <div class="num">{{ students|selectattr('blocked')|list|length }}</div>
+                <div class="lbl">Blocked</div>
+            </div>
+        </div>
+        <i class="bi bi-people-fill stat-icon"></i>
+    </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for cat, msg in messages %}
-        <div class="alert alert-{{ cat }}">{{ msg }}</div>
-      {% endfor %}
+        {% for category, msg in messages %}
+        <div class="flash {{ category }}">{{ msg }}</div>
+        {% endfor %}
     {% endwith %}
 
-    <div class="search-wrapper">
+    <form method="GET" class="search-wrap">
         <i class="bi bi-search"></i>
-        <input type="text" id="studentSearch"
-               placeholder="Search student name or admission number..."
-               autocomplete="off">
-    </div>
+        <input type="text" name="search" placeholder="Search name, adm no, or phone..."
+               value="{{ search_query or '' }}">
+    </form>
 
-    {% if students %}
-    <div class="student-grid" id="studentGrid">
-        {% for s in students %}
-        {% set initials = s.full_name.split()[0][0] ~ (s.full_name.split()[-1][0] if s.full_name.split()|length > 1 else '') %}
-        <a class="student-card"
-           href="{{ url_for('hod_student_marks', student_id=s.id) }}"
-           data-search="{{ s.full_name|lower }} {{ s.admission_number|lower }}">
-            <div class="avatar">{{ initials }}</div>
-            <div class="sc-body">
-                <div class="sc-name">{{ s.full_name }}</div>
-                <span class="sc-reg">{{ s.admission_number }}</span>
-                <div class="sc-course">
-                    <i class="bi bi-book-half"></i> {{ s.course.name }}
-                </div>
-            </div>
-            <i class="bi bi-arrow-right sc-arrow"></i>
-        </a>
-        {% endfor %}
-    </div>
+    <div class="table-card">
+        {% if students %}
+        <table class="students-table" id="studentsTable">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">#</th>
+                    <th>Adm No</th>
+                    <th>Full Name</th>
+                    <th>Phone Number</th>
+                    <th>Course</th>
+                    <th style="min-width: 160px;">Current Module</th>
+                    <th>Status</th>
+                    <th style="text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in students %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><span class="adm-no">{{ s.admission_number }}</span></td>
+                    <td><strong>{{ s.full_name }}</strong></td>
+                    <td>{{ s.phone_number or '—' }}</td>
+                    <td>{{ s.course.name if s.course else '—' }}</td>
 
-    <div class="no-match" id="noMatch">
-        <i class="bi bi-search"></i>
-        No students match your search.
+                    <!-- ✅ Current Module dropdown -->
+                    <td>
+                        {% set sems = semester_map.get(s.course_id, []) %}
+                        {% if sems %}
+                        <form method="POST"
+                              action="{{ url_for('hod_set_student_module', student_id=s.id) }}"
+                              style="margin:0;">
+                            <select name="semester_id"
+                                    class="module-select"
+                                    onchange="this.form.submit()">
+                                <option value="">— Not assigned —</option>
+                                {% for sem in sems %}
+                                <option value="{{ sem.id }}"
+                                        {% if s.current_semester_id == sem.id %}selected{% endif %}>
+                                    {{ sem.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                        {% else %}
+                        <span style="color:#94a3b8;font-size:12px;">No modules</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if s.blocked %}
+                        <span class="status-badge status-blocked">
+                            <span class="status-dot"></span> Blocked
+                        </span>
+                        {% else %}
+                        <span class="status-badge status-active">
+                            <span class="status-dot"></span> Active
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="actions">
+                            <a href="{{ url_for('hod_student_marks', student_id=s.id) }}"
+                               class="act-btn act-marks" title="Enter/View Marks">
+                                <i class="bi bi-pencil-square"></i> Marks
+                            </a>
+
+                            <form method="POST" style="display:inline;"
+                                  action="{{ url_for('hod_promote_student', student_id=s.id) }}"
+                                  onsubmit="return confirm('Promote {{ s.full_name }} to the next module?');">
+                                <button type="submit" class="act-btn act-promote" title="Promote to Next Module">
+                                    <i class="bi bi-arrow-up-circle-fill"></i> Promote
+                                </button>
+                            </form>
+
+                            <form method="POST" style="display:inline;"
+                                  onsubmit="return confirm('{% if s.blocked %}Activate{% else %}Block{% endif %} {{ s.full_name }}?');">
+                                <input type="hidden" name="student_id" value="{{ s.id }}">
+                                <input type="hidden" name="action" value="toggle_block">
+                                {% if s.blocked %}
+                                <button type="submit" class="act-btn act-unblock" title="Activate">
+                                    <i class="bi bi-unlock-fill"></i>
+                                </button>
+                                {% else %}
+                                <button type="submit" class="act-btn act-block" title="Block">
+                                    <i class="bi bi-lock-fill"></i>
+                                </button>
+                                {% endif %}
+                            </form>
+
+                            <form method="POST" style="display:inline;"
+                                  onsubmit="return confirm('Delete {{ s.full_name }}? This cannot be undone.');">
+                                <input type="hidden" name="student_id" value="{{ s.id }}">
+                                <input type="hidden" name="action" value="delete">
+                                <button type="submit" class="act-btn act-delete" title="Delete Student">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="pagination-bar">
+            <div class="pagination-info" id="pageInfo"></div>
+            <div class="pagination-controls" id="pageControls"></div>
+        </div>
+        {% else %}
+        <div class="empty">
+            <i class="bi bi-people" style="font-size: 40px; display: block; margin-bottom: 10px; color: #cbd5e1;"></i>
+            No students yet in your department.
+        </div>
+        {% endif %}
     </div>
-    {% else %}
-    <div class="empty">
-        <i class="bi bi-people"></i>
-        <h5 style="color:#4a5568; font-weight: 800;">No students yet</h5>
-        <p style="font-size: 13px;">No students are enrolled in this department.</p>
-    </div>
-    {% endif %}
 
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const input = document.getElementById('studentSearch');
-    const grid = document.getElementById('studentGrid');
-    if (!input || !grid) return;
+(function () {
+    'use strict';
 
-    const cards = Array.from(grid.querySelectorAll('.student-card'));
-    const noMatch = document.getElementById('noMatch');
+    const ROWS_PER_PAGE = 10;
+    const table = document.getElementById('studentsTable');
+    if (!table) return;
 
-    input.addEventListener('input', function () {
-        const q = this.value.trim().toLowerCase();
-        let visible = 0;
-        cards.forEach(card => {
-            const show = !q || card.dataset.search.includes(q);
-            card.style.display = show ? '' : 'none';
-            if (show) visible++;
-        });
-        if (noMatch) noMatch.style.display = visible === 0 ? 'block' : 'none';
-    });
-});
+    const tbody = table.querySelector('tbody');
+    const allRows = Array.from(tbody.querySelectorAll('tr'));
+    const total = allRows.length;
+    const totalPages = Math.max(1, Math.ceil(total / ROWS_PER_PAGE));
+    let currentPage = 1;
+
+    const infoEl = document.getElementById('pageInfo');
+    const controlsEl = document.getElementById('pageControls');
+
+    function render() {
+        allRows.forEach(r => r.style.display = 'none');
+
+        const start = (currentPage - 1) * ROWS_PER_PAGE;
+        const end = Math.min(start + ROWS_PER_PAGE, total);
+        for (let i = start; i < end; i++) {
+            allRows[i].style.display = '';
+        }
+
+        infoEl.textContent = total === 0
+            ? 'No records'
+            : `Showing ${start + 1}–${end} of ${total} students`;
+
+        controlsEl.innerHTML = '';
+
+        const prev = document.createElement('button');
+        prev.innerHTML = '‹';
+        prev.disabled = currentPage === 1;
+        prev.onclick = () => { currentPage--; render(); };
+        controlsEl.appendChild(prev);
+
+        for (let p = 1; p <= totalPages; p++) {
+            const btn = document.createElement('button');
+            btn.textContent = p;
+            if (p === currentPage) btn.classList.add('active');
+            btn.onclick = () => { currentPage = p; render(); };
+            controlsEl.appendChild(btn);
+        }
+
+        const next = document.createElement('button');
+        next.innerHTML = '›';
+        next.disabled = currentPage === totalPages;
+        next.onclick = () => { currentPage++; render(); };
+        controlsEl.appendChild(next);
+    }
+
+    render();
+})();
 </script>
 
 </body>

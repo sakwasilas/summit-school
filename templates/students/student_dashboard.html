@@ -1,844 +1,901 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    * { font-family: 'Inter', sans-serif; }
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard — Summit Technical College</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body { min-height: 100vh; background: #f0f2f5; }
+        html, body {
+            height: 100%;
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            color: #0f1724;
+            -webkit-font-smoothing: antialiased;
+            background: #f0f2f5;
+        }
 
-    /* ===== LAYOUT ===== */
-    .dash-layout {
-      display: grid;
-      grid-template-columns: 240px 1fr;
-      min-height: 100vh;
-    }
+        .page { display: flex; flex-direction: column; min-height: 100vh; }
 
-    /* ===== NAV SIDEBAR ===== */
-    .sidebar {
-      background: linear-gradient(180deg, #0f1724 0%, #1a2332 50%, #0f1724 100%);
-      color: white; padding: 25px 18px;
-      display: flex; flex-direction: column;
-      position: sticky; top: 0;
-      height: 100vh;
-      overflow-y: auto;
-      box-shadow: 4px 0 20px rgba(0,0,0,0.1);
-    }
-    .sidebar .logo-wrapper { text-align: center; margin-bottom: 20px; }
-    .sidebar .logo-wrapper img {
-      width: 70px; height: 70px; border-radius: 50%;
-      border: 3px solid #1abc9c; padding: 3px; background: white;
-    }
-    .sidebar .logo-wrapper h5 { margin-top: 8px; font-weight: 600; font-size: 15px; color: #fff; }
-    .sidebar .logo-wrapper h5 span { color: #1abc9c; }
-    .sidebar hr { border-color: rgba(255,255,255,0.08); margin: 15px 0; }
-    .sidebar .profile-info { font-size: 0.8rem; line-height: 1.9; }
-    .sidebar .profile-info p {
-      margin-bottom: 4px; display: flex; align-items: center;
-      gap: 8px; color: rgba(255,255,255,0.75);
-    }
-    .sidebar .profile-info p strong { color: #1abc9c; font-weight: 600; min-width: 60px; }
-    .sidebar .profile-info p i { color: #1abc9c; font-size: 13px; width: 14px; text-align: center; }
-    .sidebar .nav-link {
-      color: rgba(255,255,255,0.7); padding: 9px 12px;
-      border-radius: 10px; transition: all 0.3s; font-weight: 500;
-      font-size: 13px; display: flex; align-items: center; gap: 10px;
-    }
-    .sidebar .nav-link:hover {
-      background: rgba(26, 188, 156, 0.12); color: #1abc9c; transform: translateX(4px);
-    }
-    .sidebar .nav-link i { font-size: 17px; width: 22px; color: #1abc9c; }
-    .sidebar .logout-btn { margin-top: auto; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.08); }
-    .sidebar .logout-btn .nav-link { color: #e74c3c; }
-    .sidebar .logout-btn .nav-link:hover { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
+        /* HEADER */
+        .top-header {
+            background: #ffffff;
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            flex-wrap: wrap;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .top-header img { width: 64px; height: 64px; object-fit: contain; flex-shrink: 0; }
+        .top-header .header-text { display: flex; flex-direction: column; line-height: 1.05; }
+        .top-header h1 {
+            font-size: 22px; font-weight: 900; color: #1e3a8a;
+            letter-spacing: -0.5px; text-transform: uppercase; margin: 0;
+        }
+        .top-header .sub {
+            font-size: 10.5px; font-weight: 600; color: #64748b;
+            letter-spacing: 2.5px; text-transform: uppercase; margin-top: 5px;
+        }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .user-chip {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 6px 14px 6px 6px; background: #f1f5f9;
+            border-radius: 100px; font-size: 13px; font-weight: 600; color: #334155;
+        }
+        .user-chip .avatar {
+            width: 32px; height: 32px; border-radius: 50%; background: #1e3a8a;
+            color: white; display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 13px;
+        }
+        .logout-btn {
+            padding: 9px 16px; background: #f1f5f9; color: #475569;
+            border-radius: 9px; text-decoration: none; font-size: 13px;
+            font-weight: 600; display: inline-flex; align-items: center;
+            gap: 6px; transition: all .15s;
+        }
+        .logout-btn:hover { background: #fee2e2; color: #b91c1c; }
 
-    /* ===== MAIN CONTENT ===== */
-    .main-content { padding: 24px 32px; min-width: 0; }
+        /* LAYOUT */
+        .dash-layout {
+            display: grid; grid-template-columns: 260px 1fr;
+            flex: 1; min-height: 0;
+        }
 
-    .page-title {
-      font-size: 24px; font-weight: 800; color: #0f1724;
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 20px;
-    }
-    .page-title i { color: #1abc9c; font-size: 28px; }
-    .page-title .badge-role {
-      font-size: 12px; font-weight: 600; padding: 4px 14px;
-      border-radius: 20px; background: #1abc9c; color: white; margin-left: 6px;
-    }
+        /* SIDEBAR */
+        .sidebar {
+            background: #1e3a8a; color: white; padding: 28px 20px;
+            display: flex; flex-direction: column;
+            position: sticky; top: 82px;
+            height: calc(100vh - 82px); overflow-y: auto;
+        }
+        .sidebar .side-title {
+            font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.5px; color: rgba(255,255,255,0.5);
+            margin: 6px 8px 10px;
+        }
+        .sidebar .side-title:not(:first-child) { margin-top: 22px; }
+        .sidebar .profile-info p {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 12.5px; color: rgba(255,255,255,0.8);
+            padding: 6px 8px; line-height: 1.4;
+        }
+        .sidebar .profile-info p i {
+            width: 16px; text-align: center; color: #60a5fa;
+            font-size: 14px; flex-shrink: 0;
+        }
+        .sidebar .nav-link {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 12px; border-radius: 9px;
+            color: rgba(255,255,255,0.8); text-decoration: none;
+            font-size: 13px; font-weight: 600; transition: all .15s;
+            margin-bottom: 3px;
+        }
+        .sidebar .nav-link i {
+            font-size: 16px; color: #60a5fa; width: 18px; text-align: center;
+        }
+        .sidebar .nav-link:hover { background: rgba(96,165,250,0.15); color: white; }
+        .sidebar .nav-link:hover i { color: white; }
+        .sidebar .nav-link.active { background: #60a5fa; color: #1e3a8a; }
+        .sidebar .nav-link.active i { color: #1e3a8a; }
+        .sidebar .side-footer {
+            margin-top: auto; padding-top: 18px;
+            border-top: 1px solid rgba(255,255,255,0.12);
+        }
 
-    /* Welcome banner */
-    .course-banner {
-      background: linear-gradient(135deg, #0f1724, #1a2332);
-      color: white; border-radius: 18px; padding: 24px 28px;
-      margin-bottom: 10px; display: flex; justify-content: space-between;
-      align-items: center; flex-wrap: wrap; gap: 20px;
-    }
-    .course-banner .cb-left h2 { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
-    .course-banner .cb-left h2 span { color: #1abc9c; }
-    .course-banner .cb-left p { margin: 0; opacity: 0.75; font-size: 13px; }
-    .course-banner .cb-stats { display: flex; gap: 24px; flex-wrap: wrap; }
-    .course-banner .cb-stats .stat { text-align: center; }
-    .course-banner .cb-stats .stat .num { font-size: 22px; font-weight: 800; color: #1abc9c; line-height: 1.1; }
-    .course-banner .cb-stats .stat .lbl {
-      font-size: 10px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.6px;
-    }
+        /* MAIN */
+        .main-content { padding: 26px 32px 60px; min-width: 0; }
 
-    /* Current semester banner */
-    .current-sem-banner {
-      background: linear-gradient(135deg, #1abc9c, #16a085);
-      color: white; border-radius: 16px; padding: 20px 26px;
-      margin-top: 18px;
-      display: flex; justify-content: space-between; align-items: center;
-      flex-wrap: wrap; gap: 15px;
-      box-shadow: 0 8px 24px rgba(26,188,156,0.28);
-    }
-    .current-sem-banner .cs-left .cs-label {
-      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
-      opacity: 0.85; margin-bottom: 4px;
-    }
-    .current-sem-banner .cs-left .cs-name { font-size: 22px; font-weight: 800; }
-    .current-sem-banner .cs-right .cs-badge {
-      background: rgba(255,255,255,0.22); padding: 6px 16px;
-      border-radius: 20px; font-size: 12px; font-weight: 600;
-      display: inline-flex; align-items: center; gap: 6px;
-    }
-    .current-sem-banner.empty {
-      background: linear-gradient(135deg, #8894a3, #6c7a89);
-      box-shadow: none;
-    }
+        /* Flash */
+        .flash {
+            padding: 12px 16px; border-radius: 10px; font-size: 13px;
+            font-weight: 500; display: flex; align-items: center;
+            gap: 10px; margin-bottom: 18px; border: 1px solid transparent;
+        }
+        .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
+        .flash.danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+        .flash.info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
 
-    /* Section titles */
-    .section-title {
-      font-weight: 700; font-size: 19px; color: #0f1724;
-      margin: 30px 0 16px; display: flex; align-items: center; gap: 10px;
-    }
-    .section-title i { color: #1abc9c; }
-    .section-title::after {
-      content: ''; flex: 1; height: 2px;
-      background: linear-gradient(90deg, #1abc9c, transparent);
-    }
+        /* Welcome banner */
+        .welcome-banner {
+            background: linear-gradient(135deg, #1e3a8a, #172f6e);
+            color: white; border-radius: 16px; padding: 26px 30px;
+            margin-bottom: 20px; display: flex;
+            justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 20px; position: relative;
+            overflow: hidden; box-shadow: 0 8px 24px rgba(30,58,138,0.25);
+        }
+        .welcome-banner::before {
+            content: ''; position: absolute; right: -40px; top: -40px;
+            width: 220px; height: 220px; background: rgba(96,165,250,0.15);
+            border-radius: 50%;
+        }
+        .welcome-banner::after {
+            content: ''; position: absolute; right: 60px; bottom: -80px;
+            width: 160px; height: 160px; background: rgba(96,165,250,0.1);
+            border-radius: 50%;
+        }
+        .welcome-banner > * { position: relative; z-index: 1; }
+        .welcome-banner h2 {
+            font-size: 22px; font-weight: 800;
+            letter-spacing: -0.3px; margin-bottom: 6px;
+        }
+        .welcome-banner h2 span { color: #60a5fa; }
+        .welcome-banner .meta {
+            font-size: 13px; opacity: 0.85; display: flex;
+            align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .welcome-banner .meta .pill {
+            background: rgba(255,255,255,0.15); padding: 3px 10px;
+            border-radius: 8px; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .welcome-stats { display: flex; gap: 26px; flex-wrap: wrap; }
+        .welcome-stats .ws-item { text-align: center; }
+        .welcome-stats .ws-item .n {
+            font-size: 24px; font-weight: 800; color: #60a5fa; line-height: 1.1;
+        }
+        .welcome-stats .ws-item .l {
+            font-size: 10.5px; opacity: 0.75;
+            text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;
+        }
 
-    /* ===== ALL SUBJECTS TABLE (Bootstrap) ===== */
-    .subjects-card {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      overflow: hidden;
-      padding: 4px;
-    }
-    .subjects-card .table {
-      margin-bottom: 0;
-    }
-    .subjects-card .table thead th {
-      background: #f8fafc;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: #4a5568;
-      padding: 14px 20px;
-      border-bottom: 2px solid #e8edf2;
-      white-space: nowrap;
-    }
-    .subjects-card .table tbody td {
-      padding: 14px 20px;
-      font-size: 14px;
-      color: #0f1724;
-      vertical-align: middle;
-      border-bottom: 1px solid #eef2f5;
-    }
-    .subjects-card .table tbody tr:last-child td { border-bottom: none; }
-    .subjects-card .table tbody tr:hover { background: #f9fbfd; }
-    .subjects-card .table tbody tr.is-current-row {
-      background: #f0faf8;
-    }
-    .subjects-card .table tbody tr.is-current-row:hover {
-      background: #e8f8f4;
-    }
-    .subj-code {
-      font-family: 'Courier New', monospace;
-      font-size: 12px;
-      color: #2c5aa0;
-      font-weight: 600;
-      background: #eef2f7;
-      padding: 3px 8px;
-      border-radius: 6px;
-      white-space: nowrap;
-    }
-    .subj-name {
-      font-weight: 600;
-      color: #0f1724;
-    }
-    .sem-pill {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 20px;
-      background: #eef2f7;
-      color: #4a5568;
-      white-space: nowrap;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-    .sem-pill.current {
-      background: #d1f2eb;
-      color: #0e6251;
-    }
-    .sem-pill.none {
-      background: #f5f5f5;
-      color: #999;
-      font-style: italic;
-    }
-    .grade-pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 800;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-    }
-    .grade-pill.g1 { background: #d4edda; color: #155724; }
-    .grade-pill.g2 { background: #d1f2eb; color: #0e6251; }
-    .grade-pill.g3 { background: #d1ecf1; color: #0c5460; }
-    .grade-pill.g4 { background: #e7f3fa; color: #0c5460; }
-    .grade-pill.g5 { background: #fff3cd; color: #856404; }
-    .grade-pill.g6 { background: #ffe5cc; color: #8a4b08; }
-    .grade-pill.g7 { background: #f8d7da; color: #721c24; }
-    .grade-pill.missing {
-      background: #f0f2f5;
-      color: #b0b7c3;
-      font-weight: 400;
-    }
+        /* Current semester banner */
+        .current-sem-banner {
+            background: linear-gradient(135deg, #1abc9c, #0e8c72);
+            color: white; border-radius: 14px; padding: 18px 24px;
+            margin-bottom: 20px; display: flex;
+            justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 14px;
+            box-shadow: 0 6px 18px rgba(26,188,156,0.25);
+        }
+        .current-sem-banner .label {
+            font-size: 11px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 1.2px; opacity: 0.9; margin-bottom: 4px;
+        }
+        .current-sem-banner .name { font-size: 20px; font-weight: 800; }
+        .current-sem-banner .badge {
+            background: rgba(255,255,255,0.22); padding: 6px 14px;
+            border-radius: 100px; font-size: 11.5px; font-weight: 700;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .current-sem-banner.empty {
+            background: linear-gradient(135deg, #94a3b8, #64748b);
+            box-shadow: none;
+        }
 
-    /* ===== SEMESTER CARDS ===== */
-    .semester-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-      gap: 18px;
-    }
-    .semester-card {
-      background: white; border-radius: 16px; padding: 20px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      border: 2px solid transparent;
-      transition: all 0.25s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .semester-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 10px 28px rgba(0,0,0,0.1);
-    }
-    .semester-card.is-current {
-      border-color: #1abc9c;
-      box-shadow: 0 8px 24px rgba(26,188,156,0.2);
-    }
-    .semester-card.is-current::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 5px;
-      background: linear-gradient(90deg, #1abc9c, #16a085);
-    }
-    .semester-card .sc-head {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      gap: 10px; margin-bottom: 14px; padding-bottom: 14px;
-      border-bottom: 1px solid #eef2f5;
-    }
-    .semester-card .sc-title {
-      font-size: 15px; font-weight: 700; color: #0f1724; line-height: 1.3;
-    }
-    .semester-card .sc-count {
-      font-size: 11px; color: #7f8c8d; margin-top: 3px;
-    }
-    .semester-card .sc-badge {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.5px; padding: 4px 10px; border-radius: 12px;
-      white-space: nowrap;
-    }
-    .semester-card .sc-badge.current { background: #d1f2eb; color: #0e6251; }
-    .semester-card .sc-badge.upcoming { background: #fef5e7; color: #7d6608; }
+        /* Message */
+        .msg-carousel {
+            background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+            border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;
+            display: flex; gap: 14px; align-items: center;
+            border-left: 5px solid #1e3a8a;
+        }
+        .msg-carousel i { font-size: 22px; color: #1e3a8a; }
+        .msg-carousel .content { flex: 1; }
+        .msg-carousel h6 {
+            font-size: 12.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.5px; color: #1e3a8a; margin-bottom: 3px;
+        }
+        .msg-carousel p { font-size: 13px; color: #334155; margin: 0; }
+        .msg-carousel small { font-size: 10.5px; color: #64748b; }
 
-    .btn-print {
-      background: #1abc9c; color: white; border: none;
-      padding: 7px 13px; border-radius: 8px; font-weight: 600;
-      font-size: 12px; text-decoration: none;
-      display: inline-flex; align-items: center; gap: 5px;
-      transition: background 0.2s;
-      white-space: nowrap;
-    }
-    .btn-print:hover { background: #16a085; color: white; }
+        /* Section title */
+        .section-title {
+            font-weight: 800; font-size: 15px; color: #0f1724;
+            margin: 28px 0 14px; display: flex; align-items: center;
+            gap: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .section-title i { color: #1e3a8a; font-size: 18px; }
+        .section-title .count {
+            background: #1e3a8a; color: white; padding: 2px 10px;
+            border-radius: 100px; font-size: 11px; font-weight: 800;
+        }
+        .section-title::after {
+            content: ''; flex: 1; height: 2px;
+            background: linear-gradient(90deg, #e2e8f0, transparent);
+        }
 
-    .knec-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .knec-table th {
-      text-align: center; padding: 8px 6px;
-      font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.5px;
-      color: #4a5568; background: #f8fafc;
-      border-bottom: 2px solid #e8edf2;
-      white-space: nowrap;
-    }
-    .knec-table th.left { text-align: left; }
-    .knec-table td {
-      padding: 10px 6px; border-bottom: 1px solid #eef2f5;
-      text-align: center; color: #0f1724;
-    }
-    .knec-table tbody tr:last-child td { border-bottom: none; }
-    .knec-table tbody tr:hover { background: #f9fbfd; }
-    .knec-table td.subject { text-align: left; font-weight: 600; }
-    .knec-table td.missing { color: #b0b7c3; font-style: italic; }
-    .knec-table td.total { font-weight: 800; background: #f8fafc; }
+        /* Subject list */
+        .subjects-list-card {
+            background: white; border-radius: 12px;
+            overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .subject-row {
+            display: grid;
+            grid-template-columns: 50px 140px 1fr auto;
+            gap: 16px; align-items: center;
+            padding: 14px 20px; border-bottom: 1px solid #f1f5f9;
+            transition: background .15s;
+        }
+        .subject-row:last-child { border-bottom: none; }
+        .subject-row:hover { background: #f9fbfc; }
+        .subject-row.is-current {
+            background: #f0fdf9;
+            border-left: 4px solid #10b981;
+            padding-left: 16px;
+        }
+        .subject-row.is-current:hover { background: #d1fae5; }
+        .subject-row.is-done {
+            background: #f8fafc;
+        }
+        .subject-row.is-done:hover { background: #f1f5f9; }
 
-    .grade {
-      display: inline-block; padding: 2px 10px; border-radius: 10px;
-      font-size: 10px; font-weight: 700; min-width: 24px;
-    }
-    .grade.A { background: #d4edda; color: #155724; }
-    .grade.B { background: #d1ecf1; color: #0c5460; }
-    .grade.C { background: #fff3cd; color: #856404; }
-    .grade.D { background: #ffe5cc; color: #8a4b08; }
-    .grade.F { background: #f8d7da; color: #721c24; }
+        .sr-num { font-size: 12px; font-weight: 700; color: #94a3b8; text-align: center; }
+        .sr-code {
+            font-family: 'Consolas', monospace; font-size: 11.5px;
+            font-weight: 700; color: #0369a1; background: #e0f2fe;
+            padding: 4px 10px; border-radius: 6px; text-align: center;
+            white-space: nowrap;
+        }
+        .sr-name { min-width: 0; }
+        .sr-name strong {
+            font-size: 13.5px; font-weight: 700;
+            color: #0f1724; display: block; margin-bottom: 4px;
+        }
+        .sr-module {
+            font-size: 11.5px; font-weight: 600; color: #1e40af;
+            background: #eff6ff; padding: 2px 8px; border-radius: 6px;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .sr-module.empty {
+            color: #94a3b8; background: #f8fafc; font-style: italic;
+        }
+        .sr-status { text-align: right; }
 
-    /* Exam groups (non-KNEC) */
-    .exam-group {
-      background: white; border-radius: 16px; padding: 20px 22px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 18px;
-    }
-    .exam-group .eg-head {
-      display: flex; justify-content: space-between; align-items: center;
-      flex-wrap: wrap; gap: 10px; padding-bottom: 12px;
-      border-bottom: 1px solid #eef2f5; margin-bottom: 16px;
-    }
-    .exam-group .eg-head h6 {
-      margin: 0; font-weight: 700; color: #0f1724; font-size: 16px;
-      display: flex; align-items: center; gap: 10px;
-    }
-    .exam-group .eg-head h6 i { color: #1abc9c; }
-    .exam-group .eg-head .eg-badge {
-      font-size: 11px; padding: 4px 12px; border-radius: 20px;
-      background: #eef2f7; color: #4a5568; font-weight: 600;
-    }
-    .exam-card {
-      border-radius: 14px; overflow: hidden;
-      transition: all 0.3s; height: 100%;
-      box-shadow: 0 1px 6px rgba(0,0,0,0.05);
-      background: white; border: 1px solid #eef2f5;
-    }
-    .exam-card:hover { transform: translateY(-4px); box-shadow: 0 8px 26px rgba(0,0,0,0.1); }
-    .exam-card.locked { opacity: 0.55; pointer-events: none; }
-    .exam-card .card-header-custom {
-      padding: 12px 16px;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .exam-card .card-header-custom .exam-number {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 26px; height: 26px; border-radius: 50%;
-      background: rgba(255,255,255,0.2); color: white;
-      font-size: 11px; font-weight: 700;
-    }
-    .exam-card .card-header-custom .exam-duration {
-      font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.85);
-    }
-    .exam-card .card-header-custom .badge-status {
-      font-size: 10px; padding: 3px 10px; border-radius: 20px;
-      background: rgba(255,255,255,0.2); color: white;
-      font-weight: 500; letter-spacing: 0.3px;
-    }
-    .exam-card .card-body { padding: 14px 16px 16px; }
-    .exam-card .exam-title {
-      font-size: 0.88rem; font-weight: 600; color: #0f1724;
-      line-height: 1.4; margin-bottom: 6px; min-height: 40px;
-    }
-    .score-mini {
-      display: flex; align-items: center; gap: 10px;
-      margin: 8px 0 4px; padding: 6px 10px;
-      background: #f8f9fa; border-radius: 10px;
-    }
-    .score-mini-circle {
-      width: 36px; height: 36px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 700; color: white; flex-shrink: 0;
-    }
-    .score-mini-circle.high { background: #27ae60; }
-    .score-mini-circle.medium { background: #f39c12; }
-    .score-mini-circle.low { background: #e74c3c; }
-    .score-mini-text { font-size: 0.75rem; color: #555; }
-    .score-mini-text .marks { font-weight: 600; color: #0f1724; }
-    .score-mini-text .date { font-size: 0.62rem; color: #999; display: block; }
-    .btn-take {
-      border-radius: 10px; font-weight: 600; font-size: 12px;
-      padding: 8px 16px; border: none; width: 100%;
-      transition: all 0.3s; text-align: center;
-      display: inline-block; text-decoration: none; letter-spacing: 0.3px;
-    }
-    .btn-take:hover { transform: translateY(-2px); text-decoration: none; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
-    .btn-take.primary { background: linear-gradient(135deg, #007bff, #0056b3); color: white; }
-    .btn-take.secondary { background: linear-gradient(135deg, #6c757d, #495057); color: white; }
-    .btn-take.locked-btn { background: #e9ecef; color: #6c757d; cursor: not-allowed; }
+        /* Status tags — time based */
+        .status-tag {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10.5px; font-weight: 800;
+            padding: 4px 10px; border-radius: 100px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .status-tag .dot {
+            width: 6px; height: 6px; border-radius: 50%; display: inline-block;
+        }
+        .status-current { background: #d1fae5; color: #065f46; }
+        .status-current .dot {
+            background: #10b981;
+            box-shadow: 0 0 0 3px rgba(16,185,129,0.25);
+        }
+        .status-next { background: #fef3c7; color: #92400e; }
+        .status-next .dot { background: #f59e0b; }
+        .status-done { background: #dbeafe; color: #1e40af; }
+        .status-done .dot { background: #3b82f6; }
+        .status-pending { background: #f1f5f9; color: #64748b; }
+        .status-pending .dot { background: #94a3b8; }
 
-    .empty-state-global {
-      text-align: center; padding: 50px 20px;
-      background: white; border-radius: 16px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
-    .empty-state-global i { font-size: 50px; color: #dee2e6; display: block; margin-bottom: 14px; }
-    .empty-state-global h5 { color: #0f1724; font-weight: 600; font-size: 16px; }
-    .empty-state-global p { color: #7f8c8d; font-size: 13px; margin: 0; }
+        /* Semester cards */
+        .semester-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 16px;
+        }
+        .semester-card {
+            background: white; border-radius: 14px; overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            border: 2px solid transparent; transition: all .2s;
+        }
+        .semester-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 26px rgba(0,0,0,0.1);
+        }
+        .semester-card.is-current {
+            border-color: #1abc9c;
+            box-shadow: 0 8px 24px rgba(26,188,156,0.18);
+        }
+        .semester-card.is-done { border-color: #dbeafe; }
+        .semester-card.is-next { border-color: #fef3c7; }
 
-    .message-carousel .carousel-item {
-      background: linear-gradient(135deg, #ebf5ff, #d6eaf8);
-      border-radius: 12px; padding: 16px 20px;
-    }
-    .message-carousel .msg-content { display: flex; align-items: center; gap: 14px; }
-    .message-carousel .msg-content > i { font-size: 24px; color: #1abc9c; }
-    .message-carousel .msg-text { flex: 1; }
-    .message-carousel .msg-text h6 { font-weight: 600; color: #0f1724; margin: 0; font-size: 13px; }
-    .message-carousel .msg-text p { margin: 2px 0 0; color: #555; font-size: 13px; }
-    .message-carousel .msg-text small { font-size: 10px; color: #7f8c8d; }
+        .semester-card .sc-head {
+            padding: 14px 18px; background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex; justify-content: space-between;
+            align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .semester-card.is-current .sc-head {
+            background: #ecfdf5; border-bottom-color: #a7f3d0;
+        }
+        .semester-card.is-done .sc-head { background: #f1f5f9; }
+        .semester-card.is-next .sc-head { background: #fffbeb; }
 
-    /* Responsive */
-    @media (max-width: 992px) {
-      .dash-layout { grid-template-columns: 1fr; }
-      .sidebar { position: relative; height: auto; }
-      .main-content { padding: 18px; }
-    }
-  </style>
+        .semester-card .sc-title {
+            font-size: 14.5px; font-weight: 800;
+            color: #0f1724; margin-bottom: 3px;
+        }
+        .semester-card .sc-count {
+            font-size: 11.5px; color: #64748b;
+        }
+        .semester-card .sc-badge {
+            font-size: 10px; font-weight: 800;
+            padding: 3px 10px; border-radius: 100px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .sc-badge.current { background: #d1fae5; color: #065f46; }
+        .sc-badge.next    { background: #fef3c7; color: #92400e; }
+        .sc-badge.done    { background: #dbeafe; color: #1e40af; }
+        .sc-badge.pending { background: #f1f5f9; color: #64748b; }
+
+        .btn-print {
+            background: #1e3a8a; color: white;
+            padding: 6px 12px; border-radius: 7px;
+            font-size: 11.5px; font-weight: 700;
+            text-decoration: none; display: inline-flex;
+            align-items: center; gap: 5px; transition: all .15s;
+        }
+        .btn-print:hover { background: #172f6e; color: white; }
+
+        .knec-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+        .knec-table th {
+            text-align: center; padding: 10px 6px;
+            font-size: 10px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            color: #475569; background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .knec-table th.left { text-align: left; }
+        .knec-table td {
+            padding: 10px 8px; border-bottom: 1px solid #f1f5f9;
+            text-align: center;
+        }
+        .knec-table tbody tr:last-child td { border-bottom: none; }
+        .knec-table tbody tr:hover td { background: #f9fbfc; }
+        .knec-table td.subject { text-align: left; font-weight: 700; color: #0f1724; }
+        .knec-table td.missing { color: #cbd5e1; font-style: italic; }
+        .knec-table td.total {
+            font-weight: 800; background: #f0fdf9; color: #16a085;
+        }
+        .grade {
+            display: inline-block; padding: 2px 9px;
+            border-radius: 100px; font-size: 10.5px;
+            font-weight: 800; min-width: 26px;
+        }
+        .grade.A { background: #d1fae5; color: #065f46; }
+        .grade.B { background: #dbeafe; color: #1e40af; }
+        .grade.C { background: #fef3c7; color: #92400e; }
+        .grade.D { background: #fed7aa; color: #9a3412; }
+        .grade.F { background: #fee2e2; color: #991b1b; }
+
+        /* Exam groups */
+        .exam-group {
+            background: white; border-radius: 12px;
+            padding: 20px 22px; box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            margin-bottom: 16px;
+        }
+        .exam-group .eg-head {
+            display: flex; justify-content: space-between;
+            align-items: center; flex-wrap: wrap; gap: 10px;
+            padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 16px;
+        }
+        .exam-group .eg-head h6 {
+            margin: 0; font-size: 15px; font-weight: 800;
+            color: #0f1724; display: flex;
+            align-items: center; gap: 10px;
+        }
+        .exam-group .eg-head h6 i { color: #1e3a8a; }
+        .exam-group .eg-badge {
+            font-size: 11px; padding: 4px 12px;
+            border-radius: 100px; background: #f1f5f9;
+            color: #475569; font-weight: 700;
+        }
+
+        .exam-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 12px;
+        }
+        .exam-card {
+            background: white; border: 1px solid #e2e8f0;
+            border-radius: 12px; overflow: hidden;
+            transition: all .2s; display: flex; flex-direction: column;
+        }
+        .exam-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+            border-color: #1e3a8a;
+        }
+        .exam-card.locked { opacity: 0.55; pointer-events: none; }
+        .exam-card .ec-head {
+            padding: 10px 14px; background: #1e3a8a; color: white;
+            display: flex; justify-content: space-between;
+            align-items: center; font-size: 11px; font-weight: 700;
+        }
+        .exam-card .ec-head .num {
+            width: 24px; height: 24px;
+            background: rgba(255,255,255,0.2); border-radius: 50%;
+            display: inline-flex; align-items: center;
+            justify-content: center; font-weight: 800;
+        }
+        .exam-card .ec-body {
+            padding: 14px; flex: 1; display: flex;
+            flex-direction: column; gap: 10px;
+        }
+        .exam-card .ec-title {
+            font-size: 13px; font-weight: 700;
+            color: #0f1724; line-height: 1.4; min-height: 38px;
+        }
+        .score-mini {
+            display: flex; align-items: center; gap: 10px;
+            padding: 6px 10px; background: #f8fafc; border-radius: 8px;
+        }
+        .score-mini-circle {
+            width: 34px; height: 34px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 800; color: white; flex-shrink: 0;
+        }
+        .score-mini-circle.high { background: #10b981; }
+        .score-mini-circle.medium { background: #f59e0b; }
+        .score-mini-circle.low { background: #ef4444; }
+        .score-mini-text { font-size: 11.5px; color: #475569; }
+        .score-mini-text strong { color: #0f1724; font-weight: 800; }
+        .score-mini-text small { font-size: 10px; color: #94a3b8; display: block; }
+
+        .btn-take {
+            padding: 9px 14px; border-radius: 8px; font-size: 12px;
+            font-weight: 700; text-align: center; text-decoration: none;
+            border: none; cursor: pointer; transition: all .15s;
+            display: inline-flex; align-items: center;
+            justify-content: center; gap: 6px; width: 100%;
+        }
+        .btn-take.primary { background: #1e3a8a; color: white; }
+        .btn-take.primary:hover { background: #172f6e; color: white; }
+        .btn-take.secondary { background: #f1f5f9; color: #334155; }
+        .btn-take.secondary:hover { background: #e2e8f0; color: #334155; }
+        .btn-take.locked-btn { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+
+        /* Empty */
+        .empty-state {
+            background: white; border-radius: 14px;
+            padding: 60px 20px; text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .empty-state i {
+            font-size: 46px; color: #cbd5e1;
+            display: block; margin-bottom: 12px;
+        }
+        .empty-state h5 {
+            font-weight: 800; color: #334155;
+            font-size: 15px; margin-bottom: 6px;
+        }
+        .empty-state p { color: #64748b; font-size: 13px; margin: 0; }
+
+        /* Mobile */
+        @media (max-width: 992px) {
+            .dash-layout { grid-template-columns: 1fr; }
+            .sidebar {
+                position: relative; top: 0; height: auto; padding: 20px;
+            }
+            .main-content { padding: 20px; }
+            .top-header { padding: 14px 20px; }
+            .top-header img { width: 52px; height: 52px; }
+            .top-header h1 { font-size: 16px; }
+            .top-header .sub { font-size: 9px; letter-spacing: 1.5px; }
+        }
+        @media (max-width: 640px) {
+            .subject-row { grid-template-columns: 40px 1fr; gap: 10px; }
+            .sr-code, .sr-status { grid-column: 2; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="dash-layout">
+<div class="page">
 
-  <!-- SIDEBAR -->
-  <nav class="sidebar">
-    <div class="logo-wrapper">
-      <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Summit Tech">
-      <h5>Summit <span>Tech</span></h5>
-    </div>
-    <hr>
-
-    <div class="profile-info">
-      <p><i class="bi bi-person-fill"></i><strong>Name</strong> {{ student_profile.full_name }}</p>
-      <p><i class="bi bi-mortarboard-fill"></i><strong>Reg No</strong> {{ student_profile.admission_number }}</p>
-      <p><i class="bi bi-book-fill"></i><strong>Course</strong> {{ student_profile.course.name }}</p>
-      <p><i class="bi bi-bar-chart-fill"></i><strong>Level</strong> {{ student_profile.course.level }}</p>
-      <p><i class="bi bi-telephone-fill"></i><strong>Phone</strong> {{ student_profile.phone_number }}</p>
-      <p><i class="bi bi-file-earmark-text-fill"></i><strong>Exams</strong> {{ student_profile.exam_type }}</p>
-    </div>
-
-    <hr>
-
-    <ul class="nav flex-column mb-3">
-      <li class="nav-item">
-        <a href="{{ url_for('student_results') }}" class="nav-link">
-          <i class="bi bi-bar-chart-fill"></i> All Results
-        </a>
-      </li>
-    </ul>
-
-    <div class="logout-btn">
-      <a href="{{ url_for('logout') }}" class="nav-link">
-        <i class="bi bi-box-arrow-right"></i> Logout
-      </a>
-    </div>
-  </nav>
-
-  <!-- MAIN -->
-  <main class="main-content">
-
-    <div class="page-title">
-      <i class="bi bi-mortarboard-fill"></i>
-      Student Dashboard
-      <span class="badge-role">Student</span>
-    </div>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show mb-3" role="alert">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <!-- Welcome banner -->
-    <div class="course-banner">
-      <div class="cb-left">
-        <h2>Welcome back, <span>{{ username }}</span></h2>
-        <p>
-          <i class="bi bi-book-half me-1"></i>
-          {{ student_profile.course.name }}
-          <span class="ms-2 badge bg-light text-dark">{{ student_profile.course.level }}</span>
-        </p>
-      </div>
-      <div class="cb-stats">
-        <div class="stat">
-          <div class="num">{{ total_subjects }}</div>
-          <div class="lbl">Subjects</div>
-        </div>
-        <div class="stat">
-          <div class="num">{{ semester_groups|length }}</div>
-          <div class="lbl">Semesters</div>
-        </div>
-        <div class="stat">
-          <div class="num">{{ student_profile.exam_type|upper }}</div>
-          <div class="lbl">Exam Type</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 1. Current semester banner -->
-    {% if current_semester %}
-    <div class="current-sem-banner">
-      <div class="cs-left">
-        <div class="cs-label">Current Semester</div>
-        <div class="cs-name">{{ current_semester.name }}</div>
-      </div>
-      <div class="cs-right">
-        <span class="cs-badge"><i class="bi bi-broadcast"></i> Currently Running</span>
-      </div>
-    </div>
-    {% else %}
-    <div class="current-sem-banner empty">
-      <div class="cs-left">
-        <div class="cs-label">Current Semester</div>
-        <div class="cs-name">No semester is currently active</div>
-      </div>
-      <div class="cs-right">
-        <span class="cs-badge"><i class="bi bi-clock"></i> Check back later</span>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Messages -->
-    {% if messages_from_admin %}
-    <div id="messageCarousel" class="carousel slide message-carousel mt-4" data-bs-ride="carousel">
-      <div class="carousel-inner">
-        {% for msg in messages_from_admin %}
-        <div class="carousel-item {% if loop.first %}active{% endif %}">
-          <div class="msg-content">
-            <i class="bi bi-megaphone-fill"></i>
-            <div class="msg-text">
-              <h6>Message from Summit Technical College</h6>
-              <p>{{ msg.content }}</p>
-              <small>{{ msg.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+    <header class="top-header">
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}"
+                 alt="Summit Technical College">
+            <div class="header-text">
+                <h1>SUMMIT TECHNICAL COLLEGE</h1>
+                <div class="sub">Student Portal</div>
             </div>
-          </div>
         </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- 2. ALL SUBJECTS (Bootstrap table) -->
-    <div class="section-title">
-      <i class="bi bi-journals"></i> All My Subjects
-      <span class="badge bg-primary rounded-pill ms-2">{{ total_subjects }}</span>
-    </div>
-
-    {% if all_subjects_data %}
-    <div class="subjects-card">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle">
-          <thead>
-            <tr>
-              <th style="width: 60px;">#</th>
-              <th style="width: 140px;">Code</th>
-              <th>Subject</th>
-              <th style="width: 200px;">Semester</th>
-              {% if is_knec %}
-              <th style="width: 100px; text-align: center;">Grade</th>
-              {% endif %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for block in all_subjects_data %}
-              {% set name = block.subject.name %}
-              {% set code = name.split(' ')[0] %}
-              {% set unit = name.split(' ', 1)[1] if ' ' in name else name %}
-              {% set is_current = block.subject.semester and block.subject.semester.is_current %}
-
-              {% if is_knec and block.total_marks is not none %}
-                {% set t = block.total_marks %}
-                {% if t >= 84 %}{% set g = 1 %}
-                {% elif t >= 75 %}{% set g = 2 %}
-                {% elif t >= 66 %}{% set g = 3 %}
-                {% elif t >= 60 %}{% set g = 4 %}
-                {% elif t >= 50 %}{% set g = 5 %}
-                {% elif t >= 40 %}{% set g = 6 %}
-                {% else %}{% set g = 7 %}{% endif %}
-              {% else %}
-                {% set g = none %}
-              {% endif %}
-
-              <tr class="{% if is_current %}is-current-row{% endif %}">
-                <td class="text-muted">{{ loop.index }}</td>
-                <td><span class="subj-code">{{ code }}</span></td>
-                <td><span class="subj-name">{{ unit }}</span></td>
-                <td>
-                  {% if block.subject.semester %}
-                    <span class="sem-pill {% if is_current %}current{% endif %}">
-                      {{ block.subject.semester.name }}
-                    </span>
-                  {% else %}
-                    <span class="sem-pill none">Not assigned</span>
-                  {% endif %}
-                </td>
-                {% if is_knec %}
-                <td class="text-center">
-                  {% if g %}
-                    <span class="grade-pill g{{ g }}">{{ g }}</span>
-                  {% else %}
-                    <span class="grade-pill missing">—</span>
-                  {% endif %}
-                </td>
-                {% endif %}
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% else %}
-    <div class="empty-state-global">
-      <i class="bi bi-journals"></i>
-      <h5>No subjects assigned</h5>
-      <p>Your course has no subjects configured yet.</p>
-    </div>
-    {% endif %}
-
-    <!-- 3. RESULTS (semester cards) -->
-    <div class="section-title">
-      <i class="bi bi-bar-chart-fill"></i>
-      {% if is_knec %}My Results by Semester{% else %}Subjects by Semester{% endif %}
-      <span class="badge bg-primary rounded-pill ms-2">{{ semester_groups|length }}</span>
-    </div>
-
-    {% if semester_groups %}
-      <div class="semester-grid">
-        {% for group in semester_groups %}
-        <div class="semester-card {% if group.is_current %}is-current{% endif %}">
-          <div class="sc-head">
-            <div>
-              <div class="sc-title">{{ group.semester.name }}</div>
-              <div class="sc-count">{{ group.count }} subject{{ 's' if group.count != 1 else '' }}</div>
+        <div class="header-right">
+            <div class="user-chip">
+                <span class="avatar">{{ student_profile.full_name[0]|upper }}</span>
+                <span>{{ student_profile.full_name.split()[0] }}</span>
             </div>
-            <div class="d-flex align-items-start gap-2">
-              {% if group.is_current %}
-                <span class="sc-badge current">Current</span>
-              {% else %}
-                <span class="sc-badge upcoming">Upcoming</span>
-              {% endif %}
-              {% if is_knec %}
-                <a class="btn-print"
-                   href="{{ url_for('student_print_report', semester_id=group.semester.id) }}"
-                   target="_blank">
-                  <i class="bi bi-printer"></i> Print
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </header>
+
+    <div class="dash-layout">
+
+        <aside class="sidebar">
+            <div class="side-title">My Profile</div>
+            <div class="profile-info">
+                <p><i class="bi bi-person-fill"></i> <span>{{ student_profile.full_name }}</span></p>
+                <p><i class="bi bi-hash"></i> <span>{{ student_profile.admission_number }}</span></p>
+                <p><i class="bi bi-book-half"></i> <span>{{ student_profile.course.name }}</span></p>
+                <p><i class="bi bi-bar-chart-fill"></i> <span>{{ student_profile.course.level }}</span></p>
+                <p><i class="bi bi-telephone-fill"></i> <span>{{ student_profile.phone_number }}</span></p>
+                <p><i class="bi bi-file-earmark-text-fill"></i> <span>{{ (student_profile.exam_type or '—')|upper }}</span></p>
+            </div>
+
+            <div class="side-title">Navigation</div>
+            <a href="{{ url_for('student_dashboard') }}" class="nav-link active">
+                <i class="bi bi-grid-1x2-fill"></i> Dashboard
+            </a>
+            <a href="{{ url_for('student_results') }}" class="nav-link">
+                <i class="bi bi-bar-chart-fill"></i> All Results
+            </a>
+
+            <div class="side-footer">
+                <a href="{{ url_for('logout') }}" class="nav-link">
+                    <i class="bi bi-box-arrow-right"></i> Logout
                 </a>
-              {% endif %}
             </div>
-          </div>
+        </aside>
 
-          {% if group.subjects %}
-            {% if is_knec %}
-              <table class="knec-table">
-                <thead>
-                  <tr>
-                    <th class="left">Subject</th>
-                    <th>CAT1</th>
-                    <th>CAT2</th>
-                    <th>Final</th>
-                    <th>Total</th>
-                    <th>Grade</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for s in group.subjects %}
-                  <tr>
-                    <td class="subject">{{ s.subject.name }}</td>
-                    <td class="{% if s.cat1 is none %}missing{% endif %}">
-                      {{ s.cat1 if s.cat1 is not none else '—' }}
-                    </td>
-                    <td class="{% if s.cat2 is none %}missing{% endif %}">
-                      {{ s.cat2 if s.cat2 is not none else '—' }}
-                    </td>
-                    <td class="{% if s.final is none %}missing{% endif %}">
-                      {{ s.final if s.final is not none else '—' }}
-                    </td>
-                    <td class="total">{{ s.total_marks if s.total_marks is not none else '—' }}</td>
-                    <td>
-                      {% if s.total_marks is not none %}
-                        {% set t = s.total_marks %}
-                        {% if t >= 84 %}<span class="grade A">1</span>
-                        {% elif t >= 75 %}<span class="grade A">2</span>
-                        {% elif t >= 66 %}<span class="grade B">3</span>
-                        {% elif t >= 60 %}<span class="grade B">4</span>
-                        {% elif t >= 50 %}<span class="grade C">5</span>
-                        {% elif t >= 40 %}<span class="grade D">6</span>
-                        {% else %}<span class="grade F">7</span>{% endif %}
-                      {% else %}
-                        <span class="missing">—</span>
-                      {% endif %}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            {% else %}
-              <ul class="list-unstyled mb-0">
-                {% for s in group.subjects %}
-                <li class="d-flex align-items-center gap-2 py-2 border-bottom" style="font-size: 13px;">
-                  <i class="bi bi-bookmark-fill" style="color: #1abc9c; font-size: 12px;"></i>
-                  <span class="flex-grow-1">{{ s.subject.name }}</span>
-                  {% if s.total %}
-                    <span class="badge bg-secondary">{{ s.taken }}/{{ s.total }}</span>
-                  {% endif %}
-                </li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          {% else %}
-            <div class="text-muted fst-italic small py-2">No subjects assigned to this semester yet.</div>
-          {% endif %}
-        </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="empty-state-global">
-        <i class="bi bi-calendar3"></i>
-        <h5>No semesters configured</h5>
-        <p>Your admin has not yet set up semesters for this course.</p>
-      </div>
-    {% endif %}
+        <main class="main-content">
 
-    <!-- NON-KNEC: Available Exams -->
-    {% if not is_knec %}
-    <div class="section-title">
-      <i class="bi bi-file-earmark-check"></i> Available Exams
-      <span class="badge bg-primary rounded-pill ms-2">{{ all_subjects_data|sum(attribute='total') }}</span>
-    </div>
-
-    {% if all_subjects_data and all_subjects_data|sum(attribute='total') > 0 %}
-      {% for block in all_subjects_data %}
-        {% if block.total > 0 %}
-          <div class="exam-group">
-            <div class="eg-head">
-              <h6>
-                <i class="bi bi-book-half"></i>
-                {{ block.subject.name }}
-                {% if block.subject.semester %}
-                  <span class="eg-badge">{{ block.subject.semester.name }}</span>
-                {% endif %}
-              </h6>
-              <span class="eg-badge">
-                {{ block.taken }} / {{ block.total }} completed
-              </span>
-            </div>
-
-            <div class="row g-3">
-              {% for exam in block.quizzes %}
-                {% set seq_index = loop.index0 %}
-                {% set is_taken = exam.id in taken_quiz_ids %}
-                {% set prev_taken = (seq_index == 0) or (block.quizzes[seq_index - 1].id in taken_quiz_ids) %}
-
-                <div class="col-xl-3 col-lg-4 col-md-6">
-                  <div class="exam-card {% if not is_taken and not prev_taken %}locked{% endif %}">
-                    <div class="card-header-custom" style="background: linear-gradient(135deg, #007bff, #0056b3);">
-                      <span>
-                        <span class="exam-number">{{ loop.index }}</span>
-                        <span class="exam-duration ms-2">{{ exam.duration }}m</span>
-                      </span>
-                      {% if is_taken %}
-                        <span class="badge-status"><i class="bi bi-check-circle-fill me-1"></i>Done</span>
-                      {% elif prev_taken %}
-                        <span class="badge-status"><i class="bi bi-play-circle-fill me-1"></i>Ready</span>
-                      {% else %}
-                        <span class="badge-status"><i class="bi bi-lock-fill me-1"></i>Locked</span>
-                      {% endif %}
-                    </div>
-
-                    <div class="card-body">
-                      <div class="exam-title">{{ exam.title }}</div>
-
-                      {% if is_taken %}
-                        {% set result = results_by_quiz.get(exam.id) %}
-                        {% if result %}
-                          <div class="score-mini">
-                            <div class="score-mini-circle {% if result.percentage >= 70 %}high{% elif result.percentage >= 50 %}medium{% else %}low{% endif %}">
-                              {{ "%.0f"|format(result.percentage) }}%
-                            </div>
-                            <div class="score-mini-text">
-                              <span class="marks">{{ result.score }}/{{ result.total_marks }}</span>
-                              <span class="date">{{ result.taken_on.strftime('%d/%m/%Y') }}</span>
-                            </div>
-                          </div>
-                        {% endif %}
-                      {% endif %}
-
-                      <div class="mt-2">
-                        {% if is_taken %}
-                          <a href="{{ url_for('student_results') }}" class="btn-take secondary">
-                            <i class="bi bi-bar-chart-fill me-1"></i> View Result
-                          </a>
-                        {% elif prev_taken %}
-                          <a href="{{ url_for('take_exam', quiz_id=exam.id) }}" class="btn-take primary">
-                            <i class="bi bi-play-fill me-1"></i> Take Exam
-                          </a>
-                        {% else %}
-                          <button class="btn-take locked-btn" disabled>
-                            <i class="bi bi-lock me-1"></i> Complete Previous
-                          </button>
-                        {% endif %}
-                      </div>
-                    </div>
-                  </div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, msg in messages %}
+                <div class="flash {{ category if category in ['success','danger','warning','info'] else 'info' }}">
+                    <i class="bi bi-info-circle-fill"></i>
+                    {{ msg }}
                 </div>
-              {% endfor %}
+                {% endfor %}
+            {% endwith %}
+
+            <div class="welcome-banner">
+                <div>
+                    <h2>Welcome back, <span>{{ username }}</span></h2>
+                    <div class="meta">
+                        <i class="bi bi-book-half"></i>
+                        {{ student_profile.course.name }}
+                        <span class="pill">{{ student_profile.course.level }}</span>
+                    </div>
+                </div>
+                <div class="welcome-stats">
+                    <div class="ws-item">
+                        <div class="n">{{ total_subjects }}</div>
+                        <div class="l">Subjects</div>
+                    </div>
+                    <div class="ws-item">
+                        <div class="n">{{ semester_groups|length }}</div>
+                        <div class="l">Semesters</div>
+                    </div>
+                    <div class="ws-item">
+                        <div class="n">{{ (student_profile.exam_type or '—')|upper }}</div>
+                        <div class="l">Exam Type</div>
+                    </div>
+                </div>
             </div>
-          </div>
-        {% endif %}
-      {% endfor %}
-    {% else %}
-      <div class="empty-state-global">
-        <i class="bi bi-inbox"></i>
-        <h5>No Exams Available</h5>
-        <p>There are no active exams for your course at the moment.</p>
-      </div>
-    {% endif %}
-    {% endif %}
 
-    {% if is_knec %}
-    <div class="empty-state-global mt-4" style="padding: 28px;">
-      <i class="bi bi-info-circle" style="color: #1abc9c;"></i>
-      <h5>KNEC Exams</h5>
-      <p>
-        Your marks are entered by your lecturer.
-        Use the <strong>Print</strong> button on each semester card to download your report.
-      </p>
+            {% if current_semester %}
+            <div class="current-sem-banner">
+                <div>
+                    <div class="label">Current Semester</div>
+                    <div class="name">{{ current_semester.name }}</div>
+                </div>
+                <span class="badge"><i class="bi bi-broadcast"></i> Currently Running</span>
+            </div>
+            {% else %}
+            <div class="current-sem-banner empty">
+                <div>
+                    <div class="label">Current Semester</div>
+                    <div class="name">No semester is currently active</div>
+                </div>
+                <span class="badge"><i class="bi bi-clock"></i> Check back later</span>
+            </div>
+            {% endif %}
+
+            {% if messages_from_admin %}
+            {% for msg in messages_from_admin[:1] %}
+            <div class="msg-carousel">
+                <i class="bi bi-megaphone-fill"></i>
+                <div class="content">
+                    <h6>Message from Summit Technical College</h6>
+                    <p>{{ msg.content }}</p>
+                    <small>{{ msg.created_at.strftime('%d %b %Y · %H:%M') }}</small>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <!-- ============ ALL SUBJECTS (Time-based status) ============ -->
+            <div class="section-title">
+                <i class="bi bi-journals"></i> All My Subjects
+                <span class="count">{{ total_subjects }}</span>
+            </div>
+
+            {% if all_subjects_data %}
+            <div class="subjects-list-card">
+                {% for block in all_subjects_data %}
+                {% set name = block.subject.name %}
+                {% set code = name.split(' ')[0] %}
+                {% set unit = name.split(' ', 1)[1] if ' ' in name else name %}
+                {% set st = semester_time_status(block.subject.semester) if block.subject.semester else {'state':'pending','label':'Pending','short':''} %}
+
+                <div class="subject-row {% if st.state == 'current' %}is-current{% elif st.state == 'done' %}is-done{% endif %}">
+                    <div class="sr-num">{{ loop.index }}</div>
+
+                    <div class="sr-code">{{ code }}</div>
+
+                    <div class="sr-name">
+                        <strong>{{ unit }}</strong>
+                        {% if block.subject.semester %}
+                        <span class="sr-module">
+                            <i class="bi bi-calendar-event"></i>
+                            {{ block.subject.semester.name }}
+                        </span>
+                        {% else %}
+                        <span class="sr-module empty">No module assigned</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="sr-status">
+                        <span class="status-tag status-{{ st.state }}">
+                            <span class="dot"></span>
+                            {{ st.label }}
+                            {% if st.short and st.short != st.label %}· {{ st.short }}{% endif %}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-journals"></i>
+                <h5>No subjects assigned</h5>
+                <p>Your course has no subjects configured yet.</p>
+            </div>
+            {% endif %}
+
+            <!-- ============ SEMESTER RESULTS ============ -->
+            <div class="section-title">
+                <i class="bi bi-bar-chart-fill"></i>
+                {% if is_knec %}My Results by Semester{% else %}Subjects by Semester{% endif %}
+                <span class="count">{{ semester_groups|length }}</span>
+            </div>
+
+            {% if semester_groups %}
+            <div class="semester-grid">
+                {% for group in semester_groups %}
+                {% set gst = semester_time_status(group.semester) %}
+                <div class="semester-card is-{{ gst.state }}">
+                    <div class="sc-head">
+                        <div>
+                            <div class="sc-title">{{ group.semester.name }}</div>
+                            <div class="sc-count">{{ group.count }} subject{{ 's' if group.count != 1 else '' }}</div>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <span class="sc-badge {{ gst.state }}">
+                                {% if gst.state == 'done' %}✓ Done
+                                {% elif gst.state == 'next' %}→ Next
+                                {% elif gst.state == 'current' %}● Current
+                                {% else %}Pending{% endif %}
+                            </span>
+                            {% if is_knec %}
+                            <a class="btn-print"
+                               href="{{ url_for('student_print_report', semester_id=group.semester.id) }}"
+                               target="_blank">
+                                <i class="bi bi-printer-fill"></i> Print
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if group.subjects %}
+                        {% if is_knec %}
+                        <table class="knec-table">
+                            <thead>
+                                <tr>
+                                    <th class="left">Subject</th>
+                                    <th>CAT1</th>
+                                    <th>CAT2</th>
+                                    <th>Final</th>
+                                    <th>Total</th>
+                                    <th>Grade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in group.subjects %}
+                                <tr>
+                                    <td class="subject">{{ s.subject.name }}</td>
+                                    <td class="{% if s.cat1 is none %}missing{% endif %}">{{ s.cat1 if s.cat1 is not none else '—' }}</td>
+                                    <td class="{% if s.cat2 is none %}missing{% endif %}">{{ s.cat2 if s.cat2 is not none else '—' }}</td>
+                                    <td class="{% if s.final is none %}missing{% endif %}">{{ s.final if s.final is not none else '—' }}</td>
+                                    <td class="total">{{ s.total_marks if s.total_marks is not none else '—' }}</td>
+                                    <td>
+                                        {% if s.total_marks is not none %}
+                                            {% set t = s.total_marks %}
+                                            {% if t >= 84 %}<span class="grade A">1</span>
+                                            {% elif t >= 75 %}<span class="grade A">2</span>
+                                            {% elif t >= 66 %}<span class="grade B">3</span>
+                                            {% elif t >= 60 %}<span class="grade B">4</span>
+                                            {% elif t >= 50 %}<span class="grade C">5</span>
+                                            {% elif t >= 40 %}<span class="grade D">6</span>
+                                            {% else %}<span class="grade F">7</span>{% endif %}
+                                        {% else %}
+                                            <span class="missing">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <ul style="list-style:none; padding:14px 18px; margin:0;">
+                            {% for s in group.subjects %}
+                            <li style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9; font-size:13px;">
+                                <i class="bi bi-bookmark-fill" style="color:#1e3a8a;"></i>
+                                <span style="flex:1; font-weight:600;">{{ s.subject.name }}</span>
+                                {% if s.total %}
+                                <span style="background:#f1f5f9; color:#475569; padding:2px 10px; border-radius:100px; font-size:11px; font-weight:700;">
+                                    {{ s.taken }}/{{ s.total }}
+                                </span>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    {% else %}
+                    <div style="padding:20px; text-align:center; color:#94a3b8; font-size:13px; font-style:italic;">
+                        No subjects assigned to this semester yet.
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-calendar3"></i>
+                <h5>No semesters configured</h5>
+                <p>Your admin has not yet set up semesters for this course.</p>
+            </div>
+            {% endif %}
+
+            {% if not is_knec %}
+            <div class="section-title">
+                <i class="bi bi-file-earmark-check"></i> Available Exams
+                <span class="count">{{ all_subjects_data|sum(attribute='total') }}</span>
+            </div>
+
+            {% if all_subjects_data and all_subjects_data|sum(attribute='total') > 0 %}
+                {% for block in all_subjects_data %}
+                    {% if block.total > 0 %}
+                    <div class="exam-group">
+                        <div class="eg-head">
+                            <h6>
+                                <i class="bi bi-book-half"></i>
+                                {{ block.subject.name }}
+                                {% if block.subject.semester %}
+                                <span class="eg-badge">{{ block.subject.semester.name }}</span>
+                                {% endif %}
+                            </h6>
+                            <span class="eg-badge">{{ block.taken }} / {{ block.total }} completed</span>
+                        </div>
+
+                        <div class="exam-cards-grid">
+                            {% for exam in block.quizzes %}
+                                {% set seq_index = loop.index0 %}
+                                {% set is_taken = exam.id in taken_quiz_ids %}
+                                {% set prev_taken = (seq_index == 0) or (block.quizzes[seq_index - 1].id in taken_quiz_ids) %}
+
+                                <div class="exam-card {% if not is_taken and not prev_taken %}locked{% endif %}">
+                                    <div class="ec-head">
+                                        <span style="display:flex; align-items:center; gap:8px;">
+                                            <span class="num">{{ loop.index }}</span>
+                                            <span>{{ exam.duration }}m</span>
+                                        </span>
+                                        {% if is_taken %}
+                                        <span><i class="bi bi-check-circle-fill"></i> Done</span>
+                                        {% elif prev_taken %}
+                                        <span><i class="bi bi-play-circle-fill"></i> Ready</span>
+                                        {% else %}
+                                        <span><i class="bi bi-lock-fill"></i></span>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="ec-body">
+                                        <div class="ec-title">{{ exam.title }}</div>
+
+                                        {% if is_taken %}
+                                            {% set result = results_by_quiz.get(exam.id) %}
+                                            {% if result %}
+                                            <div class="score-mini">
+                                                <div class="score-mini-circle {% if result.percentage >= 70 %}high{% elif result.percentage >= 50 %}medium{% else %}low{% endif %}">
+                                                    {{ "%.0f"|format(result.percentage) }}%
+                                                </div>
+                                                <div class="score-mini-text">
+                                                    <strong>{{ result.score }}/{{ result.total_marks }}</strong>
+                                                    <small>{{ result.taken_on.strftime('%d/%m/%Y') }}</small>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        {% endif %}
+
+                                        <div>
+                                            {% if is_taken %}
+                                            <a href="{{ url_for('student_results') }}" class="btn-take secondary">
+                                                <i class="bi bi-bar-chart-fill"></i> View Result
+                                            </a>
+                                            {% elif prev_taken %}
+                                            <a href="{{ url_for('take_exam', quiz_id=exam.id) }}" class="btn-take primary">
+                                                <i class="bi bi-play-fill"></i> Take Exam
+                                            </a>
+                                            {% else %}
+                                            <button class="btn-take locked-btn" disabled>
+                                                <i class="bi bi-lock"></i> Locked
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <h5>No Exams Available</h5>
+                <p>There are no active exams for your course at the moment.</p>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {% if is_knec %}
+            <div class="empty-state" style="padding:32px;">
+                <i class="bi bi-info-circle" style="color:#1e3a8a;"></i>
+                <h5>KNEC Exams</h5>
+                <p>Your marks are entered by your lecturer. Use the <strong>Print</strong> button on each semester card to download your report.</p>
+            </div>
+            {% endif %}
+
+        </main>
     </div>
-    {% endif %}
-
-  </main>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () {
-      document.querySelectorAll('.alert-dismissible').forEach(function (alert) {
-        const closeBtn = alert.querySelector('.btn-close');
-        if (closeBtn) closeBtn.click();
-      });
-    }, 5000);
-  });
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+            document.querySelectorAll('.flash').forEach(function (el) {
+                el.style.transition = 'opacity 0.4s, transform 0.4s';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-6px)';
+                setTimeout(function () { el.remove(); }, 400);
+            });
+        }, 5000);
+    });
 </script>
+
 </body>
 </html>

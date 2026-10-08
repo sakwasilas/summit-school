@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>All Courses — {{ department.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            color: #0f1724;
+            margin: 0;
+            padding: 26px 32px;
+        }
+        .page-wrap { max-width: 1350px; margin: 0 auto; }
+
+        /* BACK LINK */
+        .back-link {
+            font-size: 13px;
+            color: #64748b;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .back-link:hover { color: #1abc9c; }
+
+        /* ============ BLUE STAT CARD ============ */
+        .stat-card {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border-radius: 16px;
+            padding: 26px 30px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(37,99,235,0.25);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            right: -40px; top: -40px;
+            width: 200px; height: 200px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 50%;
+        }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            right: 40px; bottom: -60px;
+            width: 140px; height: 140px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+        }
+        .stat-left { position: relative; z-index: 1; }
+        .stat-left .label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            opacity: 0.85;
+        }
+        .stat-left .big-num {
+            font-size: 44px;
+            font-weight: 800;
+            line-height: 1;
+            margin: 8px 0 4px;
+        }
+        .stat-left .sub {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        .stat-meta {
+            display: flex;
+            gap: 26px;
+            position: relative;
+            z-index: 1;
+            flex-wrap: wrap;
+        }
+        .stat-meta .meta-item { text-align: center; }
+        .stat-meta .meta-item .num {
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .stat-meta .meta-item .lbl {
+            font-size: 11px;
+            opacity: 0.85;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 3px;
+        }
+        .stat-icon {
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 130px;
+            opacity: 0.08;
+            z-index: 0;
+            line-height: 1;
+        }
+
+        /* FLASH */
+        .flash {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .flash.success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .flash.danger  { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+        .flash.warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+
+        /* TABLE */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        table.courses-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+        table.courses-table thead th {
+            background: #1e293b;
+            color: #ffffff;
+            text-align: left;
+            padding: 14px 16px;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border: 1px solid #1e293b;
+            white-space: nowrap;
+        }
+        table.courses-table tbody td {
+            padding: 14px 16px;
+            border: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+        table.courses-table tbody tr:nth-child(even) td {
+            background: #f9fbfc;
+        }
+        table.courses-table tbody tr:hover td {
+            background: #eff6ff;
+        }
+
+        /* BADGES */
+        .level-tag {
+            font-size: 10.5px;
+            font-weight: 700;
+            background: #f1f5f9;
+            color: #475569;
+            padding: 3px 9px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        .count-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+        .count-students { background: #dbeafe; color: #1e40af; }
+        .count-subjects { background: #fef3c7; color: #92400e; }
+        .count-sems     { background: #e0e7ff; color: #3730a3; }
+
+        /* SEMESTER / MODULE GROUPS INSIDE CELL */
+        .sem-block {
+            margin-bottom: 10px;
+        }
+        .sem-block:last-child { margin-bottom: 0; }
+        .sem-title {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #334155;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sem-title i { color: #3b82f6; }
+        .current-pill {
+            font-size: 9.5px;
+            font-weight: 700;
+            background: #d1fae5;
+            color: #065f46;
+            padding: 2px 7px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .sub-chip {
+            font-size: 11.5px;
+            padding: 4px 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 7px;
+            color: #334155;
+            font-weight: 500;
+        }
+        .sub-chip .mod {
+            font-size: 9.5px;
+            font-weight: 700;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-left: 5px;
+        }
+        .no-sub {
+            font-size: 12px;
+            color: #94a3b8;
+            font-style: italic;
+        }
+        .unassigned-block {
+            margin-top: 10px;
+            padding: 8px 10px;
+            background: #fffbeb;
+            border-radius: 8px;
+            border: 1px dashed #fcd34d;
+        }
+        .unassigned-block .sem-title { color: #92400e; }
+        .unassigned-block .sub-chip { background: #fef3c7; border-color: #fcd34d; }
+
+        /* ACTION BUTTONS */
+        .actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .act-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 7px;
+            font-size: 11.5px;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+        .act-btn:hover { transform: translateY(-1px); }
+        .act-view     { background: #dbeafe; color: #1e40af; }
+        .act-view:hover { background: #3b82f6; color: white; }
+        .act-subjects { background: #fef3c7; color: #92400e; }
+        .act-subjects:hover { background: #f59e0b; color: white; }
+        .act-edit     { background: #e0f2fe; color: #0369a1; }
+        .act-edit:hover { background: #0ea5e9; color: white; }
+        .act-delete   { background: #fee2e2; color: #991b1b; }
+        .act-delete:hover { background: #ef4444; color: white; }
+
+        /* EMPTY */
+        .empty {
+            padding: 50px 20px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13.5px;
+        }
+
+        /* PAGINATION */
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-top: 1px solid #e2e8f0;
+            background: #fafbfc;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .pagination-info {
+            font-size: 12.5px;
+            color: #64748b;
+        }
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .pagination-controls button {
+            min-width: 34px;
+            height: 34px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #475569;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s;
+            padding: 0 10px;
+        }
+        .pagination-controls button:hover:not(:disabled) {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            color: #2563eb;
+        }
+        .pagination-controls button.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+        .pagination-controls button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+
+    <a href="{{ url_for('hod_dashboard') }}" class="back-link">
+        <i class="bi bi-arrow-left"></i> Back to dashboard
+    </a>
+
+    <!-- ============ BLUE STAT CARD ============ -->
+    <div class="stat-card">
+        <div class="stat-left">
+            <div class="label">Courses in {{ department.name }}</div>
+            <div class="big-num">{{ courses|length }}</div>
+            <div class="sub">All courses, subjects &amp; modules in your department</div>
+        </div>
+        <div class="stat-meta">
+            <div class="meta-item">
+                <div class="num">{{ courses|sum(attribute='total_subjects') }}</div>
+                <div class="lbl">Total Subjects</div>
+            </div>
+            <div class="meta-item">
+                <div class="num">{{ courses|sum(attribute='students_count') }}</div>
+                <div class="lbl">Total Students</div>
+            </div>
+        </div>
+        <i class="bi bi-journals stat-icon"></i>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, msg in messages %}
+        <div class="flash {{ category }}">{{ msg }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <div class="table-card">
+        {% if courses %}
+        <table class="courses-table" id="coursesTable">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">#</th>
+                    <th style="min-width: 200px;">Course</th>
+                    <th style="width: 90px;">Level</th>
+                    <th style="width: 100px;">Stats</th>
+                    <th style="min-width: 400px;">Subjects &amp; Modules</th>
+                    <th style="width: 240px; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in courses %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+
+                    <!-- Course -->
+                    <td>
+                        <strong style="font-size: 14px;">{{ item.course.name }}</strong>
+                    </td>
+
+                    <!-- Level -->
+                    <td>
+                        <span class="level-tag">{{ item.course.level }}</span>
+                    </td>
+
+                    <!-- Stats -->
+                    <td>
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <span class="count-pill count-students">
+                                <i class="bi bi-people-fill"></i> {{ item.students_count }}
+                            </span>
+                            <span class="count-pill count-subjects">
+                                <i class="bi bi-list-check"></i> {{ item.total_subjects }}
+                            </span>
+                            <span class="count-pill count-sems">
+                                <i class="bi bi-calendar3"></i> {{ item.semesters|length }}
+                            </span>
+                        </div>
+                    </td>
+
+                    <!-- Subjects grouped by semester/module -->
+                    <td>
+                        {% if item.semesters %}
+                            {% for grp in item.semesters %}
+                            <div class="sem-block">
+                                <div class="sem-title">
+                                    <i class="bi bi-calendar-event"></i>
+                                    {{ grp.semester.name }}
+                                    {% if grp.semester.is_current %}
+                                    <span class="current-pill">Current</span>
+                                    {% endif %}
+                                </div>
+                                {% if grp.subjects %}
+                                <div class="chip-row">
+                                    {% for subj in grp.subjects %}
+                                    <span class="sub-chip">
+                                        {{ subj.name }}
+                                        {% if subj.module %}<span class="mod">{{ subj.module }}</span>{% endif %}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="no-sub">No subjects in this module.</div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        {% if item.unassigned %}
+                        <div class="unassigned-block">
+                            <div class="sem-title">
+                                <i class="bi bi-inbox"></i> Unassigned Subjects
+                            </div>
+                            <div class="chip-row">
+                                {% for subj in item.unassigned %}
+                                <span class="sub-chip">
+                                    {{ subj.name }}
+                                    {% if subj.module %}<span class="mod">{{ subj.module }}</span>{% endif %}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if not item.semesters and not item.unassigned %}
+                        <div class="no-sub">No subjects yet.</div>
+                        {% endif %}
+                    </td>
+
+                    <!-- Actions -->
+                    <td>
+                        <div class="actions">
+                            <a href="{{ url_for('hod_course_detail', course_id=item.course.id) }}"
+                               class="act-btn act-view" title="View course detail">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            <a href="{{ url_for('hod_manage_subjects', course_id=item.course.id) }}"
+                               class="act-btn act-subjects" title="Manage subjects">
+                                <i class="bi bi-list-check"></i> Subjects
+                            </a>
+                            <a href="{{ url_for('hod_edit_course', course_id=item.course.id) }}"
+                               class="act-btn act-edit" title="Edit course">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            <form method="POST"
+                                  action="{{ url_for('hod_delete_course', course_id=item.course.id) }}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Delete {{ item.course.name }}? This will also delete its subjects and quizzes.');">
+                                <button type="submit" class="act-btn act-delete" title="Delete course">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="pagination-bar">
+            <div class="pagination-info" id="pageInfo"></div>
+            <div class="pagination-controls" id="pageControls"></div>
+        </div>
+        {% else %}
+        <div class="empty">
+            <i class="bi bi-journals" style="font-size: 40px; display: block; margin-bottom: 10px; color: #cbd5e1;"></i>
+            <div style="font-weight: 700; color: #475569; margin-bottom: 6px;">No courses yet</div>
+            <div>Your department has no courses assigned.</div>
+            <div style="margin-top: 14px;">
+                <a href="{{ url_for('hod_manage_courses') }}"
+                   style="display:inline-block; padding:9px 16px; background:#2563eb; color:white; border-radius:8px; text-decoration:none; font-weight:600; font-size:13px;">
+                    <i class="bi bi-plus-circle"></i> Add Your First Course
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    const ROWS_PER_PAGE = 5;
+    const table = document.getElementById('coursesTable');
+    if (!table) return;
+
+    const tbody = table.querySelector('tbody');
+    const allRows = Array.from(tbody.querySelectorAll('tr'));
+    const total = allRows.length;
+    const totalPages = Math.max(1, Math.ceil(total / ROWS_PER_PAGE));
+    let currentPage = 1;
+
+    const infoEl = document.getElementById('pageInfo');
+    const controlsEl = document.getElementById('pageControls');
+
+    function render() {
+        allRows.forEach(r => r.style.display = 'none');
+
+        const start = (currentPage - 1) * ROWS_PER_PAGE;
+        const end = Math.min(start + ROWS_PER_PAGE, total);
+        for (let i = start; i < end; i++) {
+            allRows[i].style.display = '';
+        }
+
+        infoEl.textContent = total === 0
+            ? 'No records'
+            : `Showing ${start + 1}–${end} of ${total} courses`;
+
+        controlsEl.innerHTML = '';
+
+        const prev = document.createElement('button');
+        prev.innerHTML = '‹';
+        prev.disabled = currentPage === 1;
+        prev.onclick = () => { currentPage--; render(); };
+        controlsEl.appendChild(prev);
+
+        for (let p = 1; p <= totalPages; p++) {
+            const btn = document.createElement('button');
+            btn.textContent = p;
+            if (p === currentPage) btn.classList.add('active');
+            btn.onclick = () => { currentPage = p; render(); };
+            controlsEl.appendChild(btn);
+        }
+
+        const next = document.createElement('button');
+        next.innerHTML = '›';
+        next.disabled = currentPage === totalPages;
+        next.onclick = () => { currentPage++; render(); };
+        controlsEl.appendChild(next);
+    }
+
+    render();
+})();
+</script>
+
+</body>
+</html>

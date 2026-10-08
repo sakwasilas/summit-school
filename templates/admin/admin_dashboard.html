@@ -1,625 +1,663 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard</title>
-  <!-- Bootstrap Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Summit Technical College</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      display: flex;
-      background-color: #f0f2f5;
-      color: #2c3e50;
-      min-height: 100vh;
-    }
+        html, body {
+            height: 100%;
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            color: #0f1724;
+            -webkit-font-smoothing: antialiased;
+            background: #f0f2f5;
+        }
 
-    /* ===== SIDEBAR ===== */
-    .sidebar {
-      width: 250px;
-      background: linear-gradient(180deg, #1a2332, #2c3e50);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      color: white;
-      box-shadow: 2px 0 15px rgba(0,0,0,0.1);
-      z-index: 1000;
-      transition: all 0.3s ease;
-    }
+        /* ============================================ */
+        /* PAGE SHELL                                   */
+        /* ============================================ */
+        .page {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
 
-    .sidebar-brand {
-      text-align: center;
-      padding: 25px 20px 15px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
+        /* ============================================ */
+        /* TOP HEADER — WHITE                           */
+        /* ============================================ */
+        .top-header {
+            background: #ffffff;
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            flex-wrap: wrap;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .top-header img {
+            width: 64px; height: 64px;
+            object-fit: contain; flex-shrink: 0;
+        }
+        .top-header .header-text {
+            display: flex; flex-direction: column; line-height: 1.05;
+        }
+        .top-header h1 {
+            font-size: 22px; font-weight: 900;
+            color: #1e3a8a; letter-spacing: -0.5px;
+            text-transform: uppercase; margin: 0;
+        }
+        .top-header .sub {
+            font-size: 10.5px; font-weight: 600;
+            color: #64748b; letter-spacing: 2.5px;
+            text-transform: uppercase; margin-top: 5px;
+        }
+        .header-right {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .role-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 7px 14px;
+            background: #1e3a8a; color: white;
+            border-radius: 100px;
+            font-size: 12px; font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        .role-chip i { font-size: 14px; }
 
-    .sidebar-brand img {
-      border-radius: 50%;
-      border: 3px solid #1abc9c;
-      margin-bottom: 10px;
-    }
+        .user-chip {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 6px 14px 6px 6px;
+            background: #f1f5f9; border-radius: 100px;
+            font-size: 13px; font-weight: 600; color: #334155;
+        }
+        .user-chip .avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: #1e3a8a; color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 13px;
+        }
+        .logout-btn {
+            padding: 9px 16px; background: #f1f5f9; color: #475569;
+            border-radius: 9px; text-decoration: none;
+            font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: all .15s;
+        }
+        .logout-btn:hover { background: #fee2e2; color: #b91c1c; }
 
-    .sidebar-brand h4 {
-      color: white;
-      font-size: 16px;
-      font-weight: 600;
-      margin: 0;
-    }
+        /* Mobile menu toggle */
+        .menu-toggle {
+            display: none;
+            background: #1e3a8a; color: white;
+            border: none; padding: 10px 14px;
+            border-radius: 9px; font-size: 18px;
+            cursor: pointer;
+        }
 
-    .sidebar-brand span {
-      color: #1abc9c;
-      font-size: 12px;
-      opacity: 0.8;
-    }
+        /* ============================================ */
+        /* LAYOUT: SIDEBAR + CONTENT                    */
+        /* ============================================ */
+        .dash-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            flex: 1;
+            min-height: 0;
+        }
 
-    .sidebar-nav {
-      flex: 1;
-      padding: 15px 0;
-      overflow-y: auto;
-    }
+        /* ============================================ */
+        /* SIDEBAR — DARK BLUE                          */
+        /* ============================================ */
+        .sidebar {
+            background: #1e3a8a;
+            color: white;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 98px;
+            height: calc(100vh - 98px);
+            overflow-y: auto;
+        }
 
-    .sidebar-nav .nav-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.4);
-      padding: 10px 20px 5px;
-      letter-spacing: 1px;
-      font-weight: 600;
-    }
+        .sidebar .side-title {
+            font-size: 10.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255,255,255,0.5);
+            margin: 4px 8px 8px;
+        }
+        .sidebar .side-title:not(:first-child) { margin-top: 20px; }
 
-    .sidebar-nav a {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: rgba(255,255,255,0.7);
-      padding: 10px 20px;
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: all 0.3s ease;
-      border-left: 3px solid transparent;
-      margin: 2px 10px;
-      border-radius: 8px;
-    }
+        .sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 9px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all .15s;
+            margin-bottom: 2px;
+        }
+        .sidebar .nav-link i {
+            font-size: 16px;
+            color: #60a5fa;
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .sidebar .nav-link:hover {
+            background: rgba(96,165,250,0.15);
+            color: white;
+        }
+        .sidebar .nav-link:hover i { color: white; }
+        .sidebar .nav-link.active {
+            background: #60a5fa;
+            color: #1e3a8a;
+        }
+        .sidebar .nav-link.active i { color: #1e3a8a; }
 
-    .sidebar-nav a:hover {
-      background: rgba(255,255,255,0.08);
-      color: white;
-      border-left-color: #1abc9c;
-      padding-left: 25px;
-    }
+        .sidebar .side-footer {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.12);
+        }
 
-    .sidebar-nav a i {
-      font-size: 18px;
-      width: 24px;
-      text-align: center;
-      color: #1abc9c;
-    }
+        /* ============================================ */
+        /* MAIN CONTENT                                 */
+        /* ============================================ */
+        .main-content { padding: 26px 32px 60px; min-width: 0; }
 
-    .sidebar-nav a.active {
-      background: rgba(26, 188, 156, 0.15);
-      color: white;
-      border-left-color: #1abc9c;
-    }
+        /* Flash */
+        .flash {
+            padding: 12px 16px; border-radius: 10px;
+            font-size: 13px; font-weight: 500;
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 18px; border: 1px solid transparent;
+        }
+        .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
+        .flash.danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+        .flash.info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
 
-    .sidebar-footer {
-      padding: 15px 20px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
+        /* ============================================ */
+        /* WELCOME BANNER (dark blue gradient)          */
+        /* ============================================ */
+        .welcome-banner {
+            background: linear-gradient(135deg, #1e3a8a, #172f6e);
+            color: white;
+            border-radius: 16px;
+            padding: 26px 30px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(30,58,138,0.25);
+        }
+        .welcome-banner::before {
+            content: '';
+            position: absolute;
+            right: -40px; top: -40px;
+            width: 220px; height: 220px;
+            background: rgba(96,165,250,0.15);
+            border-radius: 50%;
+        }
+        .welcome-banner::after {
+            content: '';
+            position: absolute;
+            right: 60px; bottom: -80px;
+            width: 160px; height: 160px;
+            background: rgba(96,165,250,0.1);
+            border-radius: 50%;
+        }
+        .welcome-banner > * { position: relative; z-index: 1; }
+        .welcome-banner h2 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            margin-bottom: 6px;
+        }
+        .welcome-banner h2 span { color: #60a5fa; }
+        .welcome-banner p {
+            font-size: 13.5px;
+            opacity: 0.85;
+            margin: 0;
+        }
+        .welcome-stats {
+            display: flex;
+            gap: 26px;
+            flex-wrap: wrap;
+        }
+        .welcome-stats .ws-item { text-align: center; }
+        .welcome-stats .ws-item .n {
+            font-size: 24px; font-weight: 800;
+            color: #60a5fa; line-height: 1.1;
+        }
+        .welcome-stats .ws-item .l {
+            font-size: 10.5px; opacity: 0.75;
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-top: 2px;
+        }
 
-    .sidebar-footer .logout-btn {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: #e74c3c;
-      text-decoration: none;
-      font-weight: 600;
-      padding: 10px 15px;
-      border-radius: 8px;
-      transition: all 0.3s;
-      font-size: 14px;
-    }
+        /* ============================================ */
+        /* SECTION TITLE                                */
+        /* ============================================ */
+        .section-title {
+            font-weight: 800;
+            font-size: 15px;
+            color: #0f1724;
+            margin: 28px 0 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .section-title i { color: #1e3a8a; font-size: 18px; }
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #e2e8f0, transparent);
+        }
 
-    .sidebar-footer .logout-btn:hover {
-      background: rgba(231, 76, 60, 0.15);
-    }
+        /* ============================================ */
+        /* QUICK ACTION CARDS                           */
+        /* ============================================ */
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+        .quick-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 20px;
+            background: #ffffff;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #0f1724;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            transition: all .2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .quick-card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: #1e3a8a;
+            transition: width .2s;
+        }
+        .quick-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+            border-color: #1e3a8a;
+        }
+        .quick-card:hover::before { width: 6px; }
 
-    .sidebar-footer .logout-btn i {
-      font-size: 18px;
-    }
+        .quick-card .q-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+        .q-icon.blue   { background: #dbeafe; color: #1e40af; }
+        .q-icon.purple { background: #f5f3ff; color: #6d28d9; }
+        .q-icon.orange { background: #fff7ed; color: #c2410c; }
+        .q-icon.green  { background: #d1fae5; color: #065f46; }
+        .q-icon.red    { background: #fee2e2; color: #991b1b; }
+        .q-icon.slate  { background: #f1f5f9; color: #334155; }
 
-    /* ===== MAIN CONTENT ===== */
-    .main-content {
-      margin-left: 250px;
-      flex: 1;
-      padding: 30px 35px;
-      min-height: 100vh;
-    }
+        .quick-card .q-body { flex: 1; min-width: 0; }
+        .quick-card h4 {
+            font-size: 13.5px;
+            font-weight: 700;
+            margin: 0 0 2px;
+            color: #0f1724;
+        }
+        .quick-card p {
+            margin: 0;
+            font-size: 11.5px;
+            color: #64748b;
+            line-height: 1.4;
+        }
+        .quick-card .q-arrow {
+            color: #cbd5e1;
+            font-size: 15px;
+            flex-shrink: 0;
+            transition: all .2s;
+        }
+        .quick-card:hover .q-arrow {
+            color: #1e3a8a;
+            transform: translateX(4px);
+        }
 
-    /* Top Bar */
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 25px;
-      flex-wrap: wrap;
-      gap: 15px;
-    }
-
-    .top-bar h1 {
-      font-size: 22px;
-      font-weight: 700;
-      color: #2c3e50;
-      margin: 0;
-    }
-
-    .top-bar h1 span {
-      color: #1abc9c;
-    }
-
-    .top-bar .admin-badge {
-      background: #1abc9c;
-      color: white;
-      padding: 5px 16px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .top-bar .date-time {
-      color: #7f8c8d;
-      font-size: 14px;
-    }
-
-    /* Welcome Card */
-    .welcome-card {
-      background: linear-gradient(135deg, #2c3e50, #1a2332);
-      color: white;
-      border-radius: 16px;
-      padding: 25px 30px;
-      margin-bottom: 25px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 15px;
-    }
-
-    .welcome-card h2 {
-      font-size: 20px;
-      font-weight: 600;
-      margin: 0 0 5px;
-    }
-
-    .welcome-card p {
-      opacity: 0.8;
-      margin: 0;
-      font-size: 14px;
-    }
-
-    .welcome-card .stats-badge {
-      display: flex;
-      gap: 25px;
-      flex-wrap: wrap;
-    }
-
-    .welcome-card .stats-badge .stat-item {
-      text-align: center;
-    }
-
-    .welcome-card .stats-badge .stat-item .number {
-      font-size: 24px;
-      font-weight: 700;
-      color: #1abc9c;
-    }
-
-    .welcome-card .stats-badge .stat-item .label {
-      font-size: 11px;
-      opacity: 0.7;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    /* Quick Actions */
-    .section-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #2c3e50;
-      margin: 30px 0 15px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .section-title::after {
-      content: '';
-      flex: 1;
-      height: 2px;
-      background: linear-gradient(90deg, #1abc9c, transparent);
-    }
-
-    .quick-actions {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 18px;
-    }
-
-    .quick-actions a {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px 15px;
-      text-align: center;
-      background: white;
-      border-radius: 14px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-      text-decoration: none;
-      color: #2c3e50;
-      font-weight: 600;
-      font-size: 14px;
-      transition: all 0.3s ease;
-      border: 1px solid transparent;
-      min-height: 120px;
-    }
-
-    .quick-actions a:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-      border-color: #1abc9c;
-    }
-
-    .quick-actions .icon {
-      font-size: 32px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 60px;
-      height: 60px;
-      border-radius: 14px;
-      background: #f0f2f5;
-      transition: all 0.3s;
-    }
-
-    .quick-actions a:hover .icon {
-      background: #1abc9c;
-      color: white;
-      transform: scale(1.05);
-    }
-
-    .quick-actions a .label {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-
-    .quick-actions a .desc {
-      font-size: 11px;
-      font-weight: normal;
-      opacity: 0.7;
-      margin-top: 4px;
-    }
-
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 1024px) {
-      .main-content {
-        padding: 20px 25px;
-      }
-      .quick-actions {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      }
-    }
-
-    @media (max-width: 768px) {
-      .sidebar {
-        width: 220px;
-        transform: translateX(-100%);
-      }
-      .sidebar.open {
-        transform: translateX(0);
-      }
-      .main-content {
-        margin-left: 0;
-        padding: 15px 20px;
-      }
-      .top-bar h1 {
-        font-size: 18px;
-      }
-      .welcome-card {
-        flex-direction: column;
-        text-align: center;
-      }
-      .welcome-card .stats-badge {
-        justify-content: center;
-      }
-      .quick-actions {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 12px;
-      }
-      .quick-actions a {
-        padding: 15px 10px;
-        min-height: 100px;
-      }
-      .quick-actions .icon {
-        width: 50px;
-        height: 50px;
-        font-size: 24px;
-      }
-      .menu-toggle {
-        display: flex !important;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .quick-actions {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-      }
-      .quick-actions a {
-        padding: 12px 8px;
-        min-height: 90px;
-      }
-      .quick-actions .icon {
-        width: 40px;
-        height: 40px;
-        font-size: 20px;
-      }
-      .quick-actions a .label {
-        font-size: 12px;
-      }
-      .quick-actions a .desc {
-        display: none;
-      }
-    }
-
-    .menu-toggle {
-      display: none;
-      background: #2c3e50;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 8px;
-      font-size: 20px;
-      cursor: pointer;
-      position: fixed;
-      top: 15px;
-      left: 15px;
-      z-index: 1001;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    }
-
-    .menu-toggle:hover {
-      background: #1a2332;
-    }
-
-    .sidebar-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      z-index: 999;
-    }
-    .sidebar-overlay.active {
-      display: block;
-    }
-  </style>
+        /* ============================================ */
+        /* MOBILE                                        */
+        /* ============================================ */
+        @media (max-width: 992px) {
+            .dash-layout { grid-template-columns: 1fr; }
+            .sidebar {
+                position: relative;
+                top: 0;
+                height: auto;
+                padding: 16px;
+                display: none;
+            }
+            .sidebar.open { display: flex; }
+            .main-content { padding: 20px; }
+            .top-header { padding: 14px 20px; }
+            .top-header img { width: 52px; height: 52px; }
+            .top-header h1 { font-size: 16px; }
+            .top-header .sub { font-size: 9px; letter-spacing: 1.5px; }
+            .menu-toggle { display: inline-flex; }
+        }
+        @media (max-width: 640px) {
+            .quick-grid { grid-template-columns: 1fr; }
+            .welcome-banner { flex-direction: column; align-items: flex-start; }
+            .welcome-stats { gap: 18px; }
+            .welcome-stats .ws-item .n { font-size: 20px; }
+        }
+    </style>
 </head>
 <body>
 
-  <!-- Mobile Menu Toggle -->
-  <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div class="page">
 
-  <!-- Sidebar -->
-  <div class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Summit Tech College" width="70" height="70">
-      <h4>Summit Tech</h4>
-      <span>Admin Panel</span>
-    </div>
-
-    <div class="sidebar-nav">
-      <div class="nav-label">Main Navigation</div>
-      <a href="{{ url_for('manage_students') }}" class="active">
-        <i class="bi bi-people-fill"></i> Manage Students
-      </a>
-      <a href="{{ url_for('admin_messages') }}">
-        <i class="bi bi-envelope-fill"></i> Messages
-      </a>
-      <a href="{{ url_for('student_activity') }}">
-        <i class="bi bi-graph-up-arrow"></i> Monitor Activity
-      </a>
-
-      <div class="nav-label" style="margin-top: 10px;">Exam Management</div>
-      <a href="{{ url_for('upload_exam') }}">
-        <i class="bi bi-file-earmark-check"></i> Upload Exam
-      </a>
-      <a href="{{ url_for('view_results') }}">
-        <i class="bi bi-clipboard-data"></i> View Results
-      </a>
-      <a href="{{ url_for('manage_quizzes') }}">
-        <i class="bi bi-question-circle"></i> Manage Questions
-      </a>
-      <a href="{{ url_for('admin_marks_picker') }}">
-        <i class="bi bi-pencil-square"></i> Enter KNEC Marks
-      </a>
-      <a href="{{ url_for('admin_reports_picker') }}">
-        <i class="bi bi-printer"></i> Print Reports
-      </a>
-
-      <div class="nav-label" style="margin-top: 10px;">System Setup</div>
-      <a href="{{ url_for('manage_departments') }}">
-        <i class="bi bi-building"></i> Manage Departments
-      </a>
-      <a href="{{ url_for('add_course') }}">
-        <i class="bi bi-plus-circle"></i> Add Course
-      </a>
-      <a href="{{ url_for('manage_courses') }}">
-        <i class="bi bi-book"></i> Manage Courses
-      </a>
-      <a href="{{ url_for('add_subject') }}">
-        <i class="bi bi-plus-square"></i> Add Subject
-      </a>
-      <a href="{{ url_for('manage_semesters') }}">
-        <i class="bi bi-calendar3"></i> Manage Semesters
-      </a>
-      <a href="{{ url_for('manage_hods') }}">
-        <i class="bi bi-person-badge"></i> Manage HODs
-      </a>
-      <a href="{{ url_for('show_credentials') }}">
-        <i class="bi bi-key-fill"></i> Manage Credentials
-      </a>
-    </div>
-
-    <div class="sidebar-footer">
-      <a href="{{ url_for('logout') }}" class="logout-btn">
-        <i class="bi bi-box-arrow-right"></i> Logout
-      </a>
-    </div>
-  </div>
-
-  <!-- Main Content -->
-  <div class="main-content">
-    <!-- Top Bar -->
-    <div class="top-bar">
-      <h1>Admin <span>Dashboard</span></h1>
-      <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-        <span class="admin-badge"><i class="bi bi-shield-check me-1"></i>Administrator</span>
-        <span class="date-time"><i class="bi bi-calendar3 me-1"></i>{{ current_year }}</span>
-      </div>
-    </div>
-
-    <!-- Welcome Card -->
-    <div class="welcome-card">
-      <div>
-        <h2>👋 Welcome back, {{ username }}!</h2>
-        <p>Manage your courses, exams, and students from one central dashboard.</p>
-      </div>
-      <div class="stats-badge">
-        <div class="stat-item">
-          <div class="number">{{ departments_count|default(0) }}</div>
-          <div class="label">Departments</div>
+    <!-- ============================================ -->
+    <!-- TOP HEADER                                   -->
+    <!-- ============================================ -->
+    <header class="top-header">
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}"
+                 alt="Summit Technical College">
+            <div class="header-text">
+                <h1>SUMMIT TECHNICAL COLLEGE</h1>
+                <div class="sub">Admin Panel</div>
+            </div>
         </div>
-        <div class="stat-item">
-          <div class="number">{{ courses|length }}</div>
-          <div class="label">Courses</div>
+        <div class="header-right">
+            <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="role-chip">
+                <i class="bi bi-shield-check"></i> Administrator
+            </span>
+            <div class="user-chip">
+                <span class="avatar">{{ (username or 'A')[0]|upper }}</span>
+                <span>{{ username }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
         </div>
-        <div class="stat-item">
-          <div class="number">{{ students_count|default(0) }}</div>
-          <div class="label">Students</div>
-        </div>
-        <div class="stat-item">
-          <div class="number">{{ exams_count|default(0) }}</div>
-          <div class="label">Exams</div>
-        </div>
-      </div>
-    </div>
+    </header>
 
-    <!-- Quick Actions -->
-    <div class="section-title">
-      <i class="bi bi-lightning-fill" style="color: #1abc9c;"></i> Quick Actions
-    </div>
-    <div class="quick-actions">
-      <a href="{{ url_for('upload_exam') }}">
-        <div class="icon">📝</div>
-        <span class="label">Upload Exam</span>
-        <span class="desc">Prepare and publish</span>
-      </a>
-      <a href="{{ url_for('view_results') }}">
-        <div class="icon">📑</div>
-        <span class="label">View Results</span>
-        <span class="desc">Check student results</span>
-      </a>
-      <a href="{{ url_for('manage_departments') }}">
-        <div class="icon">🏢</div>
-        <span class="label">Manage Departments</span>
-        <span class="desc">ICT, Business, Artisan</span>
-      </a>
-      <a href="{{ url_for('add_course') }}">
-        <div class="icon">➕</div>
-        <span class="label">Add Course</span>
-        <span class="desc">Create new courses</span>
-      </a>
-      <a href="{{ url_for('manage_courses') }}">
-        <div class="icon">📘</div>
-        <span class="label">Manage Courses</span>
-        <span class="desc">Update or delete</span>
-      </a>
-      <a href="{{ url_for('add_subject') }}">
-        <div class="icon">📖</div>
-        <span class="label">Add Subject</span>
-        <span class="desc">Add to courses</span>
-      </a>
-      <a href="{{ url_for('manage_quizzes') }}">
-        <div class="icon">❓</div>
-        <span class="label">Manage Questions</span>
-        <span class="desc">Create quiz questions</span>
-      </a>
-      <a href="{{ url_for('manage_semesters') }}">
-        <div class="icon">🗓️</div>
-        <span class="label">Manage Semesters</span>
-        <span class="desc">Term-by-term setup</span>
-      </a>
-      <a href="{{ url_for('admin_marks_picker') }}">
-        <div class="icon">✍️</div>
-        <span class="label">Enter KNEC Marks</span>
-        <span class="desc">Type CAT / Final scores</span>
-      </a>
-      <a href="{{ url_for('admin_reports_picker') }}">
-        <div class="icon">🖨️</div>
-        <span class="label">Print Reports</span>
-        <span class="desc">Download transcripts</span>
-      </a>
-      <a href="{{ url_for('manage_hods') }}">
-        <div class="icon">👔</div>
-        <span class="label">Manage HODs</span>
-        <span class="desc">Heads of Department</span>
-      </a>
-      <a href="{{ url_for('show_credentials') }}">
-        <div class="icon">🔑</div>
-        <span class="label">Manage Credentials</span>
-        <span class="desc">Update login access</span>
-      </a>
-    </div>
-  </div>
+    <!-- ============================================ -->
+    <!-- LAYOUT                                       -->
+    <!-- ============================================ -->
+    <div class="dash-layout">
 
-  <script>
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+
+            <div class="side-title">Main</div>
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-link active">
+                <i class="bi bi-grid-1x2-fill"></i> Dashboard
+            </a>
+            <a href="{{ url_for('manage_students') }}" class="nav-link">
+                <i class="bi bi-people-fill"></i> Manage Students
+            </a>
+            <a href="{{ url_for('admin_messages') }}" class="nav-link">
+                <i class="bi bi-envelope-fill"></i> Messages
+            </a>
+            <a href="{{ url_for('student_activity') }}" class="nav-link">
+                <i class="bi bi-graph-up-arrow"></i> Monitor Activity
+            </a>
+
+            <div class="side-title">Exam Management</div>
+            <a href="{{ url_for('upload_exam') }}" class="nav-link">
+                <i class="bi bi-file-earmark-check"></i> Upload Exam
+            </a>
+            <a href="{{ url_for('view_results') }}" class="nav-link">
+                <i class="bi bi-clipboard-data"></i> View Results
+            </a>
+            <a href="{{ url_for('manage_quizzes') }}" class="nav-link">
+                <i class="bi bi-question-circle"></i> Manage Questions
+            </a>
+            <a href="{{ url_for('admin_marks_picker') }}" class="nav-link">
+                <i class="bi bi-pencil-square"></i> Enter KNEC Marks
+            </a>
+            <a href="{{ url_for('admin_reports_picker') }}" class="nav-link">
+                <i class="bi bi-printer"></i> Print Reports
+            </a>
+
+            <div class="side-title">System Setup</div>
+            <a href="{{ url_for('manage_departments') }}" class="nav-link">
+                <i class="bi bi-building"></i> Departments
+            </a>
+            <a href="{{ url_for('manage_courses') }}" class="nav-link">
+                <i class="bi bi-book"></i> Courses
+            </a>
+            <a href="{{ url_for('manage_semesters') }}" class="nav-link">
+                <i class="bi bi-calendar3"></i> Semesters
+            </a>
+            <a href="{{ url_for('manage_hods') }}" class="nav-link">
+                <i class="bi bi-person-badge"></i> HODs
+            </a>
+            <a href="{{ url_for('show_credentials') }}" class="nav-link">
+                <i class="bi bi-key-fill"></i> Credentials
+            </a>
+
+            <div class="side-footer">
+                <a href="{{ url_for('logout') }}" class="nav-link">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="main-content">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, msg in messages %}
+                <div class="flash {{ category if category in ['success','danger','warning','info'] else 'info' }}">
+                    <i class="bi bi-info-circle-fill"></i>
+                    {{ msg }}
+                </div>
+                {% endfor %}
+            {% endwith %}
+
+            <!-- ============ WELCOME BANNER ============ -->
+            <div class="welcome-banner">
+                <div>
+                    <h2>Welcome back, <span>{{ username }}</span></h2>
+                    <p>Manage courses, exams, students, and department structure from one central dashboard.</p>
+                </div>
+                <div class="welcome-stats">
+                    <div class="ws-item">
+                        <div class="n">{{ departments_count|default(0) }}</div>
+                        <div class="l">Departments</div>
+                    </div>
+                    <div class="ws-item">
+                        <div class="n">{{ courses|length }}</div>
+                        <div class="l">Courses</div>
+                    </div>
+                    <div class="ws-item">
+                        <div class="n">{{ students_count|default(0) }}</div>
+                        <div class="l">Students</div>
+                    </div>
+                    <div class="ws-item">
+                        <div class="n">{{ exams_count|default(0) }}</div>
+                        <div class="l">Exams</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============ QUICK ACTIONS ============ -->
+            <div class="section-title">
+                <i class="bi bi-lightning-charge-fill"></i> Quick Actions
+            </div>
+
+            <div class="quick-grid">
+                <a href="{{ url_for('upload_exam') }}" class="quick-card">
+                    <div class="q-icon blue"><i class="bi bi-file-earmark-arrow-up-fill"></i></div>
+                    <div class="q-body">
+                        <h4>Upload Exam</h4>
+                        <p>Prepare and publish a new exam</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('view_results') }}" class="quick-card">
+                    <div class="q-icon purple"><i class="bi bi-clipboard-data-fill"></i></div>
+                    <div class="q-body">
+                        <h4>View Results</h4>
+                        <p>Check student exam results</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('manage_departments') }}" class="quick-card">
+                    <div class="q-icon orange"><i class="bi bi-building-fill"></i></div>
+                    <div class="q-body">
+                        <h4>Manage Departments</h4>
+                        <p>ICT, Business, Artisan</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('add_course') }}" class="quick-card">
+                    <div class="q-icon green"><i class="bi bi-plus-circle-fill"></i></div>
+                    <div class="q-body">
+                        <h4>Add Course</h4>
+                        <p>Create a new course</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('manage_courses') }}" class="quick-card">
+                    <div class="q-icon slate"><i class="bi bi-book-fill"></i></div>
+                    <div class="q-body">
+                        <h4>Manage Courses</h4>
+                        <p>Update or delete courses</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('add_subject') }}" class="quick-card">
+                    <div class="q-icon green"><i class="bi bi-bookmark-plus-fill"></i></div>
+                    <div class="q-body">
+                        <h4>Add Subject</h4>
+                        <p>Attach to a course &amp; module</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('manage_quizzes') }}" class="quick-card">
+                    <div class="q-icon red"><i class="bi bi-question-circle-fill"></i></div>
+                    <div class="q-body">
+                        <h4>Manage Questions</h4>
+                        <p>Review quiz questions</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('manage_semesters') }}" class="quick-card">
+                    <div class="q-icon purple"><i class="bi bi-calendar3"></i></div>
+                    <div class="q-body">
+                        <h4>Manage Semesters</h4>
+                        <p>Term-by-term setup</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('admin_marks_picker') }}" class="quick-card">
+                    <div class="q-icon blue"><i class="bi bi-pencil-square"></i></div>
+                    <div class="q-body">
+                        <h4>Enter KNEC Marks</h4>
+                        <p>CAT &amp; final scores</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('admin_reports_picker') }}" class="quick-card">
+                    <div class="q-icon slate"><i class="bi bi-printer-fill"></i></div>
+                    <div class="q-body">
+                        <h4>Print Reports</h4>
+                        <p>Download transcripts</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('manage_hods') }}" class="quick-card">
+                    <div class="q-icon orange"><i class="bi bi-person-badge-fill"></i></div>
+                    <div class="q-body">
+                        <h4>Manage HODs</h4>
+                        <p>Heads of Department</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
+                <a href="{{ url_for('show_credentials') }}" class="quick-card">
+                    <div class="q-icon red"><i class="bi bi-key-fill"></i></div>
+                    <div class="q-body">
+                        <h4>Manage Credentials</h4>
+                        <p>Update login access</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
     function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('sidebarOverlay');
-      sidebar.classList.toggle('open');
-      overlay.classList.toggle('active');
+        document.getElementById('sidebar').classList.toggle('open');
     }
-
-    document.querySelectorAll('.sidebar-nav a').forEach(link => {
-      link.addEventListener('click', function() {
-        if (window.innerWidth <= 768) {
-          toggleSidebar();
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 992) {
+            document.getElementById('sidebar').classList.remove('open');
         }
-      });
     });
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+            document.querySelectorAll('.flash').forEach(function (el) {
+                el.style.transition = 'opacity 0.4s, transform 0.4s';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-6px)';
+                setTimeout(function () { el.remove(); }, 400);
+            });
+        }, 5000);
+    });
+</script>
 
-    window.addEventListener('resize', function() {
-      if (window.innerWidth > 768) {
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('sidebarOverlay').classList.remove('active');
-      }
-    });
-  </script>
 </body>
 </html>
