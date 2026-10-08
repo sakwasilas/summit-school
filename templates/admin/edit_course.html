@@ -117,6 +117,18 @@
       margin-bottom: 14px;
     }
 
+    /* HOD info banner */
+    .dept-note {
+      background: #eef7f5;
+      border: 1px solid #c9ece5;
+      color: #0e6251;
+      padding: 11px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
     /* Responsive */
     @media (max-width: 480px) {
       .form-container {
@@ -152,25 +164,35 @@
              value="{{ course.level }}" required
              placeholder="e.g. Diploma, Certificate, Artisan">
 
-      <label for="department_id">Department</label>
-      <select id="department_id" name="department_id">
-        <option value="">— none —</option>
-        {% for d in departments %}
-          <option value="{{ d.id }}"
-              {% if course.department_id == d.id %}selected{% endif %}>
-            {{ d.name }}{% if d.code %} ({{ d.code }}){% endif %}
-          </option>
-        {% endfor %}
-      </select>
-      {% if course.department %}
-        <div class="current-dept">
-          ✓ Currently in <strong>{{ course.department.name }}</strong>
+      {# ============ HOD: no department dropdown, just a notice ============ #}
+      {% if session.get('role') == 'hod' %}
+        <div class="dept-note">
+          ℹ This course stays in <strong>{{ course.department.name if course.department else 'your department' }}</strong>.
+          You cannot move it to another department.
         </div>
+
+      {# ============ ADMIN: department dropdown as before ============ #}
       {% else %}
-        <div class="hint">
-          This course isn't assigned to a department yet.
-          <a href="{{ url_for('manage_departments') }}" style="color:#007bff;">Create one</a> first.
-        </div>
+        <label for="department_id">Department</label>
+        <select id="department_id" name="department_id">
+          <option value="">— none —</option>
+          {% for d in departments %}
+            <option value="{{ d.id }}"
+                {% if course.department_id == d.id %}selected{% endif %}>
+              {{ d.name }}{% if d.code %} ({{ d.code }}){% endif %}
+            </option>
+          {% endfor %}
+        </select>
+        {% if course.department %}
+          <div class="current-dept">
+            ✓ Currently in <strong>{{ course.department.name }}</strong>
+          </div>
+        {% else %}
+          <div class="hint">
+            This course isn't assigned to a department yet.
+            <a href="{{ url_for('manage_departments') }}" style="color:#007bff;">Create one</a> first.
+          </div>
+        {% endif %}
       {% endif %}
 
       <button type="submit">Update Course</button>

@@ -208,12 +208,18 @@ class StudentProfile(Base):
     phone_number = Column(String(50), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
+    # ✅ NEW: which semester this student is currently in
+    current_semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=True)
+
     course = relationship("Course", backref="students")
     user = relationship("User", back_populates="profile")
 
+    # ✅ NEW: relationship to the current semester
+    current_semester = relationship("Semester", foreign_keys=[current_semester_id])
+
     def __init__(
         self, full_name, exam_type, course_id, admission_number,
-        phone_number, user_id, blocked=False,
+        phone_number, user_id, blocked=False, current_semester_id=None,
     ):
         self.full_name = full_name
         self.exam_type = exam_type
@@ -222,6 +228,7 @@ class StudentProfile(Base):
         self.phone_number = phone_number
         self.user_id = user_id
         self.blocked = blocked
+        self.current_semester_id = current_semester_id
 
 
 class Message(Base):

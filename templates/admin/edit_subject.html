@@ -45,6 +45,7 @@
             background-color: #2980b9;
         }
         .back-button {
+            display: inline-block;
             font-size: 16px;
             font-weight: bold;
             color: #fff;
@@ -81,11 +82,30 @@
         .alert-danger  { background: #f8d7da; color: #721c24; }
         .alert-success { background: #d4edda; color: #155724; }
         .alert-info    { background: #d1ecf1; color: #0c5460; }
+
+        /* HOD info banner */
+        .dept-note {
+            background: #eef7f5;
+            border: 1px solid #c9ece5;
+            color: #0e6251;
+            padding: 11px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="{{ url_for('admin_dashboard') }}" class="back-button">Back to Dashboard</a>
+
+        {# Back link: HOD → HOD dashboard, admin → admin dashboard #}
+        {% if session.get('role') == 'hod' %}
+            <a href="{{ url_for('hod_dashboard') }}" class="back-button">Back to Dashboard</a>
+        {% else %}
+            <a href="{{ url_for('admin_dashboard') }}" class="back-button">Back to Dashboard</a>
+        {% endif %}
+
         <h3>Edit Subject</h3>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -93,6 +113,13 @@
             <div class="alert alert-{{ cat }}">{{ msg }}</div>
           {% endfor %}
         {% endwith %}
+
+        {% if session.get('role') == 'hod' %}
+          <div class="dept-note">
+            ℹ You're editing a subject from your department.
+            Only semesters belonging to <strong>{{ subject.course.name }}</strong> are shown.
+          </div>
+        {% endif %}
 
         <p class="course-label"><strong>Course:</strong> {{ subject.course.name }}</p>
 

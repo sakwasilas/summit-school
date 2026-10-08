@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ student.full_name }} — {{ course.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            color: #0f1724;
+            margin: 0;
+            padding: 26px 32px;
+        }
+        .page-wrap { max-width: 1150px; margin: 0 auto; }
+
+        /* BREADCRUMB */
+        .crumb {
+            font-size: 12.5px;
+            color: #64748b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .crumb a { color: #2563eb; text-decoration: none; font-weight: 600; }
+        .crumb a:hover { text-decoration: underline; }
+        .crumb i { font-size: 10px; color: #94a3b8; }
+
+        /* FLASH */
+        .flash {
+            padding: 12px 16px; border-radius: 10px;
+            margin-bottom: 14px; font-size: 13px; font-weight: 500;
+        }
+        .flash.success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .flash.danger  { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+        .flash.warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+        .flash.info    { background: #dbeafe; color: #1e40af; border-left: 4px solid #3b82f6; }
+
+        /* ============================================ */
+        /* PROFILE HEADER — BLUE GRADIENT               */
+        /* ============================================ */
+        .profile-card {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border-radius: 16px;
+            padding: 26px 30px;
+            margin-bottom: 22px;
+            box-shadow: 0 8px 24px rgba(37,99,235,0.25);
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+            position: relative;
+            overflow: hidden;
+        }
+        .profile-card::before {
+            content: ''; position: absolute;
+            right: -40px; top: -40px;
+            width: 200px; height: 200px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 50%;
+        }
+        .profile-card::after {
+            content: ''; position: absolute;
+            right: 40px; bottom: -60px;
+            width: 140px; height: 140px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+        }
+        .profile-avatar {
+            width: 84px; height: 84px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 32px; font-weight: 800;
+            letter-spacing: 1px;
+            flex-shrink: 0;
+            position: relative; z-index: 1;
+        }
+        .profile-info { flex: 1; min-width: 220px; position: relative; z-index: 1; }
+        .profile-info h1 {
+            font-size: 24px; font-weight: 800;
+            margin: 0 0 8px; letter-spacing: -0.3px;
+        }
+        .profile-info .meta {
+            display: flex; flex-wrap: wrap; gap: 16px;
+            font-size: 12.5px; opacity: 0.92;
+        }
+        .profile-info .meta span {
+            display: inline-flex; align-items: center; gap: 5px;
+        }
+        .profile-info .meta i { opacity: 0.75; }
+
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 10px;
+            font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.4px;
+            margin-top: 10px;
+        }
+        .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; }
+        .status-active  { background: rgba(255,255,255,0.25); color: #ffffff; }
+        .status-active  .dot { background: #6ee7b7; }
+        .status-blocked { background: rgba(255,255,255,0.25); color: #ffffff; }
+        .status-blocked .dot { background: #fca5a5; }
+
+        .profile-actions {
+            display: flex; flex-direction: column; gap: 8px;
+            align-items: flex-end;
+            position: relative; z-index: 1;
+        }
+        .btn-pill {
+            padding: 9px 16px; border-radius: 10px;
+            font-size: 12.5px; font-weight: 700;
+            text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: all .2s;
+            border: none; cursor: pointer;
+        }
+        .btn-pill.white {
+            background: white; color: #1d4ed8;
+        }
+        .btn-pill.white:hover { background: #f1f5f9; color: #1e40af; }
+        .btn-pill.ghost {
+            background: rgba(255,255,255,0.15); color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        .btn-pill.ghost:hover { background: rgba(255,255,255,0.25); color: white; }
+        .btn-pill.danger {
+            background: rgba(239,68,68,0.9); color: white;
+        }
+        .btn-pill.danger:hover { background: #dc2626; color: white; }
+
+        /* ============================================ */
+        /* SUMMARY MINI CARDS                           */
+        /* ============================================ */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 26px;
+        }
+        .mini-stat {
+            border-radius: 14px;
+            padding: 18px 20px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+            transition: transform .2s;
+        }
+        .mini-stat:hover { transform: translateY(-3px); }
+        .mini-stat .icon-bg {
+            position: absolute;
+            right: -8px; bottom: -14px;
+            font-size: 78px;
+            opacity: 0.13;
+            line-height: 1;
+        }
+        .mini-stat .lbl {
+            font-size: 10.5px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px;
+            opacity: 0.9;
+        }
+        .mini-stat .n {
+            font-size: 30px; font-weight: 800;
+            line-height: 1.1; margin-top: 6px;
+        }
+        .mini-stat.blue   { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .mini-stat.green  { background: linear-gradient(135deg, #10b981, #059669); }
+        .mini-stat.purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+        .mini-stat.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+        /* ============================================ */
+        /* SECTION TITLE                                */
+        /* ============================================ */
+        .section-title {
+            font-weight: 800; font-size: 13px; color: #0f1724;
+            margin: 26px 0 14px;
+            display: flex; align-items: center; gap: 10px;
+            text-transform: uppercase; letter-spacing: .6px;
+        }
+        .section-title i { color: #2563eb; font-size: 16px; }
+        .section-title::after {
+            content: ''; flex: 1; height: 2px;
+            background: linear-gradient(90deg, #e2e8f0, transparent);
+        }
+
+        /* ============================================ */
+        /* SEMESTER BLOCKS                              */
+        /* ============================================ */
+        .sem-block {
+            background: white;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            margin-bottom: 18px;
+        }
+        .sem-head {
+            padding: 14px 20px;
+            background: #1e293b;
+            color: white;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 10px;
+        }
+        .sem-head h3 {
+            font-size: 14px; font-weight: 800;
+            margin: 0;
+            display: inline-flex; align-items: center; gap: 10px;
+        }
+        .sem-head h3 i { color: #60a5fa; }
+        .sem-head .cur-tag {
+            background: rgba(255,255,255,0.15);
+            color: #6ee7b7;
+            font-size: 9.5px;
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .sem-head .sem-summary {
+            font-size: 12.5px;
+            opacity: 0.9;
+        }
+        .sem-head .sem-summary strong {
+            color: #6ee7b7;
+            font-weight: 800;
+        }
+
+        /* TABLE — dark header + borders */
+        table.sem-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+        table.sem-table thead th {
+            background: #f1f5f9;
+            color: #475569;
+            text-align: left;
+            padding: 12px 18px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+        }
+        table.sem-table thead th:last-child { border-right: none; }
+        table.sem-table tbody td {
+            padding: 12px 18px;
+            border-bottom: 1px solid #f1f5f9;
+            border-right: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+        table.sem-table tbody td:last-child { border-right: none; }
+        table.sem-table tbody tr:last-child td { border-bottom: none; }
+        table.sem-table tbody tr:nth-child(even) td { background: #f9fbfc; }
+        table.sem-table tbody tr:hover td { background: #eff6ff; }
+
+        table.sem-table tbody td.num {
+            text-align: center;
+            font-weight: 700;
+            font-family: 'Consolas', monospace;
+        }
+        table.sem-table tbody td.total-col {
+            text-align: center;
+            font-weight: 800;
+            color: #16a085;
+            font-size: 14.5px;
+            background: #f0fdf9;
+        }
+        table.sem-table tbody tr:hover td.total-col { background: #d1fae5; }
+        .subject-name { font-weight: 700; color: #0f1724; }
+        .subject-module {
+            font-size: 10.5px; font-weight: 700;
+            background: #dbeafe; color: #1e40af;
+            padding: 2px 8px; border-radius: 5px;
+            margin-left: 6px;
+            text-transform: uppercase;
+        }
+        .no-marks {
+            color: #cbd5e1; font-style: italic;
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: 400;
+        }
+
+        /* EMPTY */
+        .empty-mini {
+            background: white;
+            border-radius: 14px;
+            padding: 60px 20px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13.5px;
+            border: 1px dashed #e2e8f0;
+        }
+        .empty-mini i {
+            font-size: 40px;
+            display: block;
+            margin-bottom: 12px;
+            color: #cbd5e1;
+        }
+
+        @media (max-width: 900px) {
+            .profile-card { flex-direction: column; align-items: flex-start; }
+            .profile-actions { align-items: stretch; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="page-wrap">
+
+    <!-- BREADCRUMB -->
+    <div class="crumb">
+        <a href="{{ url_for('hod_dashboard') }}">Dashboard</a>
+        <i class="bi bi-chevron-right"></i>
+        <a href="{{ url_for('hod_manage_courses') }}">Courses</a>
+        <i class="bi bi-chevron-right"></i>
+        <a href="{{ url_for('hod_course_detail', course_id=course.id) }}">{{ course.name }}</a>
+        <i class="bi bi-chevron-right"></i>
+        <span style="color:#0f1724; font-weight:600;">{{ student.full_name }}</span>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, msg in messages %}
+        <div class="flash {{ category }}">{{ msg }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <!-- ============================================ -->
+    <!-- PROFILE HEADER — BLUE GRADIENT              -->
+    <!-- ============================================ -->
+    {% set names = student.full_name.split() %}
+    {% set initials = names[0][0] ~ (names[-1][0] if names|length > 1 else '') %}
+    <div class="profile-card">
+        <div class="profile-avatar">{{ initials|upper }}</div>
+
+        <div class="profile-info">
+            <h1>{{ student.full_name }}</h1>
+            <div class="meta">
+                <span><i class="bi bi-hash"></i> {{ student.admission_number or '—' }}</span>
+                <span><i class="bi bi-book-half"></i> {{ course.name }}</span>
+                <span><i class="bi bi-telephone"></i> {{ student.phone_number or '—' }}</span>
+                <span><i class="bi bi-mortarboard"></i> {{ (student.exam_type or '—')|upper }}</span>
+            </div>
+            <div>
+                {% if student.blocked %}
+                <span class="status-pill status-blocked">
+                    <span class="dot"></span> Blocked
+                </span>
+                {% else %}
+                <span class="status-pill status-active">
+                    <span class="dot"></span> Active
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <a href="{{ url_for('hod_student_marks', student_id=student.id) }}" class="btn-pill white">
+                <i class="bi bi-pencil-square"></i> Enter / Edit Marks
+            </a>
+            <form method="POST" action="{{ url_for('hod_students_list') }}" style="width:100%;">
+                <input type="hidden" name="student_id" value="{{ student.id }}">
+                <input type="hidden" name="action" value="toggle_block">
+                {% if student.blocked %}
+                <button class="btn-pill ghost" style="width:100%;">
+                    <i class="bi bi-unlock-fill"></i> Activate Student
+                </button>
+                {% else %}
+                <button class="btn-pill danger" style="width:100%;">
+                    <i class="bi bi-lock-fill"></i> Block Student
+                </button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SUMMARY MINI CARDS (colored)                -->
+    <!-- ============================================ -->
+    <div class="stat-grid">
+        <div class="mini-stat blue">
+            <i class="bi bi-list-check icon-bg"></i>
+            <div class="lbl">Subjects Graded</div>
+            <div class="n">{{ grand_count }}</div>
+        </div>
+        <div class="mini-stat green">
+            <i class="bi bi-calculator icon-bg"></i>
+            <div class="lbl">Total Marks</div>
+            <div class="n">{{ grand_total }}</div>
+        </div>
+        <div class="mini-stat purple">
+            <i class="bi bi-graph-up icon-bg"></i>
+            <div class="lbl">Overall Average</div>
+            <div class="n">{{ overall_avg if overall_avg is not none else '—' }}</div>
+        </div>
+        <div class="mini-stat orange">
+            <i class="bi bi-calendar3 icon-bg"></i>
+            <div class="lbl">Semesters</div>
+            <div class="n">{{ semester_reports|length }}</div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- SEMESTER REPORTS                             -->
+    <!-- ============================================ -->
+    <div class="section-title">
+        <i class="bi bi-clipboard-data"></i> Marks by Semester
+    </div>
+
+    {% if semester_reports %}
+        {% for grp in semester_reports %}
+        <div class="sem-block">
+            <div class="sem-head">
+                <h3>
+                    <i class="bi bi-calendar3"></i>
+                    {{ grp.semester.name }}
+                    {% if grp.is_current %}<span class="cur-tag">CURRENT</span>{% endif %}
+                </h3>
+                <div class="sem-summary">
+                    {% if grp.sem_count %}
+                        Total: <strong>{{ grp.sem_total }}</strong> &nbsp;·&nbsp;
+                        Average: <strong>{{ grp.avg }}</strong>
+                    {% else %}
+                        <span style="opacity:0.7;">No marks entered yet</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if grp.rows %}
+            <table class="sem-table">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th style="text-align:center; width: 100px;">CAT 1 / 15</th>
+                        <th style="text-align:center; width: 100px;">CAT 2 / 15</th>
+                        <th style="text-align:center; width: 100px;">Final / 70</th>
+                        <th style="text-align:center; width: 110px;">Total / 100</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in grp.rows %}
+                    <tr>
+                        <td>
+                            <span class="subject-name">{{ row.subject.name }}</span>
+                            {% if row.subject.module %}
+                            <span class="subject-module">{{ row.subject.module }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="num">{{ row.cat1 if row.cat1 is not none else '—' }}</td>
+                        <td class="num">{{ row.cat2 if row.cat2 is not none else '—' }}</td>
+                        <td class="num">{{ row.final if row.final is not none else '—' }}</td>
+                        <td class="total-col">
+                            {% if row.has_marks %}
+                                {{ row.total }}
+                            {% else %}
+                                <span class="no-marks">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="padding:30px; text-align:center; color:#94a3b8; font-size:13px;">
+                No subjects in this semester.
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-mini">
+        <i class="bi bi-calendar3"></i>
+        <div style="font-weight:700; color:#475569; margin-bottom:6px;">No semesters yet</div>
+        <div>No semesters have been created for this course yet.</div>
+    </div>
+    {% endif %}
+
+</div>
+</body>
+</html>
