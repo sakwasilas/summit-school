@@ -1,143 +1,399 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Courses</title>
+    <title>Manage Courses — Summit Technical College</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <style>
-        body {
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            margin: 0;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            color: #0f1724;
+            -webkit-font-smoothing: antialiased;
+            background: #f0f2f5;
         }
-        .container {
-            max-width: 1200px;
-            margin: 50px auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+
+        .page { display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* ============ HEADER ============ */
+        .top-header {
+            background: #ffffff;
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            flex-wrap: wrap;
         }
-        h1 {
-            text-align: center;
-            color: #333;
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .top-header img {
+            width: 56px; height: 56px;
+            object-fit: contain; flex-shrink: 0;
         }
-        table {
+        .top-header .header-text {
+            display: flex; flex-direction: column; line-height: 1.05;
+        }
+        .top-header h1 {
+            font-size: 20px; font-weight: 900;
+            color: #1e3a8a; letter-spacing: -0.5px;
+            text-transform: uppercase; margin: 0;
+        }
+        .top-header .sub {
+            font-size: 10px; font-weight: 600;
+            color: #64748b; letter-spacing: 2.5px;
+            text-transform: uppercase; margin-top: 5px;
+        }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .logout-btn {
+            padding: 9px 16px; background: #f1f5f9; color: #475569;
+            border-radius: 9px; text-decoration: none;
+            font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: all .15s;
+        }
+        .logout-btn:hover { background: #fee2e2; color: #b91c1c; }
+
+        /* ============ MAIN ============ */
+        .main { padding: 28px 32px 60px; max-width: 1450px; margin: 0 auto; width: 100%; }
+
+        .page-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-head h2 {
+            font-size: 22px; font-weight: 800;
+            color: #0f1724; margin: 0 0 4px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .page-head h2 i { color: #1e3a8a; }
+        .page-head p { color: #64748b; font-size: 13px; margin: 0; }
+
+        /* Flash */
+        .flash {
+            padding: 12px 16px; border-radius: 10px;
+            font-size: 13px; font-weight: 500;
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 18px; border: 1px solid transparent;
+        }
+        .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
+        .flash.danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+        .flash.info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+
+        /* Quick links bar */
+        .action-bar {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .action-bar .quick-links { display: flex; gap: 10px; flex-wrap: wrap; }
+        .quick-link {
+            padding: 9px 16px;
+            border-radius: 9px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all .15s;
+        }
+        .quick-link.blue {
+            background: #1e3a8a; color: white;
+        }
+        .quick-link.blue:hover { background: #172f6e; color: white; }
+        .quick-link.purple {
+            background: #f5f3ff; color: #6d28d9;
+            border: 1px solid #ddd6fe;
+        }
+        .quick-link.purple:hover { background: #8b5cf6; color: white; border-color: #8b5cf6; }
+        .quick-link.orange {
+            background: #fff7ed; color: #c2410c;
+            border: 1px solid #fed7aa;
+        }
+        .quick-link.orange:hover { background: #f59e0b; color: white; border-color: #f59e0b; }
+
+        /* ============ TABLE ============ */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,.06);
+        }
+        table.courses-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            font-size: 13.5px;
         }
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border: 1px solid #ccc;
-        }
-        th {
-            background-color: #3498db;
+        table.courses-table thead th {
+            background: #1e293b;
             color: white;
+            text-align: left;
+            padding: 14px 16px;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border: 1px solid #1e293b;
+            white-space: nowrap;
         }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
+        table.courses-table tbody td {
+            padding: 14px 16px;
+            border: 1px solid #e2e8f0;
+            vertical-align: middle;
         }
+        table.courses-table tbody tr:nth-child(even) td { background: #f9fbfc; }
+        table.courses-table tbody tr:hover td { background: #eff6ff; }
+
+        .course-name { font-weight: 700; color: #0f1724; font-size: 14px; }
+        .level-tag {
+            font-size: 11px; font-weight: 700;
+            background: #f1f5f9; color: #475569;
+            padding: 3px 9px; border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        /* Stats pills */
+        .stat-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-start;
+        }
+        .stat-pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11.5px; font-weight: 700;
+            padding: 3px 10px; border-radius: 100px;
+            white-space: nowrap;
+        }
+        .stat-pill.students { background: #dbeafe; color: #1e40af; }
+        .stat-pill.subjects { background: #fef3c7; color: #92400e; }
+        .stat-pill.semesters { background: #e0e7ff; color: #3730a3; }
+
+        /* Action buttons */
         .actions {
             display: flex;
-            gap: 10px;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
-        .actions button {
-            padding: 5px 10px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            cursor: pointer;
+        .act-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 7px 11px; border-radius: 7px;
+            font-size: 11.5px; font-weight: 600;
+            text-decoration: none; border: none;
+            cursor: pointer; transition: all .15s;
+            white-space: nowrap;
         }
-        .actions button:hover {
-            background-color: #2980b9;
-        }
-        .card {
-            background-color: #f5f5f5;
-            padding: 15px;
-            margin-top: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .add-course-btn {
+        .act-btn:hover { transform: translateY(-1px); }
+
+        .act-subjects { background: #fef3c7; color: #92400e; }
+        .act-subjects:hover { background: #f59e0b; color: white; }
+
+        .act-semesters { background: #e0e7ff; color: #3730a3; }
+        .act-semesters:hover { background: #6366f1; color: white; }
+
+        .act-students { background: #dbeafe; color: #1e40af; }
+        .act-students:hover { background: #3b82f6; color: white; }
+
+        .act-edit { background: #d1fae5; color: #065f46; }
+        .act-edit:hover { background: #10b981; color: white; }
+
+        .act-delete { background: #fee2e2; color: #991b1b; }
+        .act-delete:hover { background: #ef4444; color: white; }
+
+        /* Empty */
+        .empty {
+            padding: 60px 20px;
             text-align: center;
+            color: #94a3b8;
+            font-size: 13.5px;
         }
-        .subject-actions {
-            margin-top: 10px;
-        }
-        .subject-actions button {
-            background-color: #e74c3c;
+        .empty i { font-size: 44px; display: block; margin-bottom: 12px; color: #cbd5e1; }
+        .empty h5 { color: #334155; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+
+        @media (max-width: 900px) {
+            .top-header { padding: 12px 20px; }
+            .top-header h1 { font-size: 15px; }
+            .main { padding: 20px; }
         }
     </style>
 </head>
 <body>
-<h1>Summit Technical college</h1>
-    <div class="container">
-        <a href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
-        <hr>
-        <h1>Manage Courses</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>Course ID</th>
-                    <th>Course Name</th>
-                    <th>Level</th>
-                    <th>Subjects</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for course in courses %}
-                    <tr>
-                        <td>{{ course.id }}</td>
-                        <td>{{ course.name }}</td>
-                        <td>{{ course.level }}</td>
-                        <td>
-                            {% if course.subjects %}
-                                <ul>
-                                    {% for subject in course.subjects %}
-                                        <li>{{ subject.name }}
-                                            <!-- Edit Subject Button -->
-                                            <a href="{{ url_for('edit_subject', subject_id=subject.id) }}">
-                                                <button>Edit</button>
-                                            </a>
-                                            <!-- Delete Subject Button -->
-                                            <form method="POST" action="{{ url_for('delete_subject', subject_id=subject.id) }}" style="display:inline;">
-                                                <button type="submit" onclick="return confirm('Are you sure you want to delete this subject?');">Delete</button>
-                                            </form>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            {% else %}
-                                No subjects available.
-                            {% endif %}
-                        </td>
-                        <td class="actions">
-                            <!-- Edit Course Button -->
-                            <a href="{{ url_for('edit_course', course_id=course.id) }}">
-                                <button>Edit Course</button>
-                            </a>
-                            <!-- Delete Course Button -->
-                            <form method="POST" action="{{ url_for('delete_course', course_id=course.id) }}" style="display:inline;">
-                                <button type="submit" onclick="return confirm('Are you sure you want to delete this course?');">Delete Course</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="5" style="text-align:center;">No courses available.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
 
-        <div class="add-course-btn">
-            <a href="{{ url_for('add_course') }}">
-                <button>Add New Course</button>
+<div class="page">
+
+    <!-- HEADER -->
+    <header class="top-header">
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}"
+                 alt="Summit Technical College">
+            <div class="header-text">
+                <h1>SUMMIT TECHNICAL COLLEGE</h1>
+                <div class="sub">Manage Courses</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="bi bi-box-arrow-right"></i> Logout
             </a>
         </div>
-    </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <div class="page-head">
+            <div>
+                <h2><i class="bi bi-journal-bookmark-fill"></i> Manage Courses</h2>
+                <p>Add courses, manage their subjects, semesters, and students.</p>
+            </div>
+            <a href="javascript:history.back()" class="logout-btn">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, msg in messages %}
+            <div class="flash {{ category if category in ['success','danger','warning','info'] else 'info' }}">
+                <i class="bi bi-info-circle-fill"></i>
+                {{ msg }}
+            </div>
+            {% endfor %}
+        {% endwith %}
+
+        <!-- QUICK LINKS -->
+        <div class="action-bar">
+            <div class="quick-links">
+                <a href="{{ url_for('add_course') }}" class="quick-link blue">
+                    <i class="bi bi-plus-circle-fill"></i> Add New Course
+                </a>
+                <a href="{{ url_for('manage_semesters') }}" class="quick-link purple">
+                    <i class="bi bi-calendar-plus"></i> Manage Semesters
+                </a>
+                <a href="{{ url_for('add_subject') }}" class="quick-link orange">
+                    <i class="bi bi-bookmark-plus"></i> Add Subject
+                </a>
+            </div>
+        </div>
+
+        <!-- COURSES TABLE -->
+        <div class="table-card">
+            {% if courses %}
+            <table class="courses-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Course Name</th>
+                        <th style="width: 110px;">Level</th>
+                        <th style="width: 200px;">Stats</th>
+                        <th style="width: 420px; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in courses %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+
+                        <td>
+                            <div class="course-name">{{ c.name }}</div>
+                        </td>
+
+                        <td>
+                            <span class="level-tag">{{ c.level }}</span>
+                        </td>
+
+                        <td>
+                            <div class="stat-stack">
+                                {% if c.students_count is defined %}
+                                <span class="stat-pill students">
+                                    <i class="bi bi-people-fill"></i> {{ c.students_count }} Students
+                                </span>
+                                {% endif %}
+                                {% if c.subjects_count is defined %}
+                                <span class="stat-pill subjects">
+                                    <i class="bi bi-bookmark-fill"></i> {{ c.subjects_count }} Subjects
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <td>
+                            <div class="actions">
+
+                                <a href="{{ url_for('add_subject') }}?course_id={{ c.id }}"
+                                   class="act-btn act-subjects"
+                                   title="Manage subjects">
+                                    <i class="bi bi-bookmark-fill"></i> Subjects
+                                </a>
+
+                                <a href="{{ url_for('manage_semesters') }}?course_id={{ c.id }}"
+                                   class="act-btn act-semesters"
+                                   title="Manage semesters">
+                                    <i class="bi bi-calendar3"></i> Semesters
+                                </a>
+
+                                <a href="{{ url_for('hod_course_detail', course_id=c.id, tab='students') }}"
+                                   class="act-btn act-students"
+                                   title="View students">
+                                    <i class="bi bi-people-fill"></i> Students
+                                </a>
+
+                                <a href="{{ url_for('edit_course', course_id=c.id) }}"
+                                   class="act-btn act-edit"
+                                   title="Edit course">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+
+                                <form method="POST"
+                                      action="{{ url_for('delete_course', course_id=c.id) }}"
+                                      style="display:inline;margin:0;"
+                                      onsubmit="return confirm('Delete course \'{{ c.name }}\'?');">
+                                    <button type="submit" class="act-btn act-delete" title="Delete course">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">
+                <i class="bi bi-journal-bookmark"></i>
+                <h5>No courses yet</h5>
+                <p>Start by adding your first course.</p>
+                <a href="{{ url_for('add_course') }}" class="quick-link blue" style="margin-top:12px;display:inline-flex;">
+                    <i class="bi bi-plus-circle-fill"></i> Add Course
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+    </main>
+</div>
 
 </body>
 </html>
