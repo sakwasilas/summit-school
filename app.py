@@ -37,6 +37,7 @@ from models import (
     Message,
     ActivityLog,
     KnecMark,
+    Module,
 )
 from utils import parse_docx_questions
 
@@ -4300,6 +4301,94 @@ def student_dashboard():
             results_by_quiz=results_by_quiz,
             messages_from_admin=messages,
             current_year=datetime.now().year,
+        )
+    finally:
+        db.close()
+
+##manage students 
+@app.route("/admin/assign-modules", methods=["GET", "POST"])
+def admin_assign_modules():
+    """Bulk-assign students to modules. Admin only."""
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    db = SessionLocal()
+    try:
+        courses = db.query(Course).order_by(Course.name.asc()).all()
+
+        if request.method == "POST":
+            course_id = request.form.get("course_id", type=int)
+            if not course_id:
+                flash("Pick a course first.", "danger")
+                return redirect(url_for("admin_assign_modules"))
+
+            course = db.query(Course).filter_by(id=course_id).first()
+            if not course:
+                flash("Course not found.", "danger")
+                return redirect(url_for("admin_assign_modules"))
+
+            students = (
+                db.query(StudentProfile)
+                .filter_by(course_id=course_id)
+                .order_by(StudentProfile.full_name.asc())
+                .all()
+            )
+
+            updated = 0
+            for s in students:
+                field = f"module_id_{s.id}"
+                raw = request.form.get(field, "").strip()
+
+                if raw == "":
+                    # empty select means "clear the module"
+                    if s.module_id is not None:
+                        s.module_id = None
+                        s.module = None
+                        updated += 1
+                    continue
+
+                module_id = int(raw)
+                mod = db.query(Module).filter_by(id=module_id, course_id=course_id).first()
+                if not mod:
+                    continue
+
+                if s.module_id != mod.id:
+                    s.module_id = mod.id
+                    s.module = mod.name
+                    updated += 1
+
+            db.commit()
+            flash(f"✅ Updated {updated} student(s).", "success")
+            return redirect(url_for("admin_assign_modules", course_id=course_id))
+
+        # GET
+        course_id = request.args.get("course_id", type=int)
+        course = None
+        students = []
+        modules = []
+
+        if course_id:
+            course = db.query(Course).filter_by(id=course_id).first()
+            if course:
+                students = (
+                    db.query(StudentProfile)
+                    .filter_by(course_id=course_id)
+                    .order_by(StudentProfile.full_name.asc())
+                    .all()
+                )
+                modules = (
+                    db.query(Module)
+                    .filter_by(course_id=course_id)
+                    .order_by(Module.order.asc(), Module.name.asc())
+                    .all()
+                )
+
+        return render_template(
+            "admin/assign_modules.html",
+            courses=courses,
+            course=course,
+            students=students,
+            modules=modules,
         )
     finally:
         db.close()
