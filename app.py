@@ -52,11 +52,6 @@ app.secret_key = "132silas456sakwa789ayanga"
 
 # ============================================================
 # SAFE EAGER-LOADING QUERY HELPERS
-# ------------------------------------------------------------
-# These prevent DetachedInstanceError by forcing SQLAlchemy to
-# load related attributes (course, semester, student, quiz, ...)
-# in the same query, so templates can safely read them even if
-# the session is closed or the object has been refreshed.
 # ============================================================
 def student_query(db):
     """Return a StudentProfile query with course and current_semester eagerly loaded."""
@@ -67,10 +62,11 @@ def student_query(db):
 
 
 def subject_query(db):
-    """Return a Subject query with course and semester eagerly loaded."""
+    """Return a Subject query with course, semester, and module eagerly loaded."""
     return db.query(Subject).options(
         joinedload(Subject.course),
         joinedload(Subject.semester),
+        joinedload(Subject.module_obj),
     )
 
 
@@ -112,7 +108,7 @@ def inject_hod_context():
 
 @app.context_processor
 def inject_semester_helpers():
-    """Expose `semester_time_status()` to templates for labeling semesters as past/current/next."""
+    """Expose `semester_time_status()` to templates for labeling semesters."""
     from datetime import datetime as _dt
     import re
 
@@ -217,6 +213,33 @@ def _delete_student_tree(db, student):
     db.delete(student)
     if user:
         db.delete(user)
+
+
+def _bulk_marks_context(db, department_id, course_id, semester_id):
+    """Shared validation for the HOD bulk marks import routes."""
+    course = db.query(Course).filter_by(id=course_id, department_id=department_id).first()
+    if not course:
+        raise ValueError("Course not found in your department.")
+
+    semester = db.query(Semester).filter_by(id=semester_id, course_id=course_id).first()
+    if not semester:
+        raise ValueError("Semester not found for that course.")
+
+    students = (
+        student_query(db)
+        .filter_by(course_id=course_id)
+        .order_by(StudentProfile.full_name.asc())
+        .all()
+    )
+
+    subjects = (
+        subject_query(db)
+        .filter_by(course_id=course_id, semester_id=semester_id)
+        .order_by(Subject.name.asc())
+        .all()
+    )
+
+    return {"course": course, "semester": semester, "students": students, "subjects": subjects}
 
 
 # ============================================================
@@ -640,9 +663,88 @@ def delete_course(course_id):
     return redirect(url_for("manage_courses"))
 
 
+@app.route("/admin/course/<int:course_id>/modules", methods=["GET", "POST"])
+def admin_course_modules(course_id):
+    """Manage the modules of a course. Admin only."""
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    db = SessionLocal()
+    try:
+        course = db.query(Course).filter_by(id=course_id).first()
+        if not course:
+            flash("Course not found.", "danger")
+            return redirect(url_for("manage_courses"))
+
+        if request.method == "POST":
+            action = request.form.get("action")
+
+            if action == "add":
+                name = request.form.get("name", "").strip()
+                if not name:
+                    flash("Module name is required.", "danger")
+                elif db.query(Module).filter_by(course_id=course_id, name=name).first():
+                    flash(f"'{name}' already exists for this course.", "warning")
+                else:
+                    last = (
+                        db.query(Module)
+                        .filter_by(course_id=course_id)
+                        .order_by(Module.order.desc())
+                        .first()
+                    )
+                    next_order = (last.order + 1) if last else 1
+                    db.add(Module(course_id=course_id, name=name, order=next_order))
+                    db.commit()
+                    flash(f"✅ Module '{name}' added.", "success")
+
+            elif action == "rename":
+                module_id = request.form.get("module_id", type=int)
+                new_name = request.form.get("new_name", "").strip()
+                mod = db.query(Module).filter_by(id=module_id, course_id=course_id).first()
+                if mod and new_name:
+                    mod.name = new_name
+                    db.commit()
+                    flash("✅ Module renamed.", "success")
+
+            elif action == "delete":
+                module_id = request.form.get("module_id", type=int)
+                mod = db.query(Module).filter_by(id=module_id, course_id=course_id).first()
+                if mod:
+                    db.query(Subject).filter_by(module_id=module_id).update({"module_id": None})
+                    db.query(StudentProfile).filter_by(module_id=module_id).update({"module_id": None})
+                    db.delete(mod)
+                    db.commit()
+                    flash("✅ Module deleted.", "success")
+
+            return redirect(url_for("admin_course_modules", course_id=course_id))
+
+        modules = (
+            db.query(Module)
+            .filter_by(course_id=course_id)
+            .order_by(Module.order.asc(), Module.name.asc())
+            .all()
+        )
+
+        mod_stats = []
+        for m in modules:
+            mod_stats.append({
+                "module": m,
+                "subjects": db.query(Subject).filter_by(module_id=m.id).count(),
+                "students": db.query(StudentProfile).filter_by(module_id=m.id).count(),
+            })
+
+        return render_template(
+            "admin/course_modules.html",
+            course=course,
+            mod_stats=mod_stats,
+        )
+    finally:
+        db.close()
+
+
 @app.route("/add_subject", methods=["GET", "POST"])
 def add_subject():
-    """Create a new subject in a course/semester. Shared by admin and HOD."""
+    """Create a new subject in a course/module/semester. Shared by admin and HOD."""
     blocked = require_admin_or_hod()
     if blocked:
         return blocked
@@ -661,6 +763,7 @@ def add_subject():
             course_id = int(request.form["course_id"])
             semester_id = request.form.get("semester_id") or None
             module = request.form.get("module", "").strip() or None
+            module_id = request.form.get("module_id", type=int)
 
             if semester_id:
                 semester_id = int(semester_id)
@@ -684,11 +787,18 @@ def add_subject():
                     flash("Selected semester does not belong to that course.", "danger")
                     return redirect(url_for("add_subject"))
 
+            module_obj = None
+            if module_id:
+                module_obj = db.query(Module).filter_by(id=module_id, course_id=course_id).first()
+                if module_obj:
+                    module = module_obj.name
+
             db.add(Subject(
                 name=subject_name,
                 course_id=course_id,
                 semester_id=semester_id,
                 module=module,
+                module_id=module_id if module_obj else None,
             ))
             db.commit()
             flash("Subject added successfully!", "success")
@@ -716,7 +826,14 @@ def add_subject():
                 .all()
             )
 
-        return render_template("admin/add_subject.html", courses=courses, semesters=semesters)
+        modules = db.query(Module).order_by(Module.course_id.asc(), Module.order.asc()).all()
+
+        return render_template(
+            "admin/add_subject.html",
+            courses=courses,
+            semesters=semesters,
+            modules=modules,
+        )
     finally:
         db.close()
 
@@ -755,6 +872,16 @@ def edit_subject(subject_id):
                     flash("Selected semester does not belong to that course.", "danger")
                     return redirect(url_for("edit_subject", subject_id=subject_id))
             subject.semester_id = semester_id
+
+            module_id = request.form.get("module_id", type=int)
+            if module_id:
+                module_obj = db.query(Module).filter_by(id=module_id, course_id=subject.course_id).first()
+                if module_obj:
+                    subject.module_id = module_obj.id
+                    subject.module = module_obj.name
+            else:
+                subject.module_id = None
+
             db.commit()
             flash("Subject updated.", "success")
             return redirect(url_for("manage_courses"))
@@ -765,7 +892,18 @@ def edit_subject(subject_id):
             .order_by(Semester.created_at.desc())
             .all()
         )
-        return render_template("admin/edit_subject.html", subject=subject, semesters=semesters)
+        modules = (
+            db.query(Module)
+            .filter_by(course_id=subject.course_id)
+            .order_by(Module.order.asc(), Module.name.asc())
+            .all()
+        )
+        return render_template(
+            "admin/edit_subject.html",
+            subject=subject,
+            semesters=semesters,
+            modules=modules,
+        )
     finally:
         db.close()
 
@@ -779,7 +917,7 @@ def delete_subject(subject_id):
 
     db = SessionLocal()
     try:
-        subject = db.query(Subject).filter(Subject.id == subject_id).first()
+        subject = db.query(Subject).filter_by(id=subject_id).first()
         if not subject:
             return "Subject not found", 404
 
@@ -1115,6 +1253,92 @@ def manage_students():
     return result
 
 
+@app.route("/admin/assign-modules", methods=["GET", "POST"])
+def admin_assign_modules():
+    """Bulk-assign students to modules. Admin only."""
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    db = SessionLocal()
+    try:
+        courses = db.query(Course).order_by(Course.name.asc()).all()
+
+        if request.method == "POST":
+            course_id = request.form.get("course_id", type=int)
+            if not course_id:
+                flash("Pick a course first.", "danger")
+                return redirect(url_for("admin_assign_modules"))
+
+            course = db.query(Course).filter_by(id=course_id).first()
+            if not course:
+                flash("Course not found.", "danger")
+                return redirect(url_for("admin_assign_modules"))
+
+            students = (
+                db.query(StudentProfile)
+                .filter_by(course_id=course_id)
+                .order_by(StudentProfile.full_name.asc())
+                .all()
+            )
+
+            updated = 0
+            for s in students:
+                field = f"module_id_{s.id}"
+                raw = request.form.get(field, "").strip()
+
+                if raw == "":
+                    if s.module_id is not None:
+                        s.module_id = None
+                        s.module = None
+                        updated += 1
+                    continue
+
+                module_id = int(raw)
+                mod = db.query(Module).filter_by(id=module_id, course_id=course_id).first()
+                if not mod:
+                    continue
+
+                if s.module_id != mod.id:
+                    s.module_id = mod.id
+                    s.module = mod.name
+                    updated += 1
+
+            db.commit()
+            flash(f"✅ Updated {updated} student(s).", "success")
+            return redirect(url_for("admin_assign_modules", course_id=course_id))
+
+        course_id = request.args.get("course_id", type=int)
+        course = None
+        students = []
+        modules = []
+
+        if course_id:
+            course = db.query(Course).filter_by(id=course_id).first()
+            if course:
+                students = (
+                    db.query(StudentProfile)
+                    .filter_by(course_id=course_id)
+                    .order_by(StudentProfile.full_name.asc())
+                    .all()
+                )
+                modules = (
+                    db.query(Module)
+                    .filter_by(course_id=course_id)
+                    .order_by(Module.order.asc(), Module.name.asc())
+                    .all()
+                )
+
+        return render_template(
+            "admin/assign_modules.html",
+            courses=courses,
+            course=course,
+            students=students,
+            modules=modules,
+        )
+    finally:
+        db.close()
+
+
 @app.route("/show_credentials")
 def show_credentials():
     """Display all user credentials for admin verification. Admin only."""
@@ -1364,7 +1588,7 @@ def admin_marks_picker():
 
 @app.route("/admin/marks/department/<int:dept_id>", methods=["GET"])
 def admin_marks_department(dept_id):
-    """Step 2 of admin marks entry: pick course/semester/subject inside a department."""
+    """Step 2 of admin marks entry: pick course/semester/module/subject inside a department."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1384,11 +1608,13 @@ def admin_marks_department(dept_id):
 
         course_id = request.args.get("course_id", type=int)
         semester_id = request.args.get("semester_id", type=int)
+        module_id = request.args.get("module_id", type=int)
 
         course = None
         semester = None
         subjects = []
         semesters = []
+        available_modules = []
 
         if course_id:
             course = db.query(Course).filter_by(id=course_id, department_id=dept_id).first()
@@ -1405,12 +1631,26 @@ def admin_marks_department(dept_id):
                 semester = next((s for s in semesters if s.is_current), semesters[0])
 
             if semester:
-                subjects = (
+                all_sem_subjects = (
                     subject_query(db)
                     .filter_by(course_id=course.id, semester_id=semester.id)
                     .order_by(Subject.name.asc())
                     .all()
                 )
+
+                used_module_ids = {s.module_id for s in all_sem_subjects if s.module_id}
+                if used_module_ids:
+                    available_modules = (
+                        db.query(Module)
+                        .filter(Module.id.in_(used_module_ids))
+                        .order_by(Module.order.asc(), Module.name.asc())
+                        .all()
+                    )
+
+                if module_id:
+                    subjects = [s for s in all_sem_subjects if s.module_id == module_id]
+                else:
+                    subjects = all_sem_subjects
 
         return render_template(
             "admin/marks_step2_course.html",
@@ -1420,6 +1660,8 @@ def admin_marks_department(dept_id):
             semesters=semesters,
             semester=semester,
             subjects=subjects,
+            available_modules=available_modules,
+            module_id=module_id,
         )
     finally:
         db.close()
@@ -1454,12 +1696,15 @@ def admin_enter_marks():
         course = subject.course
         department = course.department if course else None
 
-        students = (
-            student_query(db)
-            .filter_by(course_id=subject.course_id)
-            .order_by(StudentProfile.full_name.asc())
-            .all()
-        )
+        students_q = student_query(db).filter_by(course_id=subject.course_id)
+        if getattr(subject, "module_id", None):
+            students_q = students_q.filter(
+                or_(
+                    StudentProfile.module_id == subject.module_id,
+                    StudentProfile.module_id.is_(None),
+                )
+            )
+        students = students_q.order_by(StudentProfile.full_name.asc()).all()
 
         if request.method == "POST":
             def to_int_or_none(v):
@@ -1872,8 +2117,6 @@ def admin_report_student(student_id, semester_id):
         )
     finally:
         db.close()
-
-
 # ============================================================
 # SECTION 3: HOD ROUTES
 # ============================================================
@@ -2023,6 +2266,7 @@ def hod_add_subject():
     course_id = request.form.get("course_id", type=int)
     semester_id = request.form.get("semester_id", type=int)
     module = request.form.get("module", "").strip() or None
+    module_id = request.form.get("module_id", type=int)
 
     if not subject_name or not course_id:
         flash("Subject name and course are required.", "danger")
@@ -2051,8 +2295,19 @@ def hod_add_subject():
             flash("Subject already exists for this course/semester.", "warning")
             return redirect(url_for("hod_manage_subjects"))
 
-        db.add(Subject(name=subject_name, course_id=course_id,
-                       semester_id=semester_id, module=module))
+        module_obj = None
+        if module_id:
+            module_obj = db.query(Module).filter_by(id=module_id, course_id=course_id).first()
+            if module_obj:
+                module = module_obj.name
+
+        db.add(Subject(
+            name=subject_name,
+            course_id=course_id,
+            semester_id=semester_id,
+            module=module,
+            module_id=module_id if module_obj else None,
+        ))
         db.commit()
         flash(f"✅ Subject '{subject_name}' added.", "success")
     except Exception as e:
@@ -2087,6 +2342,7 @@ def hod_edit_subject(subject_id):
             name = request.form.get("subject_name", "").strip()
             module = request.form.get("module", "").strip() or None
             semester_id = request.form.get("semester_id", type=int)
+            module_id = request.form.get("module_id", type=int)
 
             if not name:
                 flash("Subject name is required.", "danger")
@@ -2101,6 +2357,15 @@ def hod_edit_subject(subject_id):
             subject.name = name
             subject.module = module
             subject.semester_id = semester_id
+
+            if module_id:
+                module_obj = db.query(Module).filter_by(id=module_id, course_id=subject.course_id).first()
+                if module_obj:
+                    subject.module_id = module_obj.id
+                    subject.module = module_obj.name
+            else:
+                subject.module_id = None
+
             db.commit()
             flash("✅ Subject updated.", "success")
             return redirect(url_for("hod_manage_subjects"))
@@ -2111,332 +2376,22 @@ def hod_edit_subject(subject_id):
             .order_by(Semester.name.asc())
             .all()
         )
+        modules = (
+            db.query(Module)
+            .filter_by(course_id=subject.course_id)
+            .order_by(Module.order.asc(), Module.name.asc())
+            .all()
+        )
         return render_template(
             "hod/edit_subject.html",
             subject=subject,
             semesters=semesters,
+            modules=modules,
             department=db.query(Department).filter_by(id=department_id).first(),
             hod_name=session.get("username"),
         )
     finally:
         db.close()
-
-@app.route("/hod/marks/upload/template")
-def hod_marks_template():
-    """Download an Excel template for bulk mark entry, pre-filled with students."""
-    if session.get("role") != "hod":
-        return redirect(url_for("login"))
-
-    department_id = session["department_id"]
-    subject_id = request.args.get("subject_id", type=int)
-    semester_id = request.args.get("semester_id", type=int)
-
-    if not subject_id or not semester_id:
-        flash("Pick a subject and semester first.", "warning")
-        return redirect(url_for("hod_marks_picker"))
-
-    db = SessionLocal()
-    try:
-        subject = subject_query(db).filter_by(id=subject_id).first()
-        semester = db.query(Semester).filter_by(id=semester_id).first()
-
-        if not subject or not semester:
-            flash("Subject or semester not found.", "danger")
-            return redirect(url_for("hod_marks_picker"))
-
-        course = subject.course
-        if not course or course.department_id != department_id:
-            flash("That subject is not in your department.", "danger")
-            return redirect(url_for("hod_marks_picker"))
-
-        students = (
-            student_query(db)
-            .filter_by(course_id=subject.course_id)
-            .order_by(StudentProfile.full_name.asc())
-            .all()
-        )
-
-        # Pre-fill with existing marks where present
-        existing = {
-            m.student_id: m
-            for m in db.query(KnecMark).filter_by(
-                subject_id=subject_id, semester_id=semester_id
-            ).all()
-        }
-
-        rows = []
-        for s in students:
-            m = existing.get(s.id)
-            rows.append({
-                "admission_number": s.admission_number,
-                "full_name": s.full_name,
-                "cat1": m.cat1 if m and m.cat1 is not None else "",
-                "cat2": m.cat2 if m and m.cat2 is not None else "",
-                "final": m.final if m and m.final is not None else "",
-            })
-
-        df = pd.DataFrame(rows) if rows else pd.DataFrame(
-            columns=["admission_number", "full_name", "cat1", "cat2", "final"]
-        )
-
-        # Info sheet
-        info = pd.DataFrame([{
-            "Subject": subject.name,
-            "Course": course.name,
-            "Semester": semester.name,
-            "Instructions": (
-                "Fill CAT1 (0-15), CAT2 (0-15), Final (0-70). "
-                "Leave blank to skip a student. Do not change admission_number column."
-            ),
-        }])
-
-        buf = io.BytesIO()
-        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
-            info.to_excel(writer, index=False, sheet_name="Info")
-            df.to_excel(writer, index=False, sheet_name="Marks")
-
-            ws = writer.sheets["Marks"]
-            widths = {"admission_number": 22, "full_name": 32, "cat1": 10, "cat2": 10, "final": 10}
-            for idx, col in enumerate(df.columns, start=1):
-                ws.column_dimensions[
-                    ws.cell(row=1, column=idx).column_letter
-                ].width = widths.get(col, 15)
-
-        buf.seek(0)
-
-        safe_subj = subject.name.replace(" ", "_")[:30]
-        safe_sem = semester.name.replace(" ", "_")
-
-        return send_file(
-            buf,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            as_attachment=True,
-            download_name=f"MarksTemplate_{safe_subj}_{safe_sem}.xlsx",
-        )
-    finally:
-        db.close()
-
-
-@app.route("/hod/marks/upload", methods=["GET", "POST"])
-def hod_marks_upload():
-    """Upload a filled Excel file of marks, validate, preview."""
-    if session.get("role") != "hod":
-        return redirect(url_for("login"))
-
-    department_id = session["department_id"]
-    db = SessionLocal()
-    try:
-        subject_id = request.values.get("subject_id", type=int)
-        semester_id = request.values.get("semester_id", type=int)
-
-        if not subject_id or not semester_id:
-            flash("Pick a subject and semester first.", "warning")
-            return redirect(url_for("hod_marks_picker"))
-
-        subject = subject_query(db).filter_by(id=subject_id).first()
-        semester = db.query(Semester).filter_by(id=semester_id).first()
-
-        if not subject or not semester:
-            flash("Subject or semester not found.", "danger")
-            return redirect(url_for("hod_marks_picker"))
-
-        course = subject.course
-        if not course or course.department_id != department_id:
-            flash("That subject is not in your department.", "danger")
-            return redirect(url_for("hod_marks_picker"))
-
-        if request.method == "POST":
-            file = request.files.get("marks_file")
-            if not file or not file.filename.lower().endswith((".xlsx", ".xls")):
-                flash("❌ Upload a valid .xlsx or .xls file.", "danger")
-                return redirect(url_for("hod_marks_upload",
-                                        subject_id=subject_id,
-                                        semester_id=semester_id))
-
-            try:
-                df = pd.read_excel(file, sheet_name="Marks", dtype=str).fillna("")
-            except Exception as e:
-                flash(f"❌ Could not read the file. Make sure it has a 'Marks' sheet: {e}", "danger")
-                return redirect(url_for("hod_marks_upload",
-                                        subject_id=subject_id,
-                                        semester_id=semester_id))
-
-            df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
-
-            required = {"admission_number", "cat1", "cat2", "final"}
-            missing = required - set(df.columns)
-            if missing:
-                flash(f"❌ Missing columns: {', '.join(sorted(missing))}", "danger")
-                return redirect(url_for("hod_marks_upload",
-                                        subject_id=subject_id,
-                                        semester_id=semester_id))
-
-            # All students in this course
-            students = (
-                student_query(db)
-                .filter_by(course_id=subject.course_id)
-                .all()
-            )
-            student_by_adm = {s.admission_number: s for s in students if s.admission_number}
-
-            def parse_mark(v, low, high):
-                v = str(v).strip()
-                if v == "" or v.lower() in ("none", "nan"):
-                    return None, None
-                try:
-                    n = int(float(v))
-                except ValueError:
-                    return None, f"'{v}' is not a number"
-                if not (low <= n <= high):
-                    return None, f"must be between {low} and {high}"
-                return n, None
-
-            valid_rows = []
-            error_rows = []
-            seen_adm = set()
-
-            for idx, row in df.iterrows():
-                row_no = idx + 2
-                adm = str(row.get("admission_number", "")).strip()
-                full_name = str(row.get("full_name", "")).strip()
-
-                errors = []
-
-                if not adm:
-                    errors.append("admission_number is empty")
-                    student = None
-                elif adm not in student_by_adm:
-                    errors.append(f"student '{adm}' not found in this course")
-                    student = None
-                else:
-                    student = student_by_adm[adm]
-                    if adm in seen_adm:
-                        errors.append("duplicated in file")
-                    seen_adm.add(adm)
-
-                c1, err1 = parse_mark(row.get("cat1", ""), 0, 15)
-                if err1: errors.append(f"CAT1 {err1}")
-                c2, err2 = parse_mark(row.get("cat2", ""), 0, 15)
-                if err2: errors.append(f"CAT2 {err2}")
-                fn, err3 = parse_mark(row.get("final", ""), 0, 70)
-                if err3: errors.append(f"Final {err3}")
-
-                if errors:
-                    error_rows.append({
-                        "row": row_no,
-                        "admission_number": adm,
-                        "full_name": full_name,
-                        "errors": errors,
-                    })
-                else:
-                    valid_rows.append({
-                        "row": row_no,
-                        "student_id": student.id if student else None,
-                        "admission_number": adm,
-                        "full_name": student.full_name if student else full_name,
-                        "cat1": c1,
-                        "cat2": c2,
-                        "final": fn,
-                    })
-
-            session["hod_marks_upload"] = {
-                "subject_id": subject_id,
-                "semester_id": semester_id,
-                "valid_rows": valid_rows,
-            }
-
-            return render_template(
-                "hod/upload_marks_preview.html",
-                department=db.query(Department).filter_by(id=department_id).first(),
-                hod_name=session.get("username"),
-                subject=subject,
-                semester=semester,
-                course=course,
-                valid_rows=valid_rows,
-                error_rows=error_rows,
-                total_rows=len(df),
-            )
-
-        # GET: show the upload page with download-template link
-        return render_template(
-            "hod/upload_marks.html",
-            department=db.query(Department).filter_by(id=department_id).first(),
-            hod_name=session.get("username"),
-            subject=subject,
-            semester=semester,
-            course=course,
-        )
-    finally:
-        db.close()
-
-
-@app.route("/hod/marks/upload/confirm", methods=["POST"])
-def hod_marks_upload_confirm():
-    """Save the validated rows from the session into KnecMark."""
-    if session.get("role") != "hod":
-        return redirect(url_for("login"))
-
-    payload = session.pop("hod_marks_upload", None)
-    if not payload:
-        flash("No validated rows to save. Please upload again.", "warning")
-        return redirect(url_for("hod_marks_picker"))
-
-    subject_id = payload["subject_id"]
-    semester_id = payload["semester_id"]
-    rows = payload["valid_rows"]
-
-    db = SessionLocal()
-    saved = 0
-    deleted = 0
-    try:
-        for r in rows:
-            existing = (
-                db.query(KnecMark)
-                .filter_by(
-                    student_id=r["student_id"],
-                    subject_id=subject_id,
-                    semester_id=semester_id,
-                )
-                .first()
-            )
-
-            # If all marks are empty, delete the row (mark as "not yet graded")
-            if r["cat1"] is None and r["cat2"] is None and r["final"] is None:
-                if existing:
-                    db.delete(existing)
-                    deleted += 1
-                continue
-
-            if existing:
-                existing.cat1 = r["cat1"]
-                existing.cat2 = r["cat2"]
-                existing.final = r["final"]
-                existing.entered_at = datetime.utcnow()
-            else:
-                db.add(KnecMark(
-                    student_id=r["student_id"],
-                    subject_id=subject_id,
-                    semester_id=semester_id,
-                    cat1=r["cat1"],
-                    cat2=r["cat2"],
-                    final=r["final"],
-                ))
-            saved += 1
-
-        db.commit()
-        msg = f"✅ Saved marks for {saved} student(s)."
-        if deleted:
-            msg += f" Cleared {deleted} empty row(s)."
-        flash(msg, "success")
-    except Exception as e:
-        db.rollback()
-        flash(f"❌ Import failed: {e}", "danger")
-    finally:
-        db.close()
-
-    return redirect(url_for("hod_marks_department",
-                            dept_id=session["department_id"],
-                            semester_id=semester_id))
 
 
 @app.route("/hod/subjects/delete/<int:subject_id>", methods=["POST"])
@@ -2821,6 +2776,18 @@ def hod_students_upload_confirm():
                 ).first()
                 sem_id = cur.id if cur else None
 
+            module_id = None
+            module_label = r.get("module")
+            if module_label:
+                mod = (
+                    db.query(Module)
+                    .filter_by(course_id=course.id, name=module_label)
+                    .first()
+                )
+                if mod:
+                    module_id = mod.id
+                    module_label = mod.name
+
             db.add(StudentProfile(
                 full_name=r["full_name"],
                 admission_number=r["admission_number"],
@@ -2829,7 +2796,8 @@ def hod_students_upload_confirm():
                 course_id=course.id,
                 user_id=user.id,
                 current_semester_id=sem_id,
-                module=r.get("module"),
+                module=module_label,
+                module_id=module_id,
             ))
             imported += 1
 
@@ -3321,6 +3289,59 @@ def hod_all_courses():
         db.close()
 
 
+@app.route("/hod/courses", methods=["GET"])
+def hod_courses_search():
+    """Searchable list of all courses in the HOD's department."""
+    if session.get("role") != "hod":
+        return redirect(url_for("login"))
+
+    department_id = session["department_id"]
+    db = SessionLocal()
+    try:
+        department = db.query(Department).filter_by(id=department_id).first()
+        if not department:
+            flash("Department not found.", "danger")
+            return redirect(url_for("logout"))
+
+        search_query = request.args.get("search", "").strip()
+
+        q = db.query(Course).filter_by(department_id=department_id)
+
+        if search_query:
+            like = f"%{search_query}%"
+            q = q.filter(or_(
+                Course.name.ilike(like),
+                Course.level.ilike(like),
+            ))
+
+        courses = q.order_by(Course.name.asc()).all()
+
+        course_rows = []
+        for c in courses:
+            students_count = db.query(StudentProfile).filter_by(course_id=c.id).count()
+            subjects_count = db.query(Subject).filter_by(course_id=c.id).count()
+            semesters_count = db.query(Semester).filter_by(course_id=c.id).count()
+            current_sem = db.query(Semester).filter_by(course_id=c.id, is_current=True).first()
+
+            course_rows.append({
+                "course": c,
+                "students_count": students_count,
+                "subjects_count": subjects_count,
+                "semesters_count": semesters_count,
+                "current_semester": current_sem,
+            })
+
+        return render_template(
+            "hod/courses_list.html",
+            department=department,
+            hod_name=session.get("username"),
+            course_rows=course_rows,
+            search_query=search_query,
+        )
+    finally:
+        db.close()
+
+
 @app.route("/hod/marks")
 def hod_marks_picker():
     """Entry point for HOD marks entry — redirects to the department picker."""
@@ -3331,7 +3352,7 @@ def hod_marks_picker():
 
 @app.route("/hod/marks/department/<int:dept_id>", methods=["GET"])
 def hod_marks_department(dept_id):
-    """Pick course → semester → subject for HOD marks entry."""
+    """Pick course → semester → module → subject for HOD marks entry."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3355,11 +3376,13 @@ def hod_marks_department(dept_id):
 
         course_id = request.args.get("course_id", type=int)
         semester_id = request.args.get("semester_id", type=int)
+        module_id = request.args.get("module_id", type=int)
 
         course = None
         semester = None
         subjects = []
         semesters = []
+        available_modules = []
 
         if course_id:
             course = db.query(Course).filter_by(id=course_id, department_id=dept_id).first()
@@ -3376,12 +3399,26 @@ def hod_marks_department(dept_id):
                 semester = next((s for s in semesters if s.is_current), semesters[0])
 
             if semester:
-                subjects = (
+                all_sem_subjects = (
                     subject_query(db)
                     .filter_by(course_id=course.id, semester_id=semester.id)
                     .order_by(Subject.name.asc())
                     .all()
                 )
+
+                used_module_ids = {s.module_id for s in all_sem_subjects if s.module_id}
+                if used_module_ids:
+                    available_modules = (
+                        db.query(Module)
+                        .filter(Module.id.in_(used_module_ids))
+                        .order_by(Module.order.asc(), Module.name.asc())
+                        .all()
+                    )
+
+                if module_id:
+                    subjects = [s for s in all_sem_subjects if s.module_id == module_id]
+                else:
+                    subjects = all_sem_subjects
 
         return render_template(
             "admin/marks_step2_course.html",
@@ -3391,6 +3428,8 @@ def hod_marks_department(dept_id):
             semesters=semesters,
             semester=semester,
             subjects=subjects,
+            available_modules=available_modules,
+            module_id=module_id,
             hod_mode=True,
         )
     finally:
@@ -3429,12 +3468,15 @@ def hod_enter_marks():
             flash("Subject and semester belong to different courses.", "danger")
             return redirect(url_for("hod_marks_picker"))
 
-        students = (
-            student_query(db)
-            .filter_by(course_id=subject.course_id)
-            .order_by(StudentProfile.full_name.asc())
-            .all()
-        )
+        students_q = student_query(db).filter_by(course_id=subject.course_id)
+        if getattr(subject, "module_id", None):
+            students_q = students_q.filter(
+                or_(
+                    StudentProfile.module_id == subject.module_id,
+                    StudentProfile.module_id.is_(None),
+                )
+            )
+        students = students_q.order_by(StudentProfile.full_name.asc()).all()
 
         if request.method == "POST":
             def to_int_or_none(v):
@@ -4119,8 +4161,6 @@ def hod_students_export():
         )
     finally:
         db.close()
-
-
 # ============================================================
 # SECTION 4: STUDENT ROUTES
 # ============================================================
@@ -4301,147 +4341,6 @@ def student_dashboard():
             results_by_quiz=results_by_quiz,
             messages_from_admin=messages,
             current_year=datetime.now().year,
-        )
-    finally:
-        db.close()
-
-##manage students 
-@app.route("/admin/assign-modules", methods=["GET", "POST"])
-def admin_assign_modules():
-    """Bulk-assign students to modules. Admin only."""
-    if session.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    db = SessionLocal()
-    try:
-        courses = db.query(Course).order_by(Course.name.asc()).all()
-
-        if request.method == "POST":
-            course_id = request.form.get("course_id", type=int)
-            if not course_id:
-                flash("Pick a course first.", "danger")
-                return redirect(url_for("admin_assign_modules"))
-
-            course = db.query(Course).filter_by(id=course_id).first()
-            if not course:
-                flash("Course not found.", "danger")
-                return redirect(url_for("admin_assign_modules"))
-
-            students = (
-                db.query(StudentProfile)
-                .filter_by(course_id=course_id)
-                .order_by(StudentProfile.full_name.asc())
-                .all()
-            )
-
-            updated = 0
-            for s in students:
-                field = f"module_id_{s.id}"
-                raw = request.form.get(field, "").strip()
-
-                if raw == "":
-                    # empty select means "clear the module"
-                    if s.module_id is not None:
-                        s.module_id = None
-                        s.module = None
-                        updated += 1
-                    continue
-
-                module_id = int(raw)
-                mod = db.query(Module).filter_by(id=module_id, course_id=course_id).first()
-                if not mod:
-                    continue
-
-                if s.module_id != mod.id:
-                    s.module_id = mod.id
-                    s.module = mod.name
-                    updated += 1
-
-            db.commit()
-            flash(f"✅ Updated {updated} student(s).", "success")
-            return redirect(url_for("admin_assign_modules", course_id=course_id))
-
-        # GET
-        course_id = request.args.get("course_id", type=int)
-        course = None
-        students = []
-        modules = []
-
-        if course_id:
-            course = db.query(Course).filter_by(id=course_id).first()
-            if course:
-                students = (
-                    db.query(StudentProfile)
-                    .filter_by(course_id=course_id)
-                    .order_by(StudentProfile.full_name.asc())
-                    .all()
-                )
-                modules = (
-                    db.query(Module)
-                    .filter_by(course_id=course_id)
-                    .order_by(Module.order.asc(), Module.name.asc())
-                    .all()
-                )
-
-        return render_template(
-            "admin/assign_modules.html",
-            courses=courses,
-            course=course,
-            students=students,
-            modules=modules,
-        )
-    finally:
-        db.close()
-
-@app.route("/hod/courses", methods=["GET"])
-def hod_courses_search():
-    """Searchable list of all courses in the HOD's department."""
-    if session.get("role") != "hod":
-        return redirect(url_for("login"))
-
-    department_id = session["department_id"]
-    db = SessionLocal()
-    try:
-        department = db.query(Department).filter_by(id=department_id).first()
-        if not department:
-            flash("Department not found.", "danger")
-            return redirect(url_for("logout"))
-
-        search_query = request.args.get("search", "").strip()
-
-        q = db.query(Course).filter_by(department_id=department_id)
-
-        if search_query:
-            like = f"%{search_query}%"
-            q = q.filter(or_(
-                Course.name.ilike(like),
-                Course.level.ilike(like),
-            ))
-
-        courses = q.order_by(Course.name.asc()).all()
-
-        # Build per-course summary numbers
-        course_rows = []
-        for c in courses:
-            students_count = db.query(StudentProfile).filter_by(course_id=c.id).count()
-            subjects_count = db.query(Subject).filter_by(course_id=c.id).count()
-            semesters_count = db.query(Semester).filter_by(course_id=c.id).count()
-            current_sem = db.query(Semester).filter_by(course_id=c.id, is_current=True).first()
-
-            course_rows.append({
-                "course": c,
-                "students_count": students_count,
-                "subjects_count": subjects_count,
-                "semesters_count": semesters_count,
-                "current_semester": current_sem,
-            })
-
-        return render_template(
-            "hod/courses_list.html",
-            department=department,
-            hod_name=session.get("username"),
-            course_rows=course_rows,
-            search_query=search_query,
         )
     finally:
         db.close()

@@ -28,7 +28,7 @@
         }
         .back-link:hover { color: #1abc9c; }
 
-        /* ============ BLUE STAT CARD ============ */
+        /* BLUE STAT CARD */
         .stat-card {
             background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
@@ -119,7 +119,7 @@
         }
         .step-banner strong { color: #1e40af; }
 
-        /* PICKER FORM (in-place filters) */
+        /* PICKER FORM — now four columns */
         .picker-card {
             background: white;
             padding: 20px 24px;
@@ -129,7 +129,7 @@
         }
         .picker-grid {
             display: grid;
-            grid-template-columns: 2fr 2fr auto;
+            grid-template-columns: 2.2fr 1.8fr 1.4fr auto;   /* Course / Semester / Module / Refresh */
             gap: 14px;
             align-items: end;
         }
@@ -200,11 +200,11 @@
 
         .subject-name { font-weight: 700; color: #0f1724; }
         .module-tag {
-            font-size: 10px; font-weight: 700;
+            font-size: 10.5px; font-weight: 700;
             background: #dbeafe; color: #1e40af;
-            padding: 2px 8px; border-radius: 5px;
+            padding: 3px 10px; border-radius: 6px;
             text-transform: uppercase; letter-spacing: 0.4px;
-            margin-left: 6px;
+            white-space: nowrap;
         }
 
         /* ACTION BUTTONS */
@@ -270,7 +270,7 @@
         <i class="bi bi-arrow-left"></i> Back to dashboard
     </a>
 
-    <!-- ============ BLUE STAT CARD ============ -->
+    <!-- BLUE STAT CARD -->
     <div class="stat-card">
         <div class="stat-left">
             <div class="label">Enter Marks — {{ department.name }}</div>
@@ -281,7 +281,7 @@
                     Marks Entry
                 {% endif %}
             </div>
-            <div class="sub">Pick a course and semester, then click a subject to enter its marks.</div>
+            <div class="sub">Pick a course, semester and module, then click a subject to enter its marks.</div>
         </div>
         <div class="stat-meta">
             <div class="meta-item">
@@ -304,16 +304,16 @@
         {% endfor %}
     {% endwith %}
 
-    <!-- ============ STEP BANNER ============ -->
+    <!-- STEP BANNER -->
     <div class="step-banner">
         <div class="step-num">2</div>
         <div>
             <strong>Step 2 of 3:</strong>
-            Select a course and semester. The subject list will update automatically.
+            Select a course, semester and (optionally) a module. The subject list will update automatically.
         </div>
     </div>
 
-    <!-- ============ PICKER FORM ============ -->
+    <!-- PICKER FORM -->
     <div class="picker-card">
         <form method="GET" id="pickerForm">
             <div class="picker-grid">
@@ -344,6 +344,21 @@
                     </select>
                 </div>
 
+                <div>
+                    <label>Module</label>
+                    <select name="module_id" id="moduleSelect" onchange="submitForm()"
+                            {% if not semester or not available_modules %}disabled{% endif %}>
+                        <option value="">All modules</option>
+                        {% if available_modules %}
+                            {% for m in available_modules %}
+                            <option value="{{ m.id }}" {% if module_id == m.id %}selected{% endif %}>
+                                {{ m.name }}
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
                 <button type="submit" class="btn-refresh">
                     <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
@@ -351,10 +366,13 @@
         </form>
     </div>
 
-    <!-- ============ SUBJECTS TABLE ============ -->
+    <!-- SUBJECTS TABLE -->
     <div class="section-title">
         <i class="bi bi-bookmark-list"></i>
         Subjects {% if semester %}· {{ semester.name }}{% endif %}
+        {% if module_id and available_modules %}
+            {% for m in available_modules %}{% if m.id == module_id %}· {{ m.name }}{% endif %}{% endfor %}
+        {% endif %}
         {% if subjects %}<span style="color:#64748b; font-weight:600;">({{ subjects|length }})</span>{% endif %}
     </div>
 
@@ -365,7 +383,7 @@
                 <tr>
                     <th style="width: 50px;">#</th>
                     <th style="min-width: 280px;">Subject</th>
-                    <th style="width: 140px;">Module Code</th>
+                    <th style="width: 140px;">Module</th>
                     <th style="text-align: center; width: 180px;">Action</th>
                 </tr>
             </thead>
@@ -377,7 +395,9 @@
                         <span class="subject-name">{{ subj.name }}</span>
                     </td>
                     <td>
-                        {% if subj.module %}
+                        {% if subj.module_obj %}
+                        <span class="module-tag">{{ subj.module_obj.name }}</span>
+                        {% elif subj.module %}
                         <span class="module-tag">{{ subj.module }}</span>
                         {% else %}
                         <span style="color:#cbd5e1;">—</span>
@@ -407,14 +427,14 @@
                 {% elif not semester %}
                     Choose a semester to see subjects.
                 {% else %}
-                    No subjects in this semester yet.
+                    No subjects match your filters.
                 {% endif %}
             </h5>
             <div style="font-size:12.5px;">
                 {% if not course %}
                     The subject list will appear once you pick a course.
                 {% elif semester %}
-                    Add subjects via the Manage Subjects page.
+                    Try clearing the module filter, or add subjects via the Manage Subjects page.
                 {% endif %}
             </div>
         </div>
@@ -424,12 +444,11 @@
 </div>
 
 <script>
-    // ---- Auto-submit form on change (keeps course selected) ----
     function submitForm() {
         document.getElementById('pickerForm').submit();
     }
 
-    // ---- Pagination ----
+    // Pagination
     (function () {
         'use strict';
         const ROWS_PER_PAGE = 10;
