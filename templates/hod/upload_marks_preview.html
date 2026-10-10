@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Preview Marks — {{ subject.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        body { background:#f0f2f5; font-family:'Segoe UI', sans-serif; padding:26px 32px; color:#0f1724; }
+        .wrap { max-width:1100px; margin:0 auto; }
+        .back-link { font-size:13px; color:#64748b; text-decoration:none; display:inline-flex; align-items:center; gap:6px; margin-bottom:16px; }
+        .back-link:hover { color:#1e3a8a; }
+        h1 { font-size:22px; font-weight:800; margin:0 0 4px; }
+        .subtitle { color:#64748b; font-size:13px; margin-bottom:22px; }
+
+        .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; margin-bottom:20px; }
+        .stat { background:white; border-radius:12px; padding:16px 20px; box-shadow:0 2px 10px rgba(0,0,0,0.05); border-left:4px solid; }
+        .stat.good { border-color:#10b981; }
+        .stat.bad  { border-color:#ef4444; }
+        .stat .n { font-size:26px; font-weight:800; line-height:1; }
+        .stat .l { font-size:11.5px; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-top:4px; font-weight:700; }
+
+        .card { background:white; border-radius:14px; padding:20px 22px; box-shadow:0 2px 12px rgba(0,0,0,0.06); margin-bottom:18px; }
+        .card h2 { font-size:14px; font-weight:800; margin:0 0 14px; }
+
+        table { width:100%; border-collapse:collapse; font-size:13px; }
+        thead th {
+            text-align:left; padding:10px 12px; font-size:11px; font-weight:800;
+            text-transform:uppercase; letter-spacing:0.5px; color:#64748b;
+            background:#f8fafc; border-bottom:1px solid #e2e8f0;
+        }
+        thead th.center { text-align:center; }
+        tbody td {
+            padding:10px 12px; border-bottom:1px solid #f1f5f9;
+            vertical-align:middle;
+        }
+        tbody tr:hover td { background:#f9fbfc; }
+        .adm { font-family:'Consolas', monospace; font-weight:700; color:#0369a1; background:#e0f2fe; padding:2px 8px; border-radius:6px; font-size:12px; }
+        .num-cell { text-align:center; font-weight:700; font-family:'Consolas', monospace; }
+        .num-cell.blank { color:#cbd5e1; font-style:italic; font-weight:400; font-family:'Segoe UI', sans-serif; }
+
+        .err-list { list-style:none; padding:0; margin:0; font-size:12px; color:#991b1b; }
+        .err-list li { display:flex; align-items:flex-start; gap:6px; padding:2px 0; }
+        .err-list i { color:#ef4444; margin-top:2px; }
+
+        .actions { display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; }
+        .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 24px; border-radius:10px; font-size:13px; font-weight:800; text-decoration:none; border:none; cursor:pointer; }
+        .btn-confirm { background:#10b981; color:white; }
+        .btn-confirm:hover { background:#059669; color:white; }
+        .btn-cancel { background:white; color:#64748b; border:1px solid #e2e8f0; }
+        .btn-cancel:hover { background:#f8fafc; color:#0f1724; }
+        .btn:disabled { background:#cbd5e1; cursor:not-allowed; color:white; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <a href="{{ url_for('hod_marks_upload', subject_id=subject.id, semester_id=semester.id) }}"
+       class="back-link">
+        <i class="bi bi-arrow-left"></i> Upload a different file
+    </a>
+
+    <h1>Review Imported Marks</h1>
+    <div class="subtitle">{{ subject.name }} · {{ course.name }} · {{ semester.name }}</div>
+
+    <div class="stats">
+        <div class="stat good">
+            <div class="n">{{ valid_rows|length }}</div>
+            <div class="l">Ready to save</div>
+        </div>
+        <div class="stat bad">
+            <div class="n">{{ error_rows|length }}</div>
+            <div class="l">Rows with errors</div>
+        </div>
+        <div class="stat">
+            <div class="n">{{ total_rows }}</div>
+            <div class="l">Total rows in file</div>
+        </div>
+    </div>
+
+    {% if error_rows %}
+    <div class="card" style="border-left:4px solid #ef4444;">
+        <h2 style="color:#991b1b;">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            {{ error_rows|length }} row(s) will be skipped
+        </h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:60px;">Row</th>
+                    <th>Admission No</th>
+                    <th>Name</th>
+                    <th>Errors</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in error_rows %}
+                <tr>
+                    <td>{{ r.row }}</td>
+                    <td><span class="adm">{{ r.admission_number or '—' }}</span></td>
+                    <td>{{ r.full_name or '—' }}</td>
+                    <td>
+                        <ul class="err-list">
+                            {% for e in r.errors %}
+                            <li><i class="bi bi-x-circle-fill"></i> {{ e }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if valid_rows %}
+    <div class="card">
+        <h2><i class="bi bi-check-circle-fill" style="color:#10b981;"></i> Ready to save ({{ valid_rows|length }})</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:60px;">Row</th>
+                    <th>Admission No</th>
+                    <th>Student</th>
+                    <th class="center" style="width:90px;">CAT 1</th>
+                    <th class="center" style="width:90px;">CAT 2</th>
+                    <th class="center" style="width:90px;">Final</th>
+                    <th class="center" style="width:90px;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in valid_rows %}
+                <tr>
+                    <td>{{ r.row }}</td>
+                    <td><span class="adm">{{ r.admission_number }}</span></td>
+                    <td><strong>{{ r.full_name }}</strong></td>
+                    <td class="num-cell {% if r.cat1 is none %}blank{% endif %}">{{ r.cat1 if r.cat1 is not none else '—' }}</td>
+                    <td class="num-cell {% if r.cat2 is none %}blank{% endif %}">{{ r.cat2 if r.cat2 is not none else '—' }}</td>
+                    <td class="num-cell {% if r.final is none %}blank{% endif %}">{{ r.final if r.final is not none else '—' }}</td>
+                    <td class="num-cell"><strong>{{ (r.cat1 or 0) + (r.cat2 or 0) + (r.final or 0) }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="actions">
+            <form method="POST" action="{{ url_for('hod_marks_upload_confirm') }}"
+                  onsubmit="return confirm('Save marks for {{ valid_rows|length }} student(s)? This will update existing marks.');">
+                <button type="submit" class="btn btn-confirm">
+                    <i class="bi bi-check-lg"></i> Confirm and Save {{ valid_rows|length }} row(s)
+                </button>
+            </form>
+            <a href="{{ url_for('hod_marks_department', dept_id=department.id, semester_id=semester.id) }}"
+               class="btn btn-cancel">Cancel</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div style="padding:40px 20px; text-align:center; color:#94a3b8;">
+            <i class="bi bi-inbox" style="font-size:40px; display:block; margin-bottom:10px; color:#cbd5e1;"></i>
+            No valid rows to save. Fix the errors in your file and upload again.
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+</body>
+</html>

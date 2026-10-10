@@ -136,6 +136,12 @@
         }
         .btn-pill.danger:hover { background: #dc2626; color: white; }
 
+        /* NEW — Print Report button */
+        .btn-pill.print {
+            background: #059669; color: white;
+        }
+        .btn-pill.print:hover { background: #047857; color: white; }
+
         /* ============================================ */
         /* SUMMARY MINI CARDS                           */
         /* ============================================ */
@@ -227,11 +233,36 @@
         .sem-head .sem-summary {
             font-size: 12.5px;
             opacity: 0.9;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
         }
         .sem-head .sem-summary strong {
             color: #6ee7b7;
             font-weight: 800;
         }
+
+        /* NEW — mini Print button on each semester header */
+        .mini-print-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(255,255,255,0.12);
+            color: #ffffff;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all .15s;
+        }
+        .mini-print-btn:hover {
+            background: #ffffff;
+            color: #1e293b;
+            border-color: #ffffff;
+        }
+        .mini-print-btn i { font-size: 13px; }
 
         /* TABLE — dark header + borders */
         table.sem-table {
@@ -320,7 +351,7 @@
     <div class="crumb">
         <a href="{{ url_for('hod_dashboard') }}">Dashboard</a>
         <i class="bi bi-chevron-right"></i>
-        <a href="{{ url_for('hod_manage_courses') }}">Courses</a>
+        <a href="{{ url_for('manage_courses') }}">Courses</a>
         <i class="bi bi-chevron-right"></i>
         <a href="{{ url_for('hod_course_detail', course_id=course.id) }}">{{ course.name }}</a>
         <i class="bi bi-chevron-right"></i>
@@ -366,6 +397,15 @@
             <a href="{{ url_for('hod_student_marks', student_id=student.id) }}" class="btn-pill white">
                 <i class="bi bi-pencil-square"></i> Enter / Edit Marks
             </a>
+
+            {% if student.current_semester %}
+            <a href="{{ url_for('hod_report_student', student_id=student.id, semester_id=student.current_semester.id) }}"
+               target="_blank"
+               class="btn-pill print">
+                <i class="bi bi-printer-fill"></i> Print Report
+            </a>
+            {% endif %}
+
             <form method="POST" action="{{ url_for('hod_students_list') }}" style="width:100%;">
                 <input type="hidden" name="student_id" value="{{ student.id }}">
                 <input type="hidden" name="action" value="toggle_block">
@@ -431,6 +471,12 @@
                     {% else %}
                         <span style="opacity:0.7;">No marks entered yet</span>
                     {% endif %}
+
+                    <a href="{{ url_for('hod_report_student', student_id=student.id, semester_id=grp.semester.id) }}"
+                       target="_blank"
+                       class="mini-print-btn">
+                        <i class="bi bi-printer-fill"></i> Print
+                    </a>
                 </div>
             </div>
 

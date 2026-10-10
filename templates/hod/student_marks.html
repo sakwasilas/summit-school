@@ -141,6 +141,22 @@
         .empty-row td { text-align: center; padding: 60px 20px; color: #94a3b8; }
         .empty-row i { font-size: 44px; display: block; margin-bottom: 12px; color: #cbd5e1; }
 
+        /* NEW — purple Add Subjects button */
+        .btn-addsubjects {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 11px 22px;
+            background: #8b5cf6; color: white;
+            border-radius: 10px;
+            font-size: 13px; font-weight: 700;
+            text-decoration: none;
+            margin-top: 6px;
+            transition: transform .15s, background .15s;
+        }
+        .btn-addsubjects:hover {
+            background: #7c3aed; color: white;
+            transform: translateY(-1px);
+        }
+
         .alert { font-size: 13px; border-radius: 10px; }
     </style>
 </head>
@@ -191,6 +207,13 @@
             <button class="btn-primary" type="submit">
                 <i class="bi bi-arrow-clockwise"></i> Refresh
             </button>
+
+            <a href="{{ url_for('hod_manage_subjects', course_id=course.id) }}"
+               target="_blank"
+               class="btn-primary"
+               style="background:#8b5cf6; border-color:#8b5cf6;">
+                <i class="bi bi-journal-plus"></i> Manage Subjects
+            </a>
         </form>
     </div>
     {% endif %}
@@ -244,13 +267,28 @@
         </div>
     </form>
     {% elif semester %}
+    <!-- ============================================================ -->
+    <!-- EMPTY STATE — semester exists but has no subjects assigned    -->
+    <!-- Now offers a one-click path to add them                       -->
+    <!-- ============================================================ -->
     <div class="table-card">
         <table><tbody>
             <tr class="empty-row">
                 <td>
-                    <i class="bi bi-inbox"></i>
-                    No subjects in <strong>{{ semester.name }}</strong>.<br>
-                    <span style="font-size: 13px;">Add subjects via the admin panel.</span>
+                    <i class="bi bi-journal-x"></i>
+                    <div style="font-weight:700; color:#475569; font-size:15px; margin-bottom:6px;">
+                        No subjects in {{ semester.name }}
+                    </div>
+                    <div style="margin-bottom:18px;">
+                        Add subjects to this semester before entering marks.
+                    </div>
+
+                    <a href="{{ url_for('hod_manage_subjects', course_id=course.id) }}"
+                       target="_blank"
+                       class="btn-addsubjects">
+                        <i class="bi bi-journal-plus"></i>
+                        Add Subjects to {{ course.name }}
+                    </a>
                 </td>
             </tr>
         </tbody></table>
@@ -261,7 +299,12 @@
             <tr class="empty-row">
                 <td>
                     <i class="bi bi-calendar3"></i>
-                    No semesters set up for this course yet.
+                    <div style="font-weight:700; color:#475569; font-size:15px; margin-bottom:6px;">
+                        No semesters set up for this course yet.
+                    </div>
+                    <div>
+                        Ask the admin to add semesters for {{ course.name }}.
+                    </div>
                 </td>
             </tr>
         </tbody></table>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Add Course</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        body { background: #f5f7fb; font-family: 'Segoe UI', sans-serif; padding: 28px; color: #253047; }
+        .wrap { max-width: 620px; margin: 0 auto; }
+        .back-link { color: #4a5568; text-decoration: none; font-size: 13px; }
+        .back-link:hover { text-decoration: underline; }
+        h1 { font-size: 24px; font-weight: 800; margin: 12px 0 6px; }
+        .subtitle { color: #7f8c8d; font-size: 13px; margin-bottom: 22px; }
+
+        .card-form {
+            background: white;
+            border-radius: 16px;
+            padding: 26px 28px;
+            border: 1px solid #eef2f5;
+            box-shadow: 0 2px 12px rgba(0,0,0,.05);
+        }
+        .form-label {
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+        .form-control, .form-select {
+            height: 46px;
+            border-radius: 10px;
+            border: 1px solid #dfe6ed;
+            font-size: 14px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #1abc9c;
+            box-shadow: 0 0 0 3px rgba(26,188,156,.15);
+        }
+        .btn-save {
+            background: #1abc9c;
+            color: white;
+            font-weight: 700;
+            border: none;
+            padding: 11px 22px;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all .2s;
+        }
+        .btn-save:hover { background: #16a085; color: white; }
+        .btn-cancel {
+            background: white;
+            color: #64748b;
+            font-weight: 600;
+            border: 1px solid #dfe6ed;
+            padding: 11px 22px;
+            border-radius: 10px;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .btn-cancel:hover { background: #f8fafc; color: #253047; }
+
+        .dept-note {
+            background: #eef7f5;
+            border: 1px solid #c9ece5;
+            color: #0e6251;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    {% if session.get('role') == 'hod' %}
+        <a href="{{ url_for('hod_dashboard') }}" class="back-link">
+            <i class="bi bi-arrow-left"></i> Back to dashboard
+        </a>
+    {% else %}
+        <a href="{{ url_for('manage_courses') }}" class="back-link">
+            <i class="bi bi-arrow-left"></i> Back to courses
+        </a>
+    {% endif %}
+
+    <h1>Add New Course</h1>
+    <p class="subtitle">Create a course and assign it to a department.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="card-form">
+
+        {% if session.get('role') == 'hod' %}
+            <div class="dept-note">
+                <i class="bi bi-info-circle-fill"></i>
+                <span>This course will be added to your department automatically.</span>
+            </div>
+        {% endif %}
+
+        <form method="POST">
+
+            <div class="mb-3">
+                <label class="form-label">Course Name</label>
+                <input type="text" name="course_name" class="form-control"
+                       placeholder="e.g. Diploma in Information Communication Technology"
+                       required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Course Level</label>
+                <input type="text" name="course_level" class="form-control"
+                       placeholder="e.g. Diploma / Certificate / Degree"
+                       required>
+            </div>
+
+            {% if session.get('role') == 'admin' %}
+            <div class="mb-4">
+                <label class="form-label">Department</label>
+                <select name="department_id" class="form-select">
+                    <option value="">— None —</option>
+                    {% for d in departments %}
+                        <option value="{{ d.id }}">{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn-save">
+                    <i class="bi bi-check2-circle"></i> Save Course
+                </button>
+                <a href="{{ url_for('manage_courses') }}" class="btn-cancel">Cancel</a>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+</body>
+</html>

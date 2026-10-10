@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Report — {{ semester.name }} — {{ course.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            color: #0f1724;
+            background: #f0f2f5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* TOP BAR */
+        .topbar {
+            background: #ffffff;
+            padding: 16px 40px;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+        .topbar-left img {
+            width: 52px; height: 52px;
+            object-fit: contain; flex-shrink: 0;
+        }
+        .topbar-left h1 {
+            font-size: 20px;
+            font-weight: 900;
+            color: #1e3a8a;
+            text-transform: uppercase;
+            letter-spacing: -0.3px;
+            margin: 0;
+        }
+        .topbar-left .sub {
+            font-size: 10.5px;
+            font-weight: 600;
+            color: #64748b;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 3px;
+        }
+        .topbar-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+        .btn-back  { background: #f1f5f9; color: #475569; }
+        .btn-back:hover { background: #e2e8f0; color: #0f172a; }
+        .btn-print { background: #1e3a8a; color: white; }
+        .btn-print:hover { background: #172f6e; color: white; }
+        .btn-excel { background: #059669; color: white; }
+        .btn-excel:hover { background: #047857; color: white; }
+
+        /* WRAP */
+        .wrap { padding: 26px 32px 60px; max-width: 100%; }
+
+        /* SUMMARY STRIP */
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+        .summary-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 16px 18px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            border: 1px solid #e5eaf1;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: #1e3a8a;
+        }
+        .summary-card.green::before  { background: #059669; }
+        .summary-card.purple::before { background: #8b5cf6; }
+        .summary-card.orange::before { background: #f59e0b; }
+        .summary-card .sc-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .summary-card .sc-icon.blue   { background: #dbeafe; color: #1e40af; }
+        .summary-card .sc-icon.green  { background: #d1fae5; color: #065f46; }
+        .summary-card .sc-icon.purple { background: #f5f3ff; color: #6d28d9; }
+        .summary-card .sc-icon.orange { background: #fff7ed; color: #c2410c; }
+        .summary-card .sc-body { min-width: 0; }
+        .summary-card .sc-num {
+            font-size: 22px; font-weight: 800;
+            color: #0f1724; line-height: 1.1;
+        }
+        .summary-card .sc-label {
+            font-size: 10.5px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.8px;
+            color: #64748b; margin-top: 3px;
+        }
+
+        /* REPORT CARD */
+        .report-card {
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .card-head {
+            padding: 18px 24px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .card-head h2 {
+            font-size: 16px; font-weight: 800;
+            margin: 0 0 4px;
+            color: #0f1724;
+        }
+        .card-head .meta {
+            font-size: 12.5px; color: #64748b;
+            display: flex; gap: 8px; flex-wrap: wrap;
+            align-items: center;
+        }
+        .card-head .meta strong { color: #0f1724; font-weight: 700; }
+        .card-head .meta .dot { color: #cbd5e1; }
+
+        /* TABLE */
+        .table-scroll {
+            overflow-x: auto;
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        table.class-report {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+            min-width: 900px;
+        }
+        table.class-report thead th {
+            background: #f8fafc;
+            color: #475569;
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            font-weight: 800;
+            border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #eef2f7;
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            white-space: nowrap;
+        }
+        table.class-report thead th.sub-head {
+            top: 34px;
+            z-index: 2;
+            font-weight: 700;
+            background: #eef2ff;
+            color: #1e3a8a;
+            font-size: 10px;
+            text-align: center;
+            padding: 8px 6px;
+        }
+        table.class-report thead th.subj-header {
+            background: #e0e7ff;
+            color: #1e3a8a;
+            text-align: center;
+            font-size: 10.5px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+        table.class-report tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            border-right: 1px solid #f8fafc;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+        table.class-report tbody tr:hover { background: #f8fafc; }
+        table.class-report tbody tr:last-child td { border-bottom: none; }
+
+        .num { text-align: center; font-variant-numeric: tabular-nums; }
+        .grand { font-weight: 800; color: #0f1724; text-align: center; }
+        .avg   { font-weight: 800; color: #1e3a8a; text-align: center; }
+        .admission { font-weight: 700; color: #0f1724; }
+        .name { font-weight: 600; color: #0f1724; }
+
+        /* PILLS */
+        .grade-pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 800;
+        }
+        .grade-1, .grade-2, .grade-3 { background: #d1fae5; color: #065f46; }
+        .grade-4, .grade-5           { background: #fef3c7; color: #92400e; }
+        .grade-6, .grade-7           { background: #fee2e2; color: #991b1b; }
+
+        .result-pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 10.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .result-distinction { background: #d1fae5; color: #065f46; }
+        .result-credit      { background: #dbeafe; color: #1e40af; }
+        .result-pass        { background: #fef3c7; color: #92400e; }
+        .result-refer       { background: #fee2e2; color: #991b1b; }
+
+        .exam-pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .exam-knec     { background: #ede9fe; color: #6d28d9; }
+        .exam-internal { background: #fef3c7; color: #92400e; }
+
+        .print-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px; height: 28px;
+            border-radius: 7px;
+            background: #f1f5f9;
+            color: #1e3a8a;
+            text-decoration: none;
+            transition: all .15s;
+        }
+        .print-link:hover { background: #1e3a8a; color: white; }
+
+        /* EMPTY STATE */
+        .empty-state {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 60px 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+        }
+        .empty-state i {
+            font-size: 46px;
+            color: #cbd5e1;
+            display: block;
+            margin-bottom: 12px;
+        }
+        .empty-state h5 {
+            font-weight: 800;
+            color: #334155;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+        .empty-state p {
+            color: #64748b;
+            font-size: 13px;
+            margin: 0 0 4px;
+        }
+
+        /* MOBILE */
+        @media (max-width: 640px) {
+            .topbar { padding: 12px 16px; }
+            .topbar-left h1 { font-size: 15px; }
+            .wrap { padding: 16px; }
+            .summary { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* PRINT */
+        @media print {
+            body { background: #ffffff; }
+            .topbar { position: static; border-bottom: none; box-shadow: none; }
+            .topbar-actions, .print-link { display: none !important; }
+            .wrap { padding: 0; }
+            .summary { display: none; }
+            .report-card {
+                box-shadow: none;
+                border: none;
+            }
+            .table-scroll {
+                max-height: none;
+                overflow: visible;
+            }
+            table.class-report thead th {
+                background: #f1f5f9 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            table.class-report thead th.sub-head,
+            table.class-report thead th.subj-header {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-left">
+        <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Summit Technical College">
+        <div>
+            <h1>Class Report</h1>
+            <div class="sub">{{ department.name }} · HOD Panel</div>
+        </div>
+    </div>
+    <div class="topbar-actions">
+        <a href="{{ url_for('hod_marks_picker') }}" class="btn btn-back">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+        <a href="{{ url_for('hod_reports_class_export', semester_id=semester.id) }}"
+           class="btn btn-excel">
+            <i class="bi bi-file-earmark-excel-fill"></i> Export to Excel
+        </a>
+        <button class="btn btn-print" onclick="window.print()">
+            <i class="bi bi-printer-fill"></i> Print
+        </button>
+    </div>
+</div>
+
+<div class="wrap">
+
+    <!-- SUMMARY -->
+    <div class="summary">
+        <div class="summary-card">
+            <div class="sc-icon blue"><i class="bi bi-people-fill"></i></div>
+            <div class="sc-body">
+                <div class="sc-num">{{ rows|length }}</div>
+                <div class="sc-label">Students</div>
+            </div>
+        </div>
+        <div class="summary-card purple">
+            <div class="sc-icon purple"><i class="bi bi-book-fill"></i></div>
+            <div class="sc-body">
+                <div class="sc-num">{{ subjects|length }}</div>
+                <div class="sc-label">Subjects</div>
+            </div>
+        </div>
+        <div class="summary-card green">
+            <div class="sc-icon green"><i class="bi bi-trophy-fill"></i></div>
+            <div class="sc-body">
+                <div class="sc-num">
+                    {% set ns = namespace(dist=0) %}
+                    {% for r in rows %}
+                        {% if r.result == 'DISTINCTION' %}{% set ns.dist = ns.dist + 1 %}{% endif %}
+                    {% endfor %}
+                    {{ ns.dist }}
+                </div>
+                <div class="sc-label">Distinctions</div>
+            </div>
+        </div>
+        <div class="summary-card orange">
+            <div class="sc-icon orange"><i class="bi bi-award-fill"></i></div>
+            <div class="sc-body">
+                <div class="sc-num">
+                    {% set ns = namespace(cred=0) %}
+                    {% for r in rows %}
+                        {% if r.result == 'CREDIT' %}{% set ns.cred = ns.cred + 1 %}{% endif %}
+                    {% endfor %}
+                    {{ ns.cred }}
+                </div>
+                <div class="sc-label">Credits</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REPORT -->
+    <div class="report-card">
+        <div class="card-head">
+            <h2>{{ course.name }} — {{ semester.name }}</h2>
+            <div class="meta">
+                <span><strong>Course:</strong> {{ course.name }}</span>
+                <span class="dot">·</span>
+                <span><strong>Semester:</strong> {{ semester.name }}</span>
+                <span class="dot">·</span>
+                <span><strong>Students:</strong> {{ rows|length }}</span>
+                <span class="dot">·</span>
+                <span><strong>Subjects:</strong> {{ subjects|length }}</span>
+            </div>
+        </div>
+
+        {% if rows and subjects %}
+        <div class="table-scroll">
+            <table class="class-report">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="text-align:center;">#</th>
+                        <th rowspan="2">Adm No</th>
+                        <th rowspan="2">Student Name</th>
+                        <th rowspan="2" style="text-align:center;">Exam</th>
+                        {% for subj in subjects %}
+                            <th colspan="4" class="subj-header">{{ subj.name }}</th>
+                        {% endfor %}
+                        <th rowspan="2" style="text-align:center;">Grand Total</th>
+                        <th rowspan="2" style="text-align:center;">Average</th>
+                        <th rowspan="2" style="text-align:center;">Grade</th>
+                        <th rowspan="2" style="text-align:center;">Result</th>
+                        <th rowspan="2" style="text-align:center;"></th>
+                    </tr>
+                    <tr>
+                        {% for subj in subjects %}
+                            <th class="sub-head">CAT1</th>
+                            <th class="sub-head">CAT2</th>
+                            <th class="sub-head">Final</th>
+                            <th class="sub-head">Total</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in rows %}
+                    <tr>
+                        <td class="num" style="font-weight:700; color:#64748b; font-size:11px;">{{ loop.index }}</td>
+                        <td class="admission">{{ r.student.admission_number }}</td>
+                        <td class="name">{{ r.student.full_name }}</td>
+                        <td style="text-align:center;">
+                            {% set et = (r.student.exam_type or '').lower() %}
+                            <span class="exam-pill exam-{{ et if et in ['knec','internal'] else 'knec' }}">
+                                {{ (r.student.exam_type or '')|upper }}
+                            </span>
+                        </td>
+
+                        {% for c in r.cells %}
+                            <td class="num">{{ c.cat1 if c.cat1 is not none else '—' }}</td>
+                            <td class="num">{{ c.cat2 if c.cat2 is not none else '—' }}</td>
+                            <td class="num">{{ c.final if c.final is not none else '—' }}</td>
+                            <td class="grand">{{ c.total if c.total is not none else '—' }}</td>
+                        {% endfor %}
+
+                        <td class="grand">{{ r.grand_total }}</td>
+                        <td class="avg">{{ r.average if r.average is not none else '—' }}</td>
+                        <td style="text-align:center;">
+                            {% if r.grade %}
+                                <span class="grade-pill grade-{{ r.grade }}">{{ r.grade }}</span>
+                            {% else %}
+                                <span style="color:#cbd5e1;">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align:center;">
+                            {% if r.result %}
+                                <span class="result-pill result-{{ r.result|lower }}">{{ r.result }}</span>
+                            {% else %}
+                                <span style="color:#cbd5e1;">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align:center;">
+                            <a href="{{ url_for('hod_report_student', student_id=r.student.id, semester_id=semester.id) }}"
+                               target="_blank"
+                               class="print-link"
+                               title="Print this student's report">
+                                <i class="bi bi-printer-fill"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-clipboard-x"></i>
+            <h5>Nothing to show</h5>
+            {% if not subjects %}
+                <p>No subjects exist in <strong>{{ semester.name }}</strong> yet.</p>
+                <p>Add subjects first via <em>Manage Subjects</em>, then enter marks.</p>
+            {% else %}
+                <p>No students are enrolled in <strong>{{ course.name }}</strong>.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview Import — {{ department.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            color: #0f1724;
+            -webkit-font-smoothing: antialiased;
+            background: #f0f2f5;
+        }
+
+        .page { display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* TOP HEADER */
+        .top-header {
+            background: #ffffff;
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            flex-wrap: wrap;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .top-header img {
+            width: 64px; height: 64px;
+            object-fit: contain; flex-shrink: 0;
+        }
+        .top-header .header-text {
+            display: flex; flex-direction: column; line-height: 1.05;
+        }
+        .top-header h1 {
+            font-size: 22px; font-weight: 900;
+            color: #1e3a8a; letter-spacing: -0.5px;
+            text-transform: uppercase; margin: 0;
+        }
+        .top-header .sub {
+            font-size: 10.5px; font-weight: 600;
+            color: #64748b; letter-spacing: 2.5px;
+            text-transform: uppercase; margin-top: 5px;
+        }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .role-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 7px 14px;
+            background: #1e3a8a; color: white;
+            border-radius: 100px;
+            font-size: 12px; font-weight: 700;
+        }
+        .role-chip i { font-size: 14px; }
+        .user-chip {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 6px 14px 6px 6px;
+            background: #f1f5f9; border-radius: 100px;
+            font-size: 13px; font-weight: 600; color: #334155;
+        }
+        .user-chip .avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: #1e3a8a; color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 13px;
+        }
+        .logout-btn {
+            padding: 9px 16px; background: #f1f5f9; color: #475569;
+            border-radius: 9px; text-decoration: none;
+            font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: all .15s;
+        }
+        .logout-btn:hover { background: #fee2e2; color: #b91c1c; }
+        .menu-toggle {
+            display: none;
+            background: #1e3a8a; color: white;
+            border: none; padding: 10px 14px;
+            border-radius: 9px; font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* LAYOUT */
+        .dash-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            background: #1e3a8a;
+            color: white;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 98px;
+            height: calc(100vh - 98px);
+            overflow-y: auto;
+        }
+        .sidebar .side-title {
+            font-size: 10.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255,255,255,0.5);
+            margin: 4px 8px 8px;
+        }
+        .sidebar .side-title:not(:first-child) { margin-top: 20px; }
+        .sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 9px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all .15s;
+            margin-bottom: 2px;
+        }
+        .sidebar .nav-link i {
+            font-size: 16px;
+            color: #60a5fa;
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .sidebar .nav-link:hover {
+            background: rgba(96,165,250,0.15);
+            color: white;
+        }
+        .sidebar .nav-link:hover i { color: white; }
+        .sidebar .nav-link.active {
+            background: #60a5fa;
+            color: #1e3a8a;
+        }
+        .sidebar .nav-link.active i { color: #1e3a8a; }
+        .sidebar .side-footer {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.12);
+        }
+
+        /* MAIN */
+        .main-content { padding: 26px 32px 60px; min-width: 0; }
+
+        .flash {
+            padding: 12px 16px; border-radius: 10px;
+            font-size: 13px; font-weight: 500;
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 18px; border: 1px solid transparent;
+        }
+        .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
+        .flash.danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+        .flash.info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+
+        /* SECTION TITLE */
+        .section-title {
+            font-weight: 800;
+            font-size: 15px;
+            color: #0f1724;
+            margin: 28px 0 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .section-title i { color: #1e3a8a; font-size: 18px; }
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #e2e8f0, transparent);
+        }
+
+        /* SUMMARY CHIPS */
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+        .summary-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 16px 18px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            border: 1px solid #e5eaf1;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+        }
+        .summary-card.total::before    { background: #1e3a8a; }
+        .summary-card.valid::before    { background: #10b981; }
+        .summary-card.errors::before   { background: #ef4444; }
+        .summary-card .sc-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .summary-card.total .sc-icon  { background: #dbeafe; color: #1e40af; }
+        .summary-card.valid .sc-icon  { background: #d1fae5; color: #065f46; }
+        .summary-card.errors .sc-icon { background: #fee2e2; color: #b91c1c; }
+        .summary-card .sc-body { min-width: 0; }
+        .summary-card .sc-num {
+            font-size: 22px; font-weight: 800;
+            line-height: 1.1; color: #0f1724;
+        }
+        .summary-card .sc-label {
+            font-size: 10.5px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.8px;
+            color: #64748b; margin-top: 3px;
+        }
+
+        /* TABLE */
+        .preview-card {
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .preview-card .pc-head {
+            padding: 16px 22px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .preview-card .pc-head h3 {
+            font-size: 14px; font-weight: 800;
+            color: #0f1724; margin: 0;
+            display: flex; align-items: center; gap: 9px;
+            text-transform: uppercase; letter-spacing: 0.4px;
+        }
+        .preview-card .pc-head h3 i { font-size: 17px; }
+        .preview-card.valid .pc-head h3 i  { color: #10b981; }
+        .preview-card.errors .pc-head h3 i { color: #ef4444; }
+        .preview-card .pc-count {
+            font-size: 11.5px; font-weight: 700;
+            padding: 4px 11px; border-radius: 12px;
+            background: #f1f5f9; color: #475569;
+        }
+        .preview-card.valid .pc-count  { background: #d1fae5; color: #065f46; }
+        .preview-card.errors .pc-count { background: #fee2e2; color: #b91c1c; }
+
+        .preview-scroll {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        table.preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12.5px;
+        }
+        table.preview-table thead th {
+            background: #f8fafc;
+            color: #475569;
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 800;
+            position: sticky;
+            top: 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        table.preview-table tbody td {
+            padding: 11px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #0f1724;
+            vertical-align: top;
+        }
+        table.preview-table tbody tr:last-child td { border-bottom: none; }
+        table.preview-table tbody tr:hover { background: #f8fafc; }
+
+        .row-num {
+            font-weight: 800;
+            color: #64748b;
+            font-size: 11px;
+            background: #f1f5f9;
+            padding: 3px 9px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .badge-pill {
+            display: inline-block;
+            font-size: 10.5px;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-pill.knec     { background: #ede9fe; color: #6d28d9; }
+        .badge-pill.internal { background: #fef3c7; color: #92400e; }
+        .badge-pill.error    { background: #fee2e2; color: #b91c1c; }
+
+        .err-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .err-list li {
+            color: #b91c1c;
+            font-size: 12px;
+            margin-bottom: 3px;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+        }
+        .err-list li:last-child { margin-bottom: 0; }
+        .err-list li i { flex-shrink: 0; margin-top: 2px; font-size: 12px; }
+
+        /* ACTIONS */
+        .actions-bar {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 20px 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .actions-bar .ab-text {
+            font-size: 12.5px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+        .actions-bar .ab-text strong { color: #0f1724; }
+        .actions-bar .ab-buttons {
+            display: flex; gap: 10px; flex-wrap: wrap;
+        }
+
+        /* BUTTONS */
+        .btn-blue {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 11px 20px;
+            background: #1e3a8a; color: white;
+            border-radius: 9px; font-weight: 700; font-size: 13px;
+            text-decoration: none; border: none; cursor: pointer;
+            transition: all .15s;
+        }
+        .btn-blue:hover { background: #172f6e; color: white; }
+        .btn-green {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 11px 20px;
+            background: #059669; color: white;
+            border-radius: 9px; font-weight: 700; font-size: 13px;
+            text-decoration: none; border: none; cursor: pointer;
+            transition: all .15s;
+        }
+        .btn-green:hover { background: #047857; color: white; }
+        .btn-ghost {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 11px 20px;
+            background: #f8fafc; color: #475569;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px; font-weight: 700; font-size: 13px;
+            text-decoration: none; cursor: pointer;
+            transition: all .15s;
+        }
+        .btn-ghost:hover { background: #e2e8f0; color: #0f1724; }
+
+        /* EMPTY STATE */
+        .empty-state {
+            background: white;
+            border-radius: 14px;
+            padding: 60px 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .empty-state i {
+            font-size: 46px;
+            color: #cbd5e1;
+            display: block;
+            margin-bottom: 12px;
+        }
+        .empty-state h5 {
+            font-weight: 800;
+            color: #334155;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+        .empty-state p {
+            color: #64748b;
+            font-size: 13px;
+            margin: 0 0 16px;
+        }
+
+        /* MOBILE */
+        @media (max-width: 992px) {
+            .dash-layout { grid-template-columns: 1fr; }
+            .sidebar {
+                position: relative;
+                top: 0;
+                height: auto;
+                padding: 16px;
+                display: none;
+            }
+            .sidebar.open { display: flex; }
+            .main-content { padding: 20px; }
+            .top-header { padding: 14px 20px; }
+            .top-header img { width: 52px; height: 52px; }
+            .top-header h1 { font-size: 16px; }
+            .top-header .sub { font-size: 9px; letter-spacing: 1.5px; }
+            .menu-toggle { display: inline-flex; }
+        }
+        @media (max-width: 640px) {
+            .preview-scroll { max-height: none; }
+            .actions-bar { flex-direction: column; align-items: stretch; }
+            .actions-bar .ab-buttons { flex-direction: column; }
+            .actions-bar .ab-buttons > * { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <header class="top-header">
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}"
+                 alt="Summit Technical College">
+            <div class="header-text">
+                <h1>SUMMIT TECHNICAL COLLEGE</h1>
+                <div class="sub">{{ department.name }} Department · HOD Panel</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="role-chip">
+                <i class="bi bi-person-badge"></i> HOD
+            </span>
+            <div class="user-chip">
+                <span class="avatar">{{ (hod_name or 'H')[0]|upper }}</span>
+                <span>{{ hod_name }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </header>
+
+    <div class="dash-layout">
+
+        <aside class="sidebar" id="sidebar">
+
+            <div class="side-title">Overview</div>
+            <a href="{{ url_for('hod_dashboard') }}" class="nav-link">
+                <i class="bi bi-grid-1x2-fill"></i> Dashboard
+            </a>
+
+            <div class="side-title">Students</div>
+            <a href="{{ url_for('hod_students_list') }}" class="nav-link">
+                <i class="bi bi-people-fill"></i> All Students
+            </a>
+            <a href="{{ url_for('hod_all_students') }}" class="nav-link">
+                <i class="bi bi-person-lines-fill"></i> Student Directory
+            </a>
+            <a href="{{ url_for('hod_students_upload') }}" class="nav-link active">
+                <i class="bi bi-file-earmark-excel-fill"></i> Upload Students
+            </a>
+
+            <div class="side-title">Courses</div>
+            <a href="{{ url_for('hod_all_courses') }}" class="nav-link">
+                <i class="bi bi-journals"></i> All Courses
+            </a>
+            <a href="{{ url_for('manage_courses') }}" class="nav-link">
+                <i class="bi bi-journal-plus"></i> Manage Courses
+            </a>
+            <a href="{{ url_for('hod_manage_subjects') }}" class="nav-link">
+                <i class="bi bi-bookmark-plus"></i> Manage Subjects
+            </a>
+
+            <div class="side-title">Marks</div>
+            <a href="{{ url_for('hod_marks_picker') }}" class="nav-link">
+                <i class="bi bi-table"></i> Enter by Subject
+            </a>
+            <a href="{{ url_for('hod_students_list') }}" class="nav-link">
+                <i class="bi bi-person-check"></i> Enter by Student
+            </a>
+            <a href="{{ url_for('hod_marks_picker') }}" class="nav-link">
+                <i class="bi bi-clipboard-data-fill"></i> Class Reports
+            </a>
+
+            <div class="side-footer">
+                <a href="{{ url_for('logout') }}" class="nav-link">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, msg in messages %}
+                <div class="flash {{ category if category in ['success','danger','warning','info'] else 'info' }}">
+                    <i class="bi bi-info-circle-fill"></i>
+                    {{ msg }}
+                </div>
+                {% endfor %}
+            {% endwith %}
+
+            <div class="section-title">
+                <i class="bi bi-check2-circle"></i> Preview Import
+            </div>
+
+            <!-- SUMMARY -->
+            <div class="summary-row">
+                <div class="summary-card total">
+                    <div class="sc-icon"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+                    <div class="sc-body">
+                        <div class="sc-num">{{ total_rows }}</div>
+                        <div class="sc-label">Rows in File</div>
+                    </div>
+                </div>
+                <div class="summary-card valid">
+                    <div class="sc-icon"><i class="bi bi-check-circle-fill"></i></div>
+                    <div class="sc-body">
+                        <div class="sc-num">{{ valid_rows|length }}</div>
+                        <div class="sc-label">Ready to Import</div>
+                    </div>
+                </div>
+                <div class="summary-card errors">
+                    <div class="sc-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                    <div class="sc-body">
+                        <div class="sc-num">{{ error_rows|length }}</div>
+                        <div class="sc-label">Rows With Errors</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ERRORS -->
+            {% if error_rows %}
+            <div class="preview-card errors">
+                <div class="pc-head">
+                    <h3><i class="bi bi-x-octagon-fill"></i> Rows With Errors — Will Be Skipped</h3>
+                    <span class="pc-count">{{ error_rows|length }} row(s)</span>
+                </div>
+                <div class="preview-scroll">
+                    <table class="preview-table">
+                        <thead>
+                            <tr>
+                                <th style="width:70px;">Row</th>
+                                <th style="width:180px;">Admission No</th>
+                                <th>Name</th>
+                                <th>Problem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in error_rows %}
+                            <tr>
+                                <td><span class="row-num">{{ r.row }}</span></td>
+                                <td><strong>{{ r.admission_number or '—' }}</strong></td>
+                                <td>{{ r.full_name or '—' }}</td>
+                                <td>
+                                    <ul class="err-list">
+                                        {% for e in r.errors %}
+                                        <li><i class="bi bi-dot"></i> {{ e }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- VALID -->
+            {% if valid_rows %}
+            <div class="preview-card valid">
+                <div class="pc-head">
+                    <h3><i class="bi bi-check-circle-fill"></i> Valid Rows — Will Be Imported</h3>
+                    <span class="pc-count">{{ valid_rows|length }} row(s)</span>
+                </div>
+                <div class="preview-scroll">
+                    <table class="preview-table">
+                        <thead>
+                            <tr>
+                                <th style="width:70px;">Row</th>
+                                <th style="width:180px;">Admission No</th>
+                                <th>Full Name</th>
+                                <th>Course</th>
+                                <th style="width:110px;">Exam</th>
+                                <th style="width:180px;">Username</th>
+                                <th style="width:140px;">Phone</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in valid_rows %}
+                            <tr>
+                                <td><span class="row-num">{{ r.row }}</span></td>
+                                <td><strong>{{ r.admission_number }}</strong></td>
+                                <td>{{ r.full_name }}</td>
+                                <td>{{ r.course_name }}</td>
+                                <td>
+                                    <span class="badge-pill {{ r.exam_type }}">
+                                        {{ r.exam_type }}
+                                    </span>
+                                </td>
+                                <td><code style="background:#f1f5f9; color:#1e3a8a; padding:2px 7px; border-radius:5px; font-size:11.5px; font-weight:700;">{{ r.username }}</code></td>
+                                <td>{{ r.phone_number or '—' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ACTIONS -->
+            {% if valid_rows %}
+            <div class="actions-bar">
+                <div class="ab-text">
+                    Ready to import <strong>{{ valid_rows|length }} student(s)</strong>.
+                    {% if error_rows %}
+                    <br>{{ error_rows|length }} row(s) with errors will be skipped.
+                    {% endif %}
+                    <br>Nothing is saved until you click <strong>Confirm &amp; Import</strong>.
+                </div>
+                <div class="ab-buttons">
+                    <a href="{{ url_for('hod_students_upload') }}" class="btn-ghost">
+                        <i class="bi bi-arrow-left"></i> Cancel
+                    </a>
+                    <form method="POST"
+                          action="{{ url_for('hod_students_upload_confirm') }}"
+                          style="display:inline;"
+                          onsubmit="return confirm('Import {{ valid_rows|length }} student(s) into {{ department.name }}?');">
+                        <button type="submit" class="btn-green">
+                            <i class="bi bi-cloud-check-fill"></i> Confirm &amp; Import {{ valid_rows|length }} Student(s)
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-x-octagon"></i>
+                <h5>No valid rows to import</h5>
+                <p>Every row in the file had at least one error. Fix them in Excel and upload again.</p>
+                <a href="{{ url_for('hod_students_upload') }}" class="btn-blue">
+                    <i class="bi bi-arrow-left"></i> Try Another File
+                </a>
+            </div>
+            {% endif %}
+
+        </main>
+    </div>
+</div>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+    }
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 992) {
+            document.getElementById('sidebar').classList.remove('open');
+        }
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+            document.querySelectorAll('.flash').forEach(function (el) {
+                el.style.transition = 'opacity 0.4s, transform 0.4s';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-6px)';
+                setTimeout(function () { el.remove(); }, 400);
+            });
+        }, 5000);
+    });
+</script>
+
+</body>
+</html>

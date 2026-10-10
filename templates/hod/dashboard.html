@@ -7,745 +7,586 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        html, body {
-            height: 100%;
-            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            color: #0f1724;
-            -webkit-font-smoothing: antialiased;
+        * { box-sizing: border-box; }
+        body {
             background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            color: #0f1724;
+            margin: 0;
+            padding: 26px 32px;
         }
 
-        .page { display: flex; flex-direction: column; min-height: 100vh; }
-
-        /* TOP HEADER */
-        .top-header {
-            background: #ffffff;
-            padding: 16px 40px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            border-bottom: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            flex-wrap: wrap;
-        }
-        .header-left { display: flex; align-items: center; gap: 16px; }
-        .top-header img {
-            width: 64px; height: 64px;
-            object-fit: contain; flex-shrink: 0;
-        }
-        .top-header .header-text {
-            display: flex; flex-direction: column; line-height: 1.05;
-        }
-        .top-header h1 {
-            font-size: 22px; font-weight: 900;
-            color: #1e3a8a; letter-spacing: -0.5px;
-            text-transform: uppercase; margin: 0;
-        }
-        .top-header .sub {
-            font-size: 10.5px; font-weight: 600;
-            color: #64748b; letter-spacing: 2.5px;
-            text-transform: uppercase; margin-top: 5px;
-        }
-        .header-right { display: flex; align-items: center; gap: 12px; }
-        .role-chip {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 7px 14px;
-            background: #1e3a8a; color: white;
-            border-radius: 100px;
-            font-size: 12px; font-weight: 700;
-        }
-        .role-chip i { font-size: 14px; }
-        .user-chip {
-            display: inline-flex; align-items: center; gap: 10px;
-            padding: 6px 14px 6px 6px;
-            background: #f1f5f9; border-radius: 100px;
-            font-size: 13px; font-weight: 600; color: #334155;
-        }
-        .user-chip .avatar {
-            width: 32px; height: 32px; border-radius: 50%;
-            background: #1e3a8a; color: white;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 800; font-size: 13px;
-        }
-        .logout-btn {
-            padding: 9px 16px; background: #f1f5f9; color: #475569;
-            border-radius: 9px; text-decoration: none;
-            font-size: 13px; font-weight: 600;
-            display: inline-flex; align-items: center; gap: 6px;
-            transition: all .15s;
-        }
-        .logout-btn:hover { background: #fee2e2; color: #b91c1c; }
-        .menu-toggle {
-            display: none;
-            background: #1e3a8a; color: white;
-            border: none; padding: 10px 14px;
-            border-radius: 9px; font-size: 18px;
-            cursor: pointer;
-        }
-
-        /* LAYOUT */
-        .dash-layout {
+        /* ============ LAYOUT: SIDEBAR + MAIN ============ */
+        .layout {
+            max-width: 1400px;
+            margin: 0 auto;
             display: grid;
             grid-template-columns: 260px 1fr;
-            flex: 1;
-            min-height: 0;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (max-width: 1000px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { position: static !important; }
         }
 
-        /* SIDEBAR */
+        /* ============================================ */
+        /* SIDEBAR — white top (logo), dark blue bottom */
+        /* ============================================ */
         .sidebar {
-            background: #1e3a8a;
-            color: white;
-            padding: 24px 16px;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            position: sticky;
+            top: 26px;
             display: flex;
             flex-direction: column;
-            position: sticky;
-            top: 98px;
-            height: calc(100vh - 98px);
-            overflow-y: auto;
         }
-        .sidebar .side-title {
-            font-size: 10.5px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: rgba(255,255,255,0.5);
-            margin: 4px 8px 8px;
-        }
-        .sidebar .side-title:not(:first-child) { margin-top: 20px; }
-        .sidebar .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 12px;
-            border-radius: 9px;
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all .15s;
-            margin-bottom: 2px;
-        }
-        .sidebar .nav-link i {
-            font-size: 16px;
-            color: #60a5fa;
-            width: 18px;
+
+        /* --- WHITE TOP HALF: LOGO + department --- */
+        .sb-top {
+            background: #ffffff;
+            padding: 22px 20px 20px;
             text-align: center;
-            flex-shrink: 0;
+            border-bottom: 1px solid #eef2f5;
         }
-        .sidebar .nav-link:hover {
-            background: rgba(96,165,250,0.15);
-            color: white;
+        .sb-logo {
+            max-width: 120px;
+            max-height: 80px;
+            width: auto;
+            height: auto;
+            display: block;
+            margin: 0 auto 12px;
+            object-fit: contain;
         }
-        .sidebar .nav-link:hover i { color: white; }
-        .sidebar .nav-link.active {
-            background: #60a5fa;
+        .sb-dept-name {
+            font-size: 12.5px;
+            font-weight: 800;
             color: #1e3a8a;
-        }
-        .sidebar .nav-link.active i { color: #1e3a8a; }
-        .sidebar .side-footer {
-            margin-top: auto;
-            padding-top: 16px;
-            border-top: 1px solid rgba(255,255,255,0.12);
-        }
-
-        /* MAIN */
-        .main-content { padding: 26px 32px 60px; min-width: 0; }
-
-        .flash {
-            padding: 12px 16px; border-radius: 10px;
-            font-size: 13px; font-weight: 500;
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 18px; border: 1px solid transparent;
-        }
-        .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
-        .flash.danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
-        .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
-        .flash.info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
-
-        /* WELCOME BANNER */
-        .welcome-banner {
-            background: linear-gradient(135deg, #1e3a8a, #172f6e);
-            color: white;
-            border-radius: 16px;
-            padding: 26px 30px;
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(30,58,138,0.25);
-        }
-        .welcome-banner::before {
-            content: '';
-            position: absolute;
-            right: -40px; top: -40px;
-            width: 220px; height: 220px;
-            background: rgba(96,165,250,0.15);
-            border-radius: 50%;
-        }
-        .welcome-banner::after {
-            content: '';
-            position: absolute;
-            right: 60px; bottom: -80px;
-            width: 160px; height: 160px;
-            background: rgba(96,165,250,0.1);
-            border-radius: 50%;
-        }
-        .welcome-banner > * { position: relative; z-index: 1; }
-        .welcome-banner h2 {
-            font-size: 22px;
-            font-weight: 800;
-            letter-spacing: -0.3px;
-            margin-bottom: 6px;
-        }
-        .welcome-banner h2 span { color: #60a5fa; }
-        .welcome-banner p {
-            font-size: 13.5px;
-            opacity: 0.85;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .welcome-banner p .pill {
-            background: rgba(255,255,255,0.15);
-            padding: 3px 10px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: 700;
+            line-height: 1.35;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
         }
-        .welcome-stats { display: flex; gap: 26px; flex-wrap: wrap; }
-        .welcome-stats .ws-item { text-align: center; }
-        .welcome-stats .ws-item .n {
-            font-size: 24px; font-weight: 800;
-            color: #60a5fa; line-height: 1.1;
-        }
-        .welcome-stats .ws-item .l {
-            font-size: 10.5px; opacity: 0.75;
-            text-transform: uppercase; letter-spacing: 1px;
-            margin-top: 2px;
+        .sb-role-tag {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            color: #ffffff;
+            background: #1e3a8a;
+            padding: 3px 12px;
+            border-radius: 20px;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
         }
 
-        /* SECTION TITLE */
-        .section-title {
+        /* --- COLORED BOTTOM HALF: LINKS --- */
+        .sb-bottom {
+            background: linear-gradient(180deg, #1e3a8a 0%, #172f6e 100%);
+            padding: 14px 12px 18px;
+            color: white;
+            flex: 1;
+        }
+
+        .sb-section-title {
+            font-size: 10px;
             font-weight: 800;
-            font-size: 15px;
-            color: #0f1724;
-            margin: 28px 0 14px;
+            color: rgba(96,165,250,0.85);
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            padding: 12px 10px 6px;
+        }
+
+        .sb-link {
             display: flex;
             align-items: center;
             gap: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            padding: 9px 12px;
+            border-radius: 9px;
+            text-decoration: none;
+            color: rgba(255,255,255,0.88);
+            font-size: 12.5px;
+            font-weight: 600;
+            transition: background .15s, color .15s, transform .1s;
+            margin-bottom: 2px;
         }
-        .section-title i { color: #1e3a8a; font-size: 18px; }
-        .section-title::after {
-            content: '';
-            flex: 1;
-            height: 2px;
-            background: linear-gradient(90deg, #e2e8f0, transparent);
+        .sb-link:hover {
+            background: rgba(96,165,250,0.18);
+            color: #ffffff;
+            transform: translateX(2px);
+        }
+        .sb-link:hover i { color: #ffffff; }
+        .sb-link.active {
+            background: #60a5fa;
+            color: #1e3a8a;
+        }
+        .sb-link.active i { color: #1e3a8a; }
+        .sb-link i {
+            font-size: 14px;
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+            color: #60a5fa;
+            transition: color .15s;
         }
 
-        /* QUICK CARDS — TIDY GRID */
-        .quick-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 12px;
+        /* PRIMARY (highlighted white pill) */
+        .sb-link.sb-primary {
+            background: #60a5fa;
+            color: #1e3a8a;
+            font-weight: 800;
+            box-shadow: 0 3px 10px rgba(96,165,250,0.4);
         }
-        .quick-card {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 16px 18px;
+        .sb-link.sb-primary i { color: #1e3a8a; }
+        .sb-link.sb-primary:hover {
             background: #ffffff;
-            border-radius: 12px;
-            text-decoration: none;
-            color: #0f1724;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-            border: 1px solid #e5eaf1;
-            transition: all .15s;
-            min-height: 76px;
+            color: #1e3a8a;
+            transform: translateY(-1px);
+        }
+        .sb-link.sb-primary:hover i { color: #1e3a8a; }
+
+        .sb-divider {
+            height: 1px;
+            background: rgba(96,165,250,0.25);
+            margin: 12px 8px;
+        }
+
+        .sb-link.sb-logout { color: #fecaca; }
+        .sb-link.sb-logout i { color: #fca5a5; }
+        .sb-link.sb-logout:hover {
+            background: rgba(239,68,68,0.2);
+            color: #ffffff;
+        }
+        .sb-link.sb-logout:hover i { color: #ffffff; }
+
+        /* ============ MAIN COLUMN ============ */
+        .main { min-width: 0; }
+
+        /* HERO */
+        .hero {
+            background: linear-gradient(135deg, #1e3a8a, #172f6e);
+            color: white;
+            border-radius: 18px;
+            padding: 28px 32px;
+            margin-bottom: 24px;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 12px 30px rgba(30,58,138,0.25);
         }
-        .quick-card::before {
-            content: '';
-            position: absolute;
-            left: 0; top: 0; bottom: 0;
-            width: 3px;
-            background: #1e3a8a;
+        .hero::before {
+            content: ''; position: absolute; right: -60px; top: -60px;
+            width: 240px; height: 240px;
+            background: rgba(96,165,250,0.15); border-radius: 50%;
         }
-        .quick-card.students::before { background: #f59e0b; }
-        .quick-card.manage::before   { background: #8b5cf6; }
-        .quick-card.marks::before    { background: #3b82f6; }
-        .quick-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-            border-color: #cbd5e1;
+        .hero::after {
+            content: ''; position: absolute; right: 60px; bottom: -80px;
+            width: 160px; height: 160px;
+            background: rgba(96,165,250,0.1); border-radius: 50%;
         }
-        .quick-card .q-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
+        .hero h1 {
+            font-size: 24px; font-weight: 800;
+            margin: 0 0 6px; position: relative; z-index: 1;
+        }
+        .hero h1 span { color: #60a5fa; }
+        .hero .sub {
+            font-size: 13px; opacity: 0.85;
+            position: relative; z-index: 1;
+        }
+        .hero-meta {
+            display: flex; gap: 32px; flex-wrap: wrap;
+            margin-top: 22px; position: relative; z-index: 1;
+        }
+        .hero-meta .hm-item {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .hero-meta .hm-icon {
+            width: 42px; height: 42px; border-radius: 12px;
+            background: rgba(96,165,250,0.18);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; color: #60a5fa;
+        }
+        .hero-meta .hm-num {
+            font-size: 22px; font-weight: 800; line-height: 1;
+            color: #ffffff;
+        }
+        .hero-meta .hm-lbl {
+            font-size: 11px; opacity: 0.75;
+            text-transform: uppercase; letter-spacing: 0.6px;
+            margin-top: 3px;
+        }
+
+        /* FLASH */
+        .flash {
+            padding: 12px 16px; border-radius: 10px;
+            margin-bottom: 14px; font-size: 13px; font-weight: 500;
+        }
+        .flash.success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .flash.danger  { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+        .flash.warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+
+        /* SECTION TITLE */
+        .section-title {
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #64748b;
+            margin: 26px 0 14px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            flex-shrink: 0;
+            gap: 8px;
         }
-        .q-icon.blue   { background: #dbeafe; color: #1e40af; }
-        .q-icon.purple { background: #f5f3ff; color: #6d28d9; }
-        .q-icon.orange { background: #fff7ed; color: #c2410c; }
-        .quick-card .q-body { flex: 1; min-width: 0; }
-        .quick-card h4 {
-            font-size: 13.5px;
-            font-weight: 700;
+        .section-title i { color: #1e3a8a; }
+
+        /* ACTION CARDS */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+        .action-card {
+            display: block;
+            text-decoration: none;
+            color: white;
+            padding: 24px 24px 22px;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            transition: transform .2s, box-shadow .2s;
+        }
+        .action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 32px rgba(0,0,0,0.16);
+            color: white;
+        }
+        .action-card .ac-icon {
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+        .action-card h3 {
+            font-size: 17px; font-weight: 800;
+            margin: 0 0 6px;
+            letter-spacing: -0.2px;
+        }
+        .action-card p {
+            font-size: 12.5px;
+            line-height: 1.5;
             margin: 0;
-            color: #0f1724;
-            line-height: 1.3;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            opacity: 0.92;
         }
-        .quick-card p {
-            margin: 3px 0 0;
-            font-size: 11.5px;
-            color: #64748b;
-            line-height: 1.4;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        .action-card .ac-arrow {
+            position: absolute;
+            right: 20px; top: 26px;
+            font-size: 20px;
+            opacity: 0.7;
+            transition: transform .2s, opacity .2s;
         }
-        .quick-card .q-arrow {
-            color: #cbd5e1;
-            font-size: 14px;
-            flex-shrink: 0;
-            transition: all .15s;
+        .action-card:hover .ac-arrow {
+            transform: translateX(4px);
+            opacity: 1;
         }
-        .quick-card:hover .q-arrow {
-            color: #1e3a8a;
-            transform: translateX(3px);
+        .action-card .ac-bg-icon {
+            position: absolute;
+            right: -10px; bottom: -20px;
+            font-size: 120px;
+            opacity: 0.08;
+            line-height: 1;
         }
+        .action-card.orange { background: linear-gradient(135deg, #3b82f6, #1e40af); }
+        .action-card.blue   { background: linear-gradient(135deg, #1e3a8a, #172f6e); }
+        .action-card.purple { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
+        .action-card.green  { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
 
         /* COURSE CARDS */
         .course-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
         }
         .course-card {
             background: white;
             border-radius: 14px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-            border: 1px solid #e2e8f0;
-            transition: all .2s;
-            display: flex;
-            flex-direction: column;
+            padding: 20px 22px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: box-shadow .15s, border-color .15s;
+            border: 1px solid transparent;
         }
         .course-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 26px rgba(0,0,0,0.1);
-            border-color: #1e3a8a;
+            box-shadow: 0 6px 22px rgba(30,58,138,0.12);
+            border-color: #bfdbfe;
         }
         .course-card .cc-head {
-            display: flex; justify-content: space-between; align-items: flex-start;
-            gap: 10px; margin-bottom: 14px; padding-bottom: 14px;
-            border-bottom: 1px solid #f1f5f9;
-            min-height: 68px;
+            display: flex; justify-content: space-between;
+            align-items: start; margin-bottom: 4px; gap: 8px;
         }
-        .course-card .cc-head h3 {
-            font-size: 15px; font-weight: 700;
-            margin: 0; line-height: 1.3;
+        .course-card h3 {
+            font-size: 14.5px; font-weight: 800;
+            margin: 0; color: #1e3a8a;
         }
-        .course-card .cc-head h3 a {
-            color: #0f1724; text-decoration: none;
-            transition: color .15s;
+        .course-card .level-tag {
+            font-size: 10.5px; font-weight: 700;
+            background: #dbeafe; color: #1e40af;
+            padding: 2px 8px; border-radius: 6px;
+            text-transform: uppercase; white-space: nowrap;
         }
-        .course-card .cc-head h3 a:hover { color: #1e3a8a; }
-        .course-card .level { font-size: 11px; color: #64748b; margin-top: 3px; }
-        .course-card .current-badge {
-            font-size: 10px; font-weight: 700;
-            text-transform: uppercase;
-            padding: 4px 10px; border-radius: 12px;
-            background: #d1fae5; color: #065f46;
-            white-space: nowrap;
+        .course-card .cc-current {
+            font-size: 12px; color: #64748b;
+            margin-top: 8px; display: flex; align-items: center; gap: 6px;
         }
-        .course-card .current-badge.empty {
-            background: #f1f5f9; color: #94a3b8;
+        .course-card .cc-current i { color: #3b82f6; }
+        .course-card .cc-stats {
+            display: flex; gap: 16px;
+            margin-top: 14px; padding-top: 14px;
+            border-top: 1px solid #f1f5f9; font-size: 12.5px;
         }
-        .cc-stats {
-            display: flex; gap: 20px; margin-bottom: 14px;
-            text-decoration: none; border-radius: 10px;
-            padding: 6px 8px; transition: background .15s;
+        .course-card .cc-stats span {
+            display: flex; align-items: center; gap: 5px; color: #475569;
         }
-        .cc-stats:hover { background: #f8fafc; }
-        .cc-stats .s { text-align: center; }
-        .cc-stats .s .n {
-            font-size: 20px; font-weight: 800;
-            color: #0f1724; transition: color .15s;
-        }
-        .cc-stats .s .l {
-            font-size: 10px; text-transform: uppercase;
-            letter-spacing: 0.5px; color: #94a3b8;
-        }
-        .cc-stats:hover .s .n { color: #1e3a8a; }
-        .cc-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; }
+        .course-card .cc-stats strong { color: #1e3a8a; font-weight: 800; }
+        .course-card .cc-actions { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
         .cc-btn {
-            flex: 1; text-align: center; padding: 9px 12px;
-            border-radius: 9px; font-weight: 600; font-size: 12px;
-            text-decoration: none; transition: all .15s;
-            display: inline-flex; align-items: center;
-            justify-content: center; gap: 5px;
-            white-space: nowrap;
+            font-size: 11.5px; font-weight: 700;
+            padding: 6px 12px; border-radius: 7px;
+            text-decoration: none;
+            display: inline-flex; align-items: center; gap: 4px;
         }
-        .cc-btn.primary { background: #1e3a8a; color: white; }
-        .cc-btn.primary:hover { background: #172f6e; color: white; }
-        .cc-btn.outline { background: white; color: #1e3a8a; border: 1px solid #1e3a8a; }
-        .cc-btn.outline:hover { background: #1e3a8a; color: white; }
-        .cc-btn.ghost { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
-        .cc-btn.ghost:hover { background: #e2e8f0; color: #0f1724; }
+        .cc-btn.marks { background: #dbeafe; color: #1e40af; }
+        .cc-btn.marks:hover { background: #3b82f6; color: white; }
+        .cc-btn.subjects { background: #e0f2fe; color: #0369a1; }
+        .cc-btn.subjects:hover { background: #0ea5e9; color: white; }
+        .cc-btn.view { background: #eff6ff; color: #1e40af; }
+        .cc-btn.view:hover { background: #1e3a8a; color: white; }
 
-        /* Empty state */
-        .empty-state {
-            background: white;
-            border-radius: 14px;
-            padding: 60px 20px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        /* EMPTY */
+        .empty {
+            padding: 40px 20px; text-align: center;
+            color: #94a3b8; font-size: 13px;
+            background: white; border-radius: 14px;
         }
-        .empty-state i {
-            font-size: 46px;
-            color: #cbd5e1;
-            display: block;
-            margin-bottom: 12px;
-        }
-        .empty-state h5 {
-            font-weight: 800;
-            color: #334155;
-            font-size: 15px;
-            margin-bottom: 6px;
-        }
-        .empty-state p {
-            color: #64748b;
-            font-size: 13px;
-            margin: 0;
-        }
-        .empty-state a { color: #1e3a8a; font-weight: 700; text-decoration: none; }
-        .empty-state a:hover { text-decoration: underline; }
 
-        /* MOBILE */
-        @media (max-width: 992px) {
-            .dash-layout { grid-template-columns: 1fr; }
-            .sidebar {
-                position: relative;
-                top: 0;
-                height: auto;
-                padding: 16px;
-                display: none;
-            }
-            .sidebar.open { display: flex; }
-            .main-content { padding: 20px; }
-            .top-header { padding: 14px 20px; }
-            .top-header img { width: 52px; height: 52px; }
-            .top-header h1 { font-size: 16px; }
-            .top-header .sub { font-size: 9px; letter-spacing: 1.5px; }
-            .menu-toggle { display: inline-flex; }
-        }
-        @media (max-width: 640px) {
-            .quick-grid, .course-grid { grid-template-columns: 1fr; }
-            .welcome-banner { flex-direction: column; align-items: flex-start; }
-            .welcome-stats { gap: 18px; }
-            .welcome-stats .ws-item .n { font-size: 20px; }
+        @media (max-width: 1000px) {
+            .hero-meta { gap: 22px; }
         }
     </style>
 </head>
 <body>
 
-<div class="page">
+<div class="layout">
 
-    <header class="top-header">
-        <div class="header-left">
+    <!-- ================================================== -->
+    <!-- SIDEBAR — white top (logo), dark blue bottom       -->
+    <!-- ================================================== -->
+    <aside class="sidebar">
+
+        <div class="sb-top">
             <img src="{{ url_for('static', filename='images/logo.jpg') }}"
-                 alt="Summit Technical College">
-            <div class="header-text">
-                <h1>SUMMIT TECHNICAL COLLEGE</h1>
-                <div class="sub">{{ department.name }} Department · HOD Panel</div>
-            </div>
+                 alt="{{ department.name }} logo"
+                 class="sb-logo">
+            <div class="sb-dept-name">{{ department.name }}</div>
+            <div class="sb-role-tag">HOD Panel</div>
         </div>
-        <div class="header-right">
-            <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
-                <i class="bi bi-list"></i>
-            </button>
-            <span class="role-chip">
-                <i class="bi bi-person-badge"></i> HOD
-            </span>
-            <div class="user-chip">
-                <span class="avatar">{{ (hod_name or 'H')[0]|upper }}</span>
-                <span>{{ hod_name }}</span>
-            </div>
-            <a href="{{ url_for('logout') }}" class="logout-btn">
+
+        <div class="sb-bottom">
+
+            <div class="sb-section-title">Marks</div>
+            <a href="{{ url_for('hod_marks_picker') }}" class="sb-link sb-primary">
+                <i class="bi bi-pencil-square"></i> Enter Marks
+            </a>
+            <a href="{{ url_for('hod_marks_picker') }}" class="sb-link">
+                <i class="bi bi-file-earmark-excel"></i> Bulk Upload Marks
+            </a>
+
+            <div class="sb-section-title">Courses</div>
+            <a href="{{ url_for('hod_courses_search') }}" class="sb-link">
+                <i class="bi bi-search"></i> Search Courses
+            </a>
+            <a href="{{ url_for('hod_all_courses') }}" class="sb-link">
+                <i class="bi bi-journals"></i> All Courses &amp; Subjects
+            </a>
+
+            <div class="sb-section-title">Students</div>
+            <a href="{{ url_for('hod_students_list') }}" class="sb-link">
+                <i class="bi bi-people-fill"></i> Manage Students
+            </a>
+            <a href="{{ url_for('hod_all_students') }}" class="sb-link">
+                <i class="bi bi-person-lines-fill"></i> All Students
+            </a>
+            <a href="{{ url_for('hod_students_upload') }}" class="sb-link">
+                <i class="bi bi-cloud-upload"></i> Bulk Upload Students
+            </a>
+            <a href="{{ url_for('hod_students_export') }}" class="sb-link">
+                <i class="bi bi-file-earmark-excel"></i> Export Roster
+            </a>
+
+            <div class="sb-section-title">Subjects</div>
+            <a href="{{ url_for('hod_manage_subjects') }}" class="sb-link">
+                <i class="bi bi-journal-plus"></i> Manage Subjects
+            </a>
+
+            <div class="sb-divider"></div>
+
+            <a href="{{ url_for('logout') }}" class="sb-link sb-logout">
                 <i class="bi bi-box-arrow-right"></i> Logout
             </a>
+
         </div>
-    </header>
 
-    <div class="dash-layout">
+    </aside>
 
-        <aside class="sidebar" id="sidebar">
+    <!-- ================================================== -->
+    <!-- MAIN COLUMN                                        -->
+    <!-- ================================================== -->
+    <main class="main">
 
-            <div class="side-title">Overview</div>
-            <a href="{{ url_for('hod_dashboard') }}" class="nav-link active">
-                <i class="bi bi-grid-1x2-fill"></i> Dashboard
-            </a>
+        <div class="hero">
+            <h1>Welcome back, <span>{{ hod_name }}</span> 👋</h1>
+            <div class="sub">{{ department.name }} Department</div>
 
-            <div class="side-title">Students</div>
-            <a href="{{ url_for('hod_students_list') }}" class="nav-link">
-                <i class="bi bi-people-fill"></i> All Students
-            </a>
-            <a href="{{ url_for('hod_all_students') }}" class="nav-link">
-                <i class="bi bi-person-lines-fill"></i> Student Directory
-            </a>
-
-            <div class="side-title">Courses</div>
-            <a href="{{ url_for('hod_all_courses') }}" class="nav-link">
-                <i class="bi bi-journals"></i> All Courses
-            </a>
-            <a href="{{ url_for('hod_manage_courses') }}" class="nav-link">
-                <i class="bi bi-journal-plus"></i> Manage Courses
-            </a>
-            <a href="{{ url_for('hod_manage_subjects') }}" class="nav-link">
-                <i class="bi bi-bookmark-plus"></i> Manage Subjects
-            </a>
-            <a href="{{ url_for('hod_manage_semesters') }}" class="nav-link">
-                <i class="bi bi-calendar3"></i> Manage Semesters
-            </a>
-
-            <div class="side-title">Marks</div>
-            <a href="{{ url_for('hod_marks_picker') }}" class="nav-link">
-                <i class="bi bi-table"></i> Enter by Subject
-            </a>
-            <a href="{{ url_for('hod_students_list') }}" class="nav-link">
-                <i class="bi bi-person-check"></i> Enter by Student
-            </a>
-
-            <div class="side-footer">
-                <a href="{{ url_for('logout') }}" class="nav-link">
-                    <i class="bi bi-box-arrow-right"></i> Logout
-                </a>
-            </div>
-        </aside>
-
-        <main class="main-content">
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% for category, msg in messages %}
-                <div class="flash {{ category if category in ['success','danger','warning','info'] else 'info' }}">
-                    <i class="bi bi-info-circle-fill"></i>
-                    {{ msg }}
+            <div class="hero-meta">
+                <div class="hm-item">
+                    <div class="hm-icon"><i class="bi bi-people-fill"></i></div>
+                    <div>
+                        <div class="hm-num">{{ students_count }}</div>
+                        <div class="hm-lbl">Students</div>
+                    </div>
                 </div>
-                {% endfor %}
-            {% endwith %}
-
-            <div class="welcome-banner">
-                <div>
-                    <h2>Welcome, <span>{{ hod_name }}</span></h2>
-                    <p>
-                        <i class="bi bi-building"></i>
-                        {{ department.name }}{% if department.code %} · {{ department.code }}{% endif %}
-                        <span class="pill">Head of Department</span>
-                    </p>
+                <div class="hm-item">
+                    <div class="hm-icon"><i class="bi bi-journal-bookmark"></i></div>
+                    <div>
+                        <div class="hm-num">{{ course_cards|length }}</div>
+                        <div class="hm-lbl">Courses</div>
+                    </div>
                 </div>
-                <div class="welcome-stats">
-                    <div class="ws-item">
-                        <div class="n">{{ course_cards|length }}</div>
-                        <div class="l">Courses</div>
+                <div class="hm-item">
+                    <div class="hm-icon"><i class="bi bi-bookmark"></i></div>
+                    <div>
+                        <div class="hm-num">{{ subjects_count }}</div>
+                        <div class="hm-lbl">Subjects</div>
                     </div>
-                    <div class="ws-item">
-                        <div class="n">{{ students_count }}</div>
-                        <div class="l">Students</div>
-                    </div>
-                    <div class="ws-item">
-                        <div class="n">{{ subjects_count }}</div>
-                        <div class="l">Subjects</div>
-                    </div>
-                    <div class="ws-item">
-                        <div class="n">{{ semesters_count }}</div>
-                        <div class="l">Semesters</div>
+                </div>
+                <div class="hm-item">
+                    <div class="hm-icon"><i class="bi bi-calendar3"></i></div>
+                    <div>
+                        <div class="hm-num">{{ semesters_count }}</div>
+                        <div class="hm-lbl">Semesters</div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="section-title">
-                <i class="bi bi-people-fill"></i> Students
-            </div>
-            <div class="quick-grid">
-                <a href="{{ url_for('hod_students_list') }}" class="quick-card students">
-                    <div class="q-icon orange"><i class="bi bi-people-fill"></i></div>
-                    <div class="q-body">
-                        <h4>All Students</h4>
-                        <p>Edit, block, promote, or delete students</p>
-                    </div>
-                    <i class="bi bi-arrow-right q-arrow"></i>
-                </a>
-                <a href="{{ url_for('hod_all_students') }}" class="quick-card students">
-                    <div class="q-icon orange"><i class="bi bi-funnel-fill"></i></div>
-                    <div class="q-body">
-                        <h4>Student Directory</h4>
-                        <p>Search &amp; filter by course or exam type</p>
-                    </div>
-                    <i class="bi bi-arrow-right q-arrow"></i>
-                </a>
-            </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, msg in messages %}
+            <div class="flash {{ category }}">{{ msg }}</div>
+            {% endfor %}
+        {% endwith %}
 
-            <div class="section-title">
-                <i class="bi bi-journals"></i> Courses &amp; Subjects
-            </div>
-            <div class="quick-grid">
-                <a href="{{ url_for('hod_all_courses') }}" class="quick-card manage">
-                    <div class="q-icon purple"><i class="bi bi-diagram-3-fill"></i></div>
-                    <div class="q-body">
-                        <h4>All Courses &amp; Subjects</h4>
-                        <p>Every course with subjects by semester</p>
-                    </div>
-                    <i class="bi bi-arrow-right q-arrow"></i>
-                </a>
-                <a href="{{ url_for('hod_manage_courses') }}" class="quick-card manage">
-                    <div class="q-icon purple"><i class="bi bi-journal-plus"></i></div>
-                    <div class="q-body">
-                        <h4>Manage Courses</h4>
-                        <p>Add, edit, or remove department courses</p>
-                    </div>
-                    <i class="bi bi-arrow-right q-arrow"></i>
-                </a>
-                <a href="{{ url_for('hod_manage_subjects') }}" class="quick-card manage">
-                    <div class="q-icon purple"><i class="bi bi-bookmark-plus"></i></div>
-                    <div class="q-body">
-                        <h4>Manage Subjects</h4>
-                        <p>Create subjects and assign to modules</p>
-                    </div>
-                    <i class="bi bi-arrow-right q-arrow"></i>
-                </a>
-                <a href="{{ url_for('hod_manage_semesters') }}" class="quick-card manage">
-                    <div class="q-icon purple"><i class="bi bi-calendar-plus"></i></div>
-                    <div class="q-body">
-                        <h4>Manage Semesters</h4>
-                        <p>Add modules and set the current one</p>
-                    </div>
-                    <i class="bi bi-arrow-right q-arrow"></i>
-                </a>
-            </div>
+        <!-- PRIMARY ACTIONS -->
+        <div class="section-title">
+            <i class="bi bi-lightning-charge-fill"></i>
+            What do you want to do?
+        </div>
 
-            <div class="section-title">
-                <i class="bi bi-pencil-square"></i> Marks Entry
-            </div>
-            <div class="quick-grid">
-                <a href="{{ url_for('hod_marks_picker') }}" class="quick-card marks">
-                    <div class="q-icon blue"><i class="bi bi-table"></i></div>
-                    <div class="q-body">
-                        <h4>Enter Marks by Subject</h4>
-                        <p>Fill a whole class for a subject at once</p>
-                    </div>
-                    <i class="bi bi-arrow-right q-arrow"></i>
-                </a>
-                <a href="{{ url_for('hod_students_list') }}" class="quick-card marks">
-                    <div class="q-icon blue"><i class="bi bi-person-lines-fill"></i></div>
-                    <div class="q-body">
-                        <h4>Enter Marks by Student</h4>
-                        <p>Fill all subjects for one student</p>
-                    </div>
-                    <i class="bi bi-arrow-right q-arrow"></i>
-                </a>
-            </div>
+        <div class="action-grid">
 
-            <div class="section-title">
-                <i class="bi bi-journals"></i> Courses in {{ department.name }}
-            </div>
+            <a href="{{ url_for('hod_marks_picker') }}" class="action-card blue">
+                <div class="ac-icon"><i class="bi bi-clock-history"></i></div>
+                <h3>Enter Marks for a Past Semester</h3>
+                <p>Filling in missing marks from a term that's already ended? Start here.</p>
+                <i class="bi bi-arrow-right ac-arrow"></i>
+                <i class="bi bi-clock-history ac-bg-icon"></i>
+            </a>
 
-            {% if course_cards %}
-            <div class="course-grid">
-                {% for item in course_cards %}
-                <div class="course-card">
-                    <div class="cc-head">
-                        <div>
-                            <h3>
-                                <a href="{{ url_for('hod_course_detail', course_id=item.course.id) }}">
-                                    {{ item.course.name }}
-                                </a>
-                            </h3>
-                            <div class="level">{{ item.course.level }}</div>
-                        </div>
-                        {% if item.current_semester %}
-                        <span class="current-badge">{{ item.current_semester.name }}</span>
-                        {% else %}
-                        <span class="current-badge empty">No active semester</span>
-                        {% endif %}
-                    </div>
-                    <a href="{{ url_for('hod_course_detail', course_id=item.course.id) }}"
-                       class="cc-stats">
-                        <div class="s"><div class="n">{{ item.students_count }}</div><div class="l">Students</div></div>
-                        <div class="s"><div class="n">{{ item.subjects_count }}</div><div class="l">Subjects</div></div>
+            <a href="{{ url_for('hod_marks_picker') }}" class="action-card orange">
+                <div class="ac-icon"><i class="bi bi-pencil-square"></i></div>
+                <h3>Enter Marks for Current Semester</h3>
+                <p>Regular mark entry for the ongoing term. Pick course → semester → subject.</p>
+                <i class="bi bi-arrow-right ac-arrow"></i>
+                <i class="bi bi-pencil-fill ac-bg-icon"></i>
+            </a>
+
+            <a href="{{ url_for('hod_manage_subjects') }}" class="action-card purple">
+                <div class="ac-icon"><i class="bi bi-journal-plus"></i></div>
+                <h3>Manage Subjects</h3>
+                <p>Add, edit or remove subjects. Use this when a semester has no subjects yet.</p>
+                <i class="bi bi-arrow-right ac-arrow"></i>
+                <i class="bi bi-journal-text ac-bg-icon"></i>
+            </a>
+
+            <a href="{{ url_for('hod_students_list') }}" class="action-card green">
+                <div class="ac-icon"><i class="bi bi-people-fill"></i></div>
+                <h3>Manage Students</h3>
+                <p>View the roster, edit modules, promote students, or block access.</p>
+                <i class="bi bi-arrow-right ac-arrow"></i>
+                <i class="bi bi-person-badge ac-bg-icon"></i>
+            </a>
+
+        </div>
+
+        <!-- COURSE OVERVIEW -->
+        <div class="section-title">
+            <i class="bi bi-collection-fill"></i>
+            Your Courses
+        </div>
+
+        {% if course_cards %}
+        <div class="course-grid">
+            {% for cc in course_cards %}
+            <div class="course-card">
+                <div class="cc-head">
+                    <h3>{{ cc.course.name }}</h3>
+                    {% if cc.course.level %}
+                    <span class="level-tag">{{ cc.course.level }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="cc-current">
+                    <i class="bi bi-calendar-check"></i>
+                    {% if cc.current_semester %}
+                        Current: <strong>{{ cc.current_semester.name }}</strong>
+                    {% else %}
+                        <span style="color:#94a3b8;">No current semester set</span>
+                    {% endif %}
+                </div>
+
+                <div class="cc-stats">
+                    <span><i class="bi bi-people"></i> <strong>{{ cc.students_count }}</strong> students</span>
+                    <span><i class="bi bi-bookmark"></i> <strong>{{ cc.subjects_count }}</strong> subjects</span>
+                </div>
+
+                <div class="cc-actions">
+                    <a href="{{ url_for('hod_marks_department', dept_id=department.id, course_id=cc.course.id) }}"
+                       class="cc-btn marks">
+                        <i class="bi bi-pencil-square"></i> Marks
                     </a>
-                    <div class="cc-actions">
-                        <a href="{{ url_for('hod_course_detail', course_id=item.course.id, tab='students') }}" class="cc-btn primary">
-                            <i class="bi bi-people-fill"></i> Students
-                        </a>
-                        <a href="{{ url_for('hod_course_detail', course_id=item.course.id, tab='subjects') }}" class="cc-btn outline">
-                            <i class="bi bi-list-check"></i> Subjects
-                        </a>
-                        <a href="{{ url_for('hod_course_detail', course_id=item.course.id) }}" class="cc-btn ghost">
-                            <i class="bi bi-arrow-right"></i> Open
-                        </a>
-                    </div>
+                    <a href="{{ url_for('hod_manage_subjects', course_id=cc.course.id) }}"
+                       class="cc-btn subjects">
+                        <i class="bi bi-journal-plus"></i> Subjects
+                    </a>
+                    <a href="{{ url_for('hod_course_detail', course_id=cc.course.id) }}"
+                       class="cc-btn view">
+                        <i class="bi bi-eye"></i> View
+                    </a>
                 </div>
-                {% endfor %}
             </div>
-            {% else %}
-            <div class="empty-state">
-                <i class="bi bi-journals"></i>
-                <h5>No courses yet</h5>
-                <p>Your department has no courses assigned.
-                    <a href="{{ url_for('hod_manage_courses') }}">Add your first course →</a>
-                </p>
-            </div>
-            {% endif %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">
+            <i class="bi bi-journal-x" style="font-size:40px; display:block; margin-bottom:10px; color:#cbd5e1;"></i>
+            No courses in your department yet.
+        </div>
+        {% endif %}
 
-        </main>
-    </div>
+    </main>
+
 </div>
-
-<script>
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('open');
-    }
-    window.addEventListener('resize', function () {
-        if (window.innerWidth > 992) {
-            document.getElementById('sidebar').classList.remove('open');
-        }
-    });
-    document.addEventListener('DOMContentLoaded', function () {
-        setTimeout(function () {
-            document.querySelectorAll('.flash').forEach(function (el) {
-                el.style.transition = 'opacity 0.4s, transform 0.4s';
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(-6px)';
-                setTimeout(function () { el.remove(); }, 400);
-            });
-        }, 5000);
-    });
-</script>
 
 </body>
 </html>

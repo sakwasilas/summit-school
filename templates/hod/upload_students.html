@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Students — {{ department.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            color: #0f1724;
+            -webkit-font-smoothing: antialiased;
+            background: #f0f2f5;
+        }
+
+        .page { display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* TOP HEADER */
+        .top-header {
+            background: #ffffff;
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            flex-wrap: wrap;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .top-header img {
+            width: 64px; height: 64px;
+            object-fit: contain; flex-shrink: 0;
+        }
+        .top-header .header-text {
+            display: flex; flex-direction: column; line-height: 1.05;
+        }
+        .top-header h1 {
+            font-size: 22px; font-weight: 900;
+            color: #1e3a8a; letter-spacing: -0.5px;
+            text-transform: uppercase; margin: 0;
+        }
+        .top-header .sub {
+            font-size: 10.5px; font-weight: 600;
+            color: #64748b; letter-spacing: 2.5px;
+            text-transform: uppercase; margin-top: 5px;
+        }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .role-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 7px 14px;
+            background: #1e3a8a; color: white;
+            border-radius: 100px;
+            font-size: 12px; font-weight: 700;
+        }
+        .role-chip i { font-size: 14px; }
+        .user-chip {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 6px 14px 6px 6px;
+            background: #f1f5f9; border-radius: 100px;
+            font-size: 13px; font-weight: 600; color: #334155;
+        }
+        .user-chip .avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: #1e3a8a; color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 13px;
+        }
+        .logout-btn {
+            padding: 9px 16px; background: #f1f5f9; color: #475569;
+            border-radius: 9px; text-decoration: none;
+            font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: all .15s;
+        }
+        .logout-btn:hover { background: #fee2e2; color: #b91c1c; }
+        .menu-toggle {
+            display: none;
+            background: #1e3a8a; color: white;
+            border: none; padding: 10px 14px;
+            border-radius: 9px; font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* LAYOUT */
+        .dash-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            background: #1e3a8a;
+            color: white;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 98px;
+            height: calc(100vh - 98px);
+            overflow-y: auto;
+        }
+        .sidebar .side-title {
+            font-size: 10.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: rgba(255,255,255,0.5);
+            margin: 4px 8px 8px;
+        }
+        .sidebar .side-title:not(:first-child) { margin-top: 20px; }
+        .sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 9px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all .15s;
+            margin-bottom: 2px;
+        }
+        .sidebar .nav-link i {
+            font-size: 16px;
+            color: #60a5fa;
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .sidebar .nav-link:hover {
+            background: rgba(96,165,250,0.15);
+            color: white;
+        }
+        .sidebar .nav-link:hover i { color: white; }
+        .sidebar .nav-link.active {
+            background: #60a5fa;
+            color: #1e3a8a;
+        }
+        .sidebar .nav-link.active i { color: #1e3a8a; }
+        .sidebar .side-footer {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.12);
+        }
+
+        /* MAIN */
+        .main-content { padding: 26px 32px 60px; min-width: 0; }
+
+        .flash {
+            padding: 12px 16px; border-radius: 10px;
+            font-size: 13px; font-weight: 500;
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 18px; border: 1px solid transparent;
+        }
+        .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
+        .flash.danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+        .flash.info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+
+        /* SECTION TITLE */
+        .section-title {
+            font-weight: 800;
+            font-size: 15px;
+            color: #0f1724;
+            margin: 28px 0 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .section-title i { color: #1e3a8a; font-size: 18px; }
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, #e2e8f0, transparent);
+        }
+
+        /* UPLOAD CARD */
+        .upload-card {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 28px 32px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            max-width: 780px;
+        }
+
+        .step {
+            display: flex;
+            gap: 16px;
+            padding: 18px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .step:last-of-type { border-bottom: none; }
+        .step .num {
+            flex-shrink: 0;
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: #1e3a8a; color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 14px;
+        }
+        .step .body { flex: 1; min-width: 0; }
+        .step h4 {
+            font-size: 14.5px; font-weight: 800;
+            color: #0f1724; margin: 0 0 4px;
+        }
+        .step p {
+            font-size: 12.5px; color: #64748b;
+            margin: 0 0 10px; line-height: 1.5;
+        }
+        .step code {
+            background: #f1f5f9; color: #1e3a8a;
+            padding: 1px 6px; border-radius: 4px;
+            font-size: 12px; font-weight: 700;
+        }
+
+        /* BUTTONS */
+        .btn-blue {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 18px;
+            background: #1e3a8a; color: white;
+            border-radius: 9px; font-weight: 700; font-size: 13px;
+            text-decoration: none; border: none; cursor: pointer;
+            transition: all .15s;
+        }
+        .btn-blue:hover { background: #172f6e; color: white; }
+        .btn-outline {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 18px;
+            background: white; color: #1e3a8a;
+            border: 1.5px solid #1e3a8a;
+            border-radius: 9px; font-weight: 700; font-size: 13px;
+            text-decoration: none; cursor: pointer;
+            transition: all .15s;
+        }
+        .btn-outline:hover { background: #1e3a8a; color: white; }
+        .btn-ghost {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 10px 18px;
+            background: #f8fafc; color: #475569;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px; font-weight: 700; font-size: 13px;
+            text-decoration: none; cursor: pointer;
+            transition: all .15s;
+        }
+        .btn-ghost:hover { background: #e2e8f0; color: #0f1724; }
+
+        /* FILE INPUT */
+        .file-drop {
+            display: block;
+            width: 100%;
+            padding: 22px;
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            text-align: center;
+            transition: all .15s;
+            cursor: pointer;
+        }
+        .file-drop:hover {
+            border-color: #1e3a8a;
+            background: #eff6ff;
+        }
+        .file-drop input[type="file"] {
+            display: none;
+        }
+        .file-drop .fd-icon {
+            font-size: 30px; color: #1e3a8a;
+            display: block; margin-bottom: 8px;
+        }
+        .file-drop .fd-label {
+            font-weight: 700; font-size: 13.5px; color: #0f1724;
+        }
+        .file-drop .fd-hint {
+            font-size: 11.5px; color: #64748b; margin-top: 3px;
+        }
+        .file-drop .fd-name {
+            display: inline-block; margin-top: 10px;
+            font-size: 12px; font-weight: 700;
+            color: #1e3a8a; background: #dbeafe;
+            padding: 4px 10px; border-radius: 8px;
+        }
+
+        .info-box {
+            background: #eff6ff; border: 1px solid #bfdbfe;
+            border-radius: 10px; padding: 14px 16px;
+            font-size: 12.5px; color: #1e40af;
+            display: flex; gap: 10px; align-items: flex-start;
+            margin-top: 18px;
+        }
+        .info-box i { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+        .info-box ul { margin: 4px 0 0 18px; padding: 0; }
+        .info-box li { margin-bottom: 2px; }
+
+        /* MOBILE */
+        @media (max-width: 992px) {
+            .dash-layout { grid-template-columns: 1fr; }
+            .sidebar {
+                position: relative;
+                top: 0;
+                height: auto;
+                padding: 16px;
+                display: none;
+            }
+            .sidebar.open { display: flex; }
+            .main-content { padding: 20px; }
+            .top-header { padding: 14px 20px; }
+            .top-header img { width: 52px; height: 52px; }
+            .top-header h1 { font-size: 16px; }
+            .top-header .sub { font-size: 9px; letter-spacing: 1.5px; }
+            .menu-toggle { display: inline-flex; }
+            .upload-card { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <header class="top-header">
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}"
+                 alt="Summit Technical College">
+            <div class="header-text">
+                <h1>SUMMIT TECHNICAL COLLEGE</h1>
+                <div class="sub">{{ department.name }} Department · HOD Panel</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="role-chip">
+                <i class="bi bi-person-badge"></i> HOD
+            </span>
+            <div class="user-chip">
+                <span class="avatar">{{ (hod_name or 'H')[0]|upper }}</span>
+                <span>{{ hod_name }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </header>
+
+    <div class="dash-layout">
+
+        <aside class="sidebar" id="sidebar">
+
+            <div class="side-title">Overview</div>
+            <a href="{{ url_for('hod_dashboard') }}" class="nav-link">
+                <i class="bi bi-grid-1x2-fill"></i> Dashboard
+            </a>
+
+            <div class="side-title">Students</div>
+            <a href="{{ url_for('hod_students_list') }}" class="nav-link">
+                <i class="bi bi-people-fill"></i> All Students
+            </a>
+            <a href="{{ url_for('hod_all_students') }}" class="nav-link">
+                <i class="bi bi-person-lines-fill"></i> Student Directory
+            </a>
+            <a href="{{ url_for('hod_students_upload') }}" class="nav-link active">
+                <i class="bi bi-file-earmark-excel-fill"></i> Upload Students
+            </a>
+
+            <div class="side-title">Courses</div>
+            <a href="{{ url_for('hod_all_courses') }}" class="nav-link">
+                <i class="bi bi-journals"></i> All Courses
+            </a>
+            <a href="{{ url_for('manage_courses') }}" class="nav-link">
+                <i class="bi bi-journal-plus"></i> Manage Courses
+            </a>
+            <a href="{{ url_for('hod_manage_subjects') }}" class="nav-link">
+                <i class="bi bi-bookmark-plus"></i> Manage Subjects
+            </a>
+
+            <div class="side-title">Marks</div>
+            <a href="{{ url_for('hod_marks_picker') }}" class="nav-link">
+                <i class="bi bi-table"></i> Enter by Subject
+            </a>
+            <a href="{{ url_for('hod_students_list') }}" class="nav-link">
+                <i class="bi bi-person-check"></i> Enter by Student
+            </a>
+            <a href="{{ url_for('hod_marks_picker') }}" class="nav-link">
+                <i class="bi bi-clipboard-data-fill"></i> Class Reports
+            </a>
+
+            <div class="side-footer">
+                <a href="{{ url_for('logout') }}" class="nav-link">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, msg in messages %}
+                <div class="flash {{ category if category in ['success','danger','warning','info'] else 'info' }}">
+                    <i class="bi bi-info-circle-fill"></i>
+                    {{ msg }}
+                </div>
+                {% endfor %}
+            {% endwith %}
+
+            <div class="section-title">
+                <i class="bi bi-file-earmark-excel-fill"></i> Upload Students (Excel)
+            </div>
+
+            <div class="upload-card">
+
+                <!-- STEP 1 -->
+                <div class="step">
+                    <div class="num">1</div>
+                    <div class="body">
+                        <h4>Download the Excel template</h4>
+                        <p>
+                            The template is pre-filled with the course names available
+                            in <strong>{{ department.name }}</strong> (see the
+                            <em>Valid Courses</em> sheet). It also lists the semesters
+                            that belong to each course. Use it as-is — do not rename
+                            or reorder the columns.
+                        </p>
+                        <a href="{{ url_for('hod_students_template') }}" class="btn-outline">
+                            <i class="bi bi-download"></i> Download Template
+                        </a>
+                    </div>
+                </div>
+
+                <!-- STEP 2 -->
+                <div class="step">
+                    <div class="num">2</div>
+                    <div class="body">
+                        <h4>Fill in the student rows</h4>
+                        <p>
+                            Required columns:
+                            <code>full_name</code>,
+                            <code>admission_number</code>,
+                            <code>course_name</code>,
+                            <code>exam_type</code>.
+                        </p>
+                        <p>
+                            <code>exam_type</code> must be <code>knec</code> or
+                            <code>internal</code>.
+                            <br>
+                            Optional columns:
+                            <code>module</code> (e.g. <code>MODULE 1</code>),
+                            <code>semester</code> (must match a semester of that course),
+                            <code>phone_number</code>, <code>username</code>,
+                            <code>password</code>.
+                            <br>
+                            If <code>semester</code> is blank, the student is placed
+                            into the course's current semester.
+                            If <code>username</code> is blank, it's generated from
+                            the admission number; if <code>password</code> is blank,
+                            it defaults to the admission number.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- STEP 3 -->
+                <div class="step">
+                    <div class="num">3</div>
+                    <div class="body">
+                        <h4>Upload the filled file</h4>
+                        <p>You will see a preview of valid rows and any errors before anything is written to the database.</p>
+
+                        <form method="POST"
+                              enctype="multipart/form-data"
+                              action="{{ url_for('hod_students_upload') }}"
+                              id="uploadForm">
+
+                            <label class="file-drop" for="student_file">
+                                <input type="file"
+                                       id="student_file"
+                                       name="student_file"
+                                       accept=".xlsx,.xls"
+                                       onchange="showFileName(this)"
+                                       required>
+                                <i class="bi bi-file-earmark-arrow-up fd-icon"></i>
+                                <span class="fd-label">Click to choose an Excel file</span>
+                                <div class="fd-hint">.xlsx or .xls — one sheet named <strong>Students</strong></div>
+                                <span class="fd-name" id="fileName" style="display:none;"></span>
+                            </label>
+
+                            <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+                                <button type="submit" class="btn-blue">
+                                    <i class="bi bi-upload"></i> Validate &amp; Preview
+                                </button>
+                                <a href="{{ url_for('hod_students_list') }}" class="btn-ghost">
+                                    <i class="bi bi-arrow-left"></i> Back to Students
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <i class="bi bi-shield-check"></i>
+                    <div>
+                        <strong>What gets checked before saving:</strong>
+                        <ul>
+                            <li>Every row has a <code>full_name</code> and <code>admission_number</code>.</li>
+                            <li>The admission number is unique in the whole system and inside the file.</li>
+                            <li>The <code>course_name</code> belongs to <strong>{{ department.name }}</strong>.</li>
+                            <li>If <code>semester</code> is filled, it matches a semester of that course.</li>
+                            <li><code>exam_type</code> is either <code>knec</code> or <code>internal</code>.</li>
+                        </ul>
+                        Rows that fail any check are shown as errors and are <em>not</em> imported.
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+    }
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 992) {
+            document.getElementById('sidebar').classList.remove('open');
+        }
+    });
+
+    function showFileName(input) {
+        var nameEl = document.getElementById('fileName');
+        if (input.files && input.files.length > 0) {
+            nameEl.textContent = input.files[0].name;
+            nameEl.style.display = 'inline-block';
+        } else {
+            nameEl.style.display = 'none';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+            document.querySelectorAll('.flash').forEach(function (el) {
+                el.style.transition = 'opacity 0.4s, transform 0.4s';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-6px)';
+                setTimeout(function () { el.remove(); }, 400);
+            });
+        }, 5000);
+    });
+</script>
+
+</body>
+</html>
