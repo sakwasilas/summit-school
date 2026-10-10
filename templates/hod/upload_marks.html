@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Upload Marks — {{ subject.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        body { background:#f0f2f5; font-family:'Segoe UI', sans-serif; padding:26px 32px; color:#0f1724; }
+        .wrap { max-width:760px; margin:0 auto; }
+        .back-link { font-size:13px; color:#64748b; text-decoration:none; display:inline-flex; align-items:center; gap:6px; margin-bottom:16px; }
+        .back-link:hover { color:#1e3a8a; }
+        h1 { font-size:22px; font-weight:800; margin:0 0 4px; }
+        .subtitle { color:#64748b; font-size:13px; margin-bottom:22px; }
+
+        .flash { padding:12px 16px; border-radius:10px; margin-bottom:14px; font-size:13px; font-weight:500; }
+        .flash.success { background:#d1fae5; color:#065f46; border-left:4px solid #10b981; }
+        .flash.danger  { background:#fee2e2; color:#991b1b; border-left:4px solid #ef4444; }
+        .flash.warning { background:#fef3c7; color:#92400e; border-left:4px solid #f59e0b; }
+
+        .card { background:white; border-radius:14px; padding:24px 26px; box-shadow:0 2px 12px rgba(0,0,0,0.06); margin-bottom:18px; }
+        .context { background:#eff6ff; border-left:4px solid #1e3a8a; padding:14px 18px; border-radius:10px; font-size:13px; color:#1e3a8a; margin-bottom:20px; }
+        .context strong { color:#0f1724; }
+
+        .step-num { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; background:#1e3a8a; color:white; border-radius:50%; font-size:12px; font-weight:800; margin-right:8px; }
+        .step-label { font-size:14px; font-weight:800; margin-bottom:10px; display:flex; align-items:center; }
+        .step-desc { font-size:12.5px; color:#94a3b8; margin:-4px 0 14px 32px; }
+
+        .btn-download { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; background:#60a5fa; color:#1e3a8a; border-radius:10px; font-size:13px; font-weight:800; text-decoration:none; }
+        .btn-download:hover { background:#3b82f6; color:white; }
+
+        .drop-zone {
+            border:2px dashed #bfdbfe;
+            border-radius:12px;
+            padding:36px 20px;
+            text-align:center;
+            background:#f8fbff;
+            transition:all .15s;
+            cursor:pointer;
+            margin-bottom:16px;
+        }
+        .drop-zone:hover { border-color:#3b82f6; background:#eff6ff; }
+        .drop-zone.dragover { border-color:#1e3a8a; background:#dbeafe; }
+        .drop-zone i { font-size:36px; color:#60a5fa; display:block; margin-bottom:10px; }
+        .drop-zone .dz-title { font-weight:800; font-size:14px; color:#1e3a8a; margin-bottom:4px; }
+        .drop-zone .dz-hint { font-size:12px; color:#94a3b8; }
+        .drop-zone.has-file { border-color:#10b981; background:#f0fdf9; }
+        .drop-zone.has-file i { color:#10b981; }
+
+        input[type=file] { display:none; }
+
+        .btn-submit {
+            display:inline-flex; align-items:center; gap:8px;
+            padding:12px 24px; background:#1e3a8a; color:white;
+            border:none; border-radius:10px; font-size:13px; font-weight:800;
+            cursor:pointer; width:100%; justify-content:center;
+        }
+        .btn-submit:hover { background:#172f6e; }
+        .btn-submit:disabled { background:#cbd5e1; cursor:not-allowed; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <a href="{{ url_for('hod_marks_department', dept_id=department.id, semester_id=semester.id) }}"
+       class="back-link">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+
+    <h1>Upload Marks — Excel</h1>
+    <div class="subtitle">Bulk-import CAT and Final marks for {{ subject.name }}</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, msg in messages %}
+        <div class="flash {{ category }}">{{ msg }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <div class="context">
+        <strong>{{ subject.name }}</strong>
+        &nbsp;·&nbsp; {{ course.name }}
+        &nbsp;·&nbsp; {{ semester.name }}
+    </div>
+
+    <div class="card">
+
+        <!-- STEP 1 -->
+        <div class="step-label">
+            <span class="step-num">1</span> Download the template
+        </div>
+        <div class="step-desc">The file already lists all students in this course, with their existing marks if any.</div>
+
+        <a href="{{ url_for('hod_marks_template', subject_id=subject.id, semester_id=semester.id) }}"
+           class="btn-download">
+            <i class="bi bi-file-earmark-excel"></i> Download Marks Template
+        </a>
+
+        <hr style="margin:26px 0 22px; border:0; border-top:1px solid #f1f5f9;">
+
+        <!-- STEP 2 -->
+        <div class="step-label">
+            <span class="step-num">2</span> Fill and upload
+        </div>
+        <div class="step-desc">Fill CAT1 (0-15), CAT2 (0-15), Final (0-70). Leave a row blank to skip that student.</div>
+
+        <form method="POST"
+              action="{{ url_for('hod_marks_upload') }}"
+              enctype="multipart/form-data">
+
+            <input type="hidden" name="subject_id" value="{{ subject.id }}">
+            <input type="hidden" name="semester_id" value="{{ semester.id }}">
+
+            <label for="marks_file" class="drop-zone" id="dropZone">
+                <i class="bi bi-cloud-arrow-up" id="dzIcon"></i>
+                <div class="dz-title" id="dzTitle">Click to choose a file, or drop it here</div>
+                <div class="dz-hint" id="dzHint">.xlsx or .xls file</div>
+            </label>
+            <input type="file" name="marks_file" id="marks_file"
+                   accept=".xlsx,.xls" required>
+
+            <button type="submit" class="btn-submit" id="submitBtn" disabled>
+                <i class="bi bi-upload"></i> Upload and Preview
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script>
+    const fileInput = document.getElementById('marks_file');
+    const dropZone  = document.getElementById('dropZone');
+    const dzTitle   = document.getElementById('dzTitle');
+    const dzHint    = document.getElementById('dzHint');
+    const dzIcon    = document.getElementById('dzIcon');
+    const submitBtn = document.getElementById('submitBtn');
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) {
+            const f = fileInput.files[0];
+            dropZone.classList.add('has-file');
+            dzIcon.className = 'bi bi-file-earmark-check';
+            dzTitle.textContent = f.name;
+            dzHint.textContent  = (f.size / 1024).toFixed(1) + ' KB';
+            submitBtn.disabled = false;
+        }
+    });
+
+    ['dragenter','dragover'].forEach(ev => {
+        dropZone.addEventListener(ev, e => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+    });
+    ['dragleave','drop'].forEach(ev => {
+        dropZone.addEventListener(ev, e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+    });
+    dropZone.addEventListener('drop', e => {
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change'));
+        }
+    });
+</script>
+
+</body>
+</html>
