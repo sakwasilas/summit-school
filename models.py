@@ -40,15 +40,12 @@ class User(Base):
         self.password = password
 
 
-# ============================================================
-# NEW — top-level department (ICT, Business, Artisan, ...)
-# ============================================================
 class Department(Base):
     __tablename__ = "departments"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False)   # "ICT"
-    code = Column(String(20), nullable=True)                  # "ICT" / "BUS" / "ART"
+    name = Column(String(100), unique=True, nullable=False)
+    code = Column(String(20), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     def __init__(self, name, code=None):
@@ -75,6 +72,26 @@ class Course(Base):
         self.department_id = department_id
 
 
+# ============================================================
+# NEW — Module (belongs to a Course, groups subjects by level)
+# ============================================================
+class Module(Base):
+    __tablename__ = "modules"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    course_id  = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    name       = Column(String(120), nullable=False)   # "Module 1", "Module 2"
+    order      = Column(Integer, default=0)            # for sorting
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    course = relationship("Course", backref="modules")
+
+    def __init__(self, course_id, name, order=0):
+        self.course_id = course_id
+        self.name = name
+        self.order = order
+
+
 class Semester(Base):
     __tablename__ = "semesters"
 
@@ -99,16 +116,23 @@ class Subject(Base):
     name = Column(String(100), index=True)
     course_id = Column(Integer, ForeignKey("courses.id"))
     semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=True)
+
+    # Old free-text label — kept until the cleanup step.
     module = Column(String(50), nullable=True)   # "MODULE 1", "MODULE 2", ...
+
+    # NEW — real FK to the Module table.
+    module_id = Column(Integer, ForeignKey("modules.id"), nullable=True)
+    module_obj = relationship("Module", backref="subjects")
 
     course = relationship("Course", back_populates="subjects")
     semester = relationship("Semester", backref="subjects")
 
-    def __init__(self, name, course_id, semester_id=None, module=None):
+    def __init__(self, name, course_id, semester_id=None, module=None, module_id=None):
         self.name = name
         self.course_id = course_id
         self.semester_id = semester_id
         self.module = module
+        self.module_id = module_id
 
 
 class Quiz(Base):
@@ -211,8 +235,12 @@ class StudentProfile(Base):
     # which semester this student is currently in
     current_semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=True)
 
-    # ✅ NEW — free-text module/level label like "MODULE 1", "MODULE 2"
+    # Old free-text label — kept until cleanup.
     module = Column(String(50), nullable=True)
+
+    # NEW — real FK to Module.
+    module_id = Column(Integer, ForeignKey("modules.id"), nullable=True)
+    module_obj = relationship("Module", foreign_keys=[module_id], backref="students")
 
     course = relationship("Course", backref="students")
     user = relationship("User", back_populates="profile")
@@ -222,7 +250,7 @@ class StudentProfile(Base):
     def __init__(
         self, full_name, exam_type, course_id, admission_number,
         phone_number, user_id, blocked=False,
-        current_semester_id=None, module=None,
+        current_semester_id=None, module=None, module_id=None,
     ):
         self.full_name = full_name
         self.exam_type = exam_type
@@ -233,6 +261,7 @@ class StudentProfile(Base):
         self.blocked = blocked
         self.current_semester_id = current_semester_id
         self.module = module
+        self.module_id = module_id
 
 
 class Message(Base):
@@ -290,9 +319,6 @@ class KnecMark(Base):
         self.final = final
 
 
-# ============================================================
-# HOD — Head of Department (tied to a department)
-# ============================================================
 class HOD(Base):
     __tablename__ = "hods"
 
