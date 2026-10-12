@@ -1780,6 +1780,32 @@ def admin_enter_marks():
         )
     finally:
         db.close()
+@app.route("/admin/modules", methods=["GET"])
+def admin_modules_picker():
+    """Step 1: pick a course to manage its modules. Admin only."""
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    db = SessionLocal()
+    try:
+        courses = db.query(Course).order_by(Course.name.asc()).all()
+
+        course_rows = []
+        for c in courses:
+            course_rows.append({
+                "course": c,
+                "modules_count": db.query(Module).filter_by(course_id=c.id).count(),
+                "subjects_count": db.query(Subject).filter_by(course_id=c.id).count(),
+                "students_count": db.query(StudentProfile).filter_by(course_id=c.id).count(),
+            })
+
+        return render_template(
+            "admin/modules_picker.html",
+            course_rows=course_rows,
+            username=session.get("username"),
+        )
+    finally:
+        db.close()
 
 
 @app.route("/admin/marks/class", methods=["GET"])
