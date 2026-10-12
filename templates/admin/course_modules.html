@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modules — {{ course.title if course else "Course" }}</title>
+  <title>Modules — {{ course.name if course else "Course" }}</title>
   <link rel="icon" href="{{ url_for('static', filename='images/logo.jpg') }}">
   <style>
     * { box-sizing: border-box; }
@@ -27,16 +27,8 @@
       flex-wrap: wrap;
       gap: 12px;
     }
-    h1 {
-      font-size: 1.75rem;
-      margin: 0;
-      color: #111827;
-    }
-    .subtitle {
-      color: #6b7280;
-      font-size: 0.95rem;
-      margin-top: 4px;
-    }
+    h1 { font-size: 1.75rem; margin: 0; color: #111827; }
+    .subtitle { color: #6b7280; font-size: 0.95rem; margin-top: 4px; }
     .btn {
       display: inline-block;
       padding: 8px 16px;
@@ -53,28 +45,21 @@
       border-color: #d1d5db;
     }
     .btn-secondary:hover { background: #f9fafb; }
-    .btn-primary {
-      background: #2563eb;
-      color: #ffffff;
-    }
+    .btn-primary { background: #2563eb; color: #ffffff; border: none; }
     .btn-primary:hover { background: #1d4ed8; }
-    .btn-sm {
-      padding: 5px 10px;
-      font-size: 0.8rem;
-    }
+    .btn-danger { background: #fee2e2; color: #b91c1c; border: none; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+
     .card {
       background: #ffffff;
       border-radius: 10px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
       overflow: hidden;
+      margin-bottom: 20px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    thead {
-      background: #f9fafb;
-    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: #f9fafb; }
     th, td {
       text-align: left;
       padding: 14px 18px;
@@ -99,52 +84,89 @@
       font-size: 0.78rem;
       font-weight: 600;
     }
-    .badge-green {
-      background: #ecfdf5;
-      color: #047857;
-    }
-    .empty {
-      text-align: center;
-      padding: 48px 24px;
-      color: #6b7280;
-    }
-    .empty h2 {
-      margin: 0 0 8px;
-      font-size: 1.1rem;
-      color: #374151;
-    }
+    .badge-green { background: #ecfdf5; color: #047857; }
+    .empty { text-align: center; padding: 48px 24px; color: #6b7280; }
+    .empty h2 { margin: 0 0 8px; font-size: 1.1rem; color: #374151; }
     .empty p { margin: 0; font-size: 0.9rem; }
+
+    .add-form {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .add-form input[type="text"] {
+      flex: 1;
+      min-width: 220px;
+      padding: 9px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    .flash {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+      border: 1px solid transparent;
+    }
+    .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
+    .flash.danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+    .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+    .flash.info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+
+    .inline-form { display: inline; }
   </style>
 </head>
 <body>
   <div class="container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, msg in messages %}
+        <div class="flash {{ category if category in ['success','danger','warning','info'] else 'info' }}">
+          {{ msg }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+
     <div class="header">
       <div>
         <h1>Modules</h1>
         <div class="subtitle">
           {% if course %}
-            Course: <strong>{{ course.title }}</strong>
-            {% if course.code %} &middot; {{ course.code }}{% endif %}
+            Course: <strong>{{ course.name }}</strong>
+            {% if course.level %} &middot; {{ course.level }}{% endif %}
           {% else %}
             Course not found
           {% endif %}
         </div>
       </div>
       <div>
-        <a href="{{ url_for('admin_modules') }}" class="btn btn-secondary">&larr; Back to Modules</a>
-        {% if course %}
-          <a href="{{ url_for('admin_create_module', course_id=course.id) }}" class="btn btn-primary">+ New Module</a>
-        {% endif %}
+        <a href="{{ url_for('admin_modules_picker') }}" class="btn btn-secondary">&larr; Back to Modules</a>
       </div>
     </div>
 
+    {% if course %}
+    <!-- Add module form -->
+    <form method="POST" class="add-form">
+      <input type="hidden" name="action" value="add">
+      <input type="text" name="name" placeholder="e.g. MODULE 1" required>
+      <button type="submit" class="btn btn-primary">+ Add Module</button>
+    </form>
+
+    <!-- Modules table -->
     <div class="card">
       {% if mod_stats and mod_stats|length > 0 %}
         <table>
           <thead>
             <tr>
               <th>Module</th>
-              <th>Lessons</th>
+              <th>Subjects</th>
               <th>Students</th>
               <th>Actions</th>
             </tr>
@@ -152,17 +174,27 @@
           <tbody>
             {% for stat in mod_stats %}
             <tr>
+              <td><strong>{{ stat.module.name }}</strong></td>
+              <td><span class="badge">{{ stat.subjects }}</span></td>
+              <td><span class="badge badge-green">{{ stat.students }}</span></td>
               <td>
-                <strong>{{ stat.module.title }}</strong>
-                {% if stat.module.description %}
-                  <div class="subtitle">{{ stat.module.description|truncate(80) }}</div>
-                {% endif %}
-              </td>
-              <td><span class="badge">{{ stat.lesson_count }}</span></td>
-              <td><span class="badge badge-green">{{ stat.student_count }}</span></td>
-              <td>
-                <a href="{{ url_for('admin_module_lessons', module_id=stat.module.id) }}"
-                   class="btn btn-secondary btn-sm">View Lessons</a>
+                <!-- Rename inline -->
+                <form method="POST" class="inline-form" style="display:inline-flex; gap:6px;">
+                  <input type="hidden" name="action" value="rename">
+                  <input type="hidden" name="module_id" value="{{ stat.module.id }}">
+                  <input type="text" name="new_name" placeholder="New name"
+                         value="{{ stat.module.name }}"
+                         style="padding:5px 8px; border:1px solid #d1d5db; border-radius:5px; font-size:0.8rem;">
+                  <button type="submit" class="btn btn-secondary btn-sm">Rename</button>
+                </form>
+
+                <!-- Delete -->
+                <form method="POST" class="inline-form" style="display:inline;"
+                      onsubmit="return confirm('Delete module {{ stat.module.name }}? Students and subjects will be unlinked.');">
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="module_id" value="{{ stat.module.id }}">
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
               </td>
             </tr>
             {% endfor %}
@@ -171,10 +203,12 @@
       {% else %}
         <div class="empty">
           <h2>No modules yet</h2>
-          <p>This course doesn't have any modules. Create one to get started.</p>
+          <p>This course doesn't have any modules. Add one above to get started.</p>
         </div>
       {% endif %}
     </div>
+    {% endif %}
+
   </div>
 </body>
 </html>
