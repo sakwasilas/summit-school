@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Modules — Summit Technical College</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            color: #0f1724;
+            -webkit-font-smoothing: antialiased;
+            background: #f0f2f5;
+        }
+
+        .page { display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* TOP HEADER */
+        .top-header {
+            background: #ffffff;
+            padding: 16px 40px;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 20px; border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            position: sticky; top: 0; z-index: 50; flex-wrap: wrap;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .top-header img { width: 64px; height: 64px; object-fit: contain; flex-shrink: 0; }
+        .top-header .header-text { display: flex; flex-direction: column; line-height: 1.05; }
+        .top-header h1 {
+            font-size: 22px; font-weight: 900; color: #1e3a8a;
+            letter-spacing: -0.5px; text-transform: uppercase; margin: 0;
+        }
+        .top-header .sub {
+            font-size: 10.5px; font-weight: 600; color: #64748b;
+            letter-spacing: 2.5px; text-transform: uppercase; margin-top: 5px;
+        }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .role-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 7px 14px; background: #1e3a8a; color: white;
+            border-radius: 100px; font-size: 12px; font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        .role-chip i { font-size: 14px; }
+        .user-chip {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 6px 14px 6px 6px; background: #f1f5f9;
+            border-radius: 100px; font-size: 13px; font-weight: 600; color: #334155;
+        }
+        .user-chip .avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: #1e3a8a; color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 13px;
+        }
+        .logout-btn {
+            padding: 9px 16px; background: #f1f5f9; color: #475569;
+            border-radius: 9px; text-decoration: none;
+            font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: all .15s;
+        }
+        .logout-btn:hover { background: #fee2e2; color: #b91c1c; }
+        .menu-toggle {
+            display: none; background: #1e3a8a; color: white;
+            border: none; padding: 10px 14px; border-radius: 9px;
+            font-size: 18px; cursor: pointer;
+        }
+
+        /* LAYOUT */
+        .dash-layout { display: grid; grid-template-columns: 260px 1fr; flex: 1; min-height: 0; }
+
+        /* SIDEBAR */
+        .sidebar {
+            background: #1e3a8a; color: white;
+            padding: 24px 16px;
+            display: flex; flex-direction: column;
+            position: sticky; top: 98px;
+            height: calc(100vh - 98px); overflow-y: auto;
+        }
+        .sidebar .side-title {
+            font-size: 10.5px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 1.5px;
+            color: rgba(255,255,255,0.5);
+            margin: 4px 8px 8px;
+        }
+        .sidebar .side-title:not(:first-child) { margin-top: 20px; }
+        .sidebar .nav-link {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 12px; border-radius: 9px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none; font-size: 13px; font-weight: 600;
+            transition: all .15s; margin-bottom: 2px;
+        }
+        .sidebar .nav-link i {
+            font-size: 16px; color: #60a5fa;
+            width: 18px; text-align: center; flex-shrink: 0;
+        }
+        .sidebar .nav-link:hover { background: rgba(96,165,250,0.15); color: white; }
+        .sidebar .nav-link:hover i { color: white; }
+        .sidebar .nav-link.active { background: #60a5fa; color: #1e3a8a; }
+        .sidebar .nav-link.active i { color: #1e3a8a; }
+        .sidebar .side-footer {
+            margin-top: auto; padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.12);
+        }
+
+        /* MAIN */
+        .main-content { padding: 26px 32px 60px; min-width: 0; }
+
+        /* Flash */
+        .flash {
+            padding: 12px 16px; border-radius: 10px;
+            font-size: 13px; font-weight: 500;
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 18px; border: 1px solid transparent;
+        }
+        .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
+        .flash.danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+        .flash.info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+
+        /* SECTION TITLE */
+        .section-title {
+            font-weight: 800; font-size: 15px; color: #0f1724;
+            margin: 8px 0 14px; display: flex; align-items: center;
+            gap: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .section-title i { color: #1e3a8a; font-size: 18px; }
+        .section-title::after {
+            content: ''; flex: 1; height: 2px;
+            background: linear-gradient(90deg, #e2e8f0, transparent);
+        }
+
+        .page-intro {
+            font-size: 13px; color: #64748b;
+            margin-bottom: 20px; line-height: 1.5;
+        }
+
+        /* QUICK GRID (reused for course cards) */
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 14px;
+        }
+        .quick-card {
+            display: flex; align-items: center; gap: 14px;
+            padding: 18px 20px; background: #ffffff;
+            border-radius: 12px; text-decoration: none; color: #0f1724;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            transition: all .2s;
+            position: relative; overflow: hidden;
+        }
+        .quick-card::before {
+            content: ''; position: absolute;
+            left: 0; top: 0; bottom: 0; width: 4px;
+            background: #1e3a8a; transition: width .2s;
+        }
+        .quick-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+            border-color: #1e3a8a;
+        }
+        .quick-card:hover::before { width: 6px; }
+        .quick-card .q-icon {
+            width: 46px; height: 46px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; flex-shrink: 0;
+        }
+        .q-icon.teal   { background: #ccfbf1; color: #0f766e; }
+        .q-icon.orange { background: #fff7ed; color: #c2410c; }
+        .q-icon.blue   { background: #dbeafe; color: #1e40af; }
+        .q-icon.purple { background: #f5f3ff; color: #6d28d9; }
+        .q-icon.green  { background: #d1fae5; color: #065f46; }
+        .q-icon.red    { background: #fee2e2; color: #991b1b; }
+        .q-icon.slate  { background: #f1f5f9; color: #334155; }
+
+        .quick-card .q-body { flex: 1; min-width: 0; }
+        .quick-card h4 {
+            font-size: 14px; font-weight: 700;
+            margin: 0 0 4px; color: #0f1724;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .quick-card p { margin: 0; font-size: 11.5px; color: #64748b; line-height: 1.4; }
+        .quick-card .q-arrow {
+            color: #cbd5e1; font-size: 15px; flex-shrink: 0;
+            transition: all .2s;
+        }
+        .quick-card:hover .q-arrow {
+            color: #1e3a8a; transform: translateX(4px);
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            background: #ffffff; border: 1px dashed #cbd5e1;
+            border-radius: 12px; padding: 40px 24px;
+            text-align: center; color: #64748b;
+        }
+        .empty-state i {
+            font-size: 42px; color: #cbd5e1;
+            display: block; margin-bottom: 12px;
+        }
+        .empty-state a {
+            color: #1e3a8a; font-weight: 700;
+            text-decoration: none;
+        }
+        .empty-state a:hover { text-decoration: underline; }
+
+        /* MOBILE */
+        @media (max-width: 992px) {
+            .dash-layout { grid-template-columns: 1fr; }
+            .sidebar {
+                position: relative; top: 0; height: auto;
+                padding: 16px; display: none;
+            }
+            .sidebar.open { display: flex; }
+            .main-content { padding: 20px; }
+            .top-header { padding: 14px 20px; }
+            .top-header img { width: 52px; height: 52px; }
+            .top-header h1 { font-size: 16px; }
+            .top-header .sub { font-size: 9px; letter-spacing: 1.5px; }
+            .menu-toggle { display: inline-flex; }
+        }
+        @media (max-width: 640px) {
+            .quick-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <header class="top-header">
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='images/logo.jpg') }}"
+                 alt="Summit Technical College">
+            <div class="header-text">
+                <h1>SUMMIT TECHNICAL COLLEGE</h1>
+                <div class="sub">Admin Panel</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="role-chip">
+                <i class="bi bi-shield-check"></i> Administrator
+            </span>
+            <div class="user-chip">
+                <span class="avatar">{{ (username or 'A')[0]|upper }}</span>
+                <span>{{ username }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </header>
+
+    <div class="dash-layout">
+
+        <aside class="sidebar" id="sidebar">
+
+            <div class="side-title">Main</div>
+            <a href="{{ url_for('admin_dashboard') }}" class="nav-link">
+                <i class="bi bi-grid-1x2-fill"></i> Dashboard
+            </a>
+            <a href="{{ url_for('manage_students') }}" class="nav-link">
+                <i class="bi bi-people-fill"></i> Manage Students
+            </a>
+            <a href="{{ url_for('admin_messages') }}" class="nav-link">
+                <i class="bi bi-envelope-fill"></i> Messages
+            </a>
+            <a href="{{ url_for('student_activity') }}" class="nav-link">
+                <i class="bi bi-graph-up-arrow"></i> Monitor Activity
+            </a>
+
+            <div class="side-title">Exam Management</div>
+            <a href="{{ url_for('upload_exam') }}" class="nav-link">
+                <i class="bi bi-file-earmark-check"></i> Upload Exam
+            </a>
+            <a href="{{ url_for('view_results') }}" class="nav-link">
+                <i class="bi bi-clipboard-data"></i> View Results
+            </a>
+            <a href="{{ url_for('manage_quizzes') }}" class="nav-link">
+                <i class="bi bi-question-circle"></i> Manage Questions
+            </a>
+            <a href="{{ url_for('admin_marks_picker') }}" class="nav-link">
+                <i class="bi bi-pencil-square"></i> Enter KNEC Marks
+            </a>
+            <a href="{{ url_for('admin_reports_picker') }}" class="nav-link">
+                <i class="bi bi-printer"></i> Print Reports
+            </a>
+
+            <div class="side-title">System Setup</div>
+            <a href="{{ url_for('manage_departments') }}" class="nav-link">
+                <i class="bi bi-building"></i> Departments
+            </a>
+            <a href="{{ url_for('manage_courses') }}" class="nav-link">
+                <i class="bi bi-book"></i> Courses
+            </a>
+            <a href="{{ url_for('admin_modules_picker') }}" class="nav-link active">
+                <i class="bi bi-diagram-3"></i> Modules
+            </a>
+            <a href="{{ url_for('manage_semesters') }}" class="nav-link">
+                <i class="bi bi-calendar3"></i> Semesters
+            </a>
+            <a href="{{ url_for('manage_hods') }}" class="nav-link">
+                <i class="bi bi-person-badge"></i> HODs
+            </a>
+            <a href="{{ url_for('show_credentials') }}" class="nav-link">
+                <i class="bi bi-key-fill"></i> Credentials
+            </a>
+
+            <div class="side-footer">
+                <a href="{{ url_for('logout') }}" class="nav-link">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, msg in messages %}
+                <div class="flash {{ category if category in ['success','danger','warning','info'] else 'info' }}">
+                    <i class="bi bi-info-circle-fill"></i>
+                    {{ msg }}
+                </div>
+                {% endfor %}
+            {% endwith %}
+
+            <div class="section-title">
+                <i class="bi bi-diagram-3-fill"></i> Manage Modules
+            </div>
+
+            <p class="page-intro">
+                Pick a course to add, rename, or delete its modules.
+                Modules group subjects — for example <strong>MODULE 1</strong>,
+                <strong>MODULE 2</strong>, etc.
+            </p>
+
+            {% if course_rows %}
+            <div class="quick-grid">
+                {% for row in course_rows %}
+                <a href="{{ url_for('admin_course_modules', course_id=row.course.id) }}"
+                   class="quick-card">
+                    <div class="q-icon teal">
+                        <i class="bi bi-diagram-3-fill"></i>
+                    </div>
+                    <div class="q-body">
+                        <h4>{{ row.course.name }}</h4>
+                        <p>
+                            {{ row.modules_count }} module(s) &middot;
+                            {{ row.subjects_count }} subject(s) &middot;
+                            {{ row.students_count }} student(s)
+                        </p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <p style="margin-bottom:8px;">No courses yet.</p>
+                <a href="{{ url_for('add_course') }}">Add your first course →</a>
+            </div>
+            {% endif %}
+
+        </main>
+    </div>
+</div>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+    }
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 992) {
+            document.getElementById('sidebar').classList.remove('open');
+        }
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+            document.querySelectorAll('.flash').forEach(function (el) {
+                el.style.transition = 'opacity 0.4s, transform 0.4s';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-6px)';
+                setTimeout(function () { el.remove(); }, 400);
+            });
+        }, 5000);
+    });
+</script>
+
+</body>
+</html>
