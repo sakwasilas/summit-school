@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modules — {{ course.title if course else "Course" }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.jpg') }}">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      color: #1f2937;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    h1 {
+      font-size: 1.75rem;
+      margin: 0;
+      color: #111827;
+    }
+    .subtitle {
+      color: #6b7280;
+      font-size: 0.95rem;
+      margin-top: 4px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+    .btn-secondary {
+      background: #ffffff;
+      color: #374151;
+      border-color: #d1d5db;
+    }
+    .btn-secondary:hover { background: #f9fafb; }
+    .btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.8rem;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead {
+      background: #f9fafb;
+    }
+    th, td {
+      text-align: left;
+      padding: 14px 18px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 0.92rem;
+    }
+    th {
+      font-weight: 600;
+      color: #374151;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+    }
+    tbody tr:hover { background: #f9fafb; }
+    tbody tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .badge-green {
+      background: #ecfdf5;
+      color: #047857;
+    }
+    .empty {
+      text-align: center;
+      padding: 48px 24px;
+      color: #6b7280;
+    }
+    .empty h2 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+      color: #374151;
+    }
+    .empty p { margin: 0; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1>Modules</h1>
+        <div class="subtitle">
+          {% if course %}
+            Course: <strong>{{ course.title }}</strong>
+            {% if course.code %} &middot; {{ course.code }}{% endif %}
+          {% else %}
+            Course not found
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <a href="{{ url_for('admin_modules') }}" class="btn btn-secondary">&larr; Back to Modules</a>
+        {% if course %}
+          <a href="{{ url_for('admin_create_module', course_id=course.id) }}" class="btn btn-primary">+ New Module</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      {% if mod_stats and mod_stats|length > 0 %}
+        <table>
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th>Lessons</th>
+              <th>Students</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for stat in mod_stats %}
+            <tr>
+              <td>
+                <strong>{{ stat.module.title }}</strong>
+                {% if stat.module.description %}
+                  <div class="subtitle">{{ stat.module.description|truncate(80) }}</div>
+                {% endif %}
+              </td>
+              <td><span class="badge">{{ stat.lesson_count }}</span></td>
+              <td><span class="badge badge-green">{{ stat.student_count }}</span></td>
+              <td>
+                <a href="{{ url_for('admin_module_lessons', module_id=stat.module.id) }}"
+                   class="btn btn-secondary btn-sm">View Lessons</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty">
+          <h2>No modules yet</h2>
+          <p>This course doesn't have any modules. Create one to get started.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
