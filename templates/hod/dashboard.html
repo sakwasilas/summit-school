@@ -13,16 +13,16 @@
             font-family: 'Segoe UI', sans-serif;
             color: #0f1724;
             margin: 0;
-            padding: 26px 32px;
+            padding: 20px 24px;
         }
 
-        /* ============ LAYOUT: SIDEBAR + MAIN ============ */
+        /* ============ LAYOUT ============ */
         .layout {
             max-width: 1400px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 260px 1fr;
-            gap: 24px;
+            grid-template-columns: 230px 1fr;
+            gap: 18px;
             align-items: start;
         }
         @media (max-width: 1000px) {
@@ -30,83 +30,74 @@
             .sidebar { position: static !important; }
         }
 
-        /* ============================================ */
-        /* SIDEBAR — white top (logo), dark blue bottom */
-        /* ============================================ */
+        /* ============ SIDEBAR ============ */
         .sidebar {
             background: white;
-            border-radius: 16px;
+            border-radius: 14px;
             overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.06);
             position: sticky;
-            top: 26px;
+            top: 20px;
             display: flex;
             flex-direction: column;
         }
-
-        /* --- WHITE TOP HALF: LOGO + department --- */
         .sb-top {
             background: #ffffff;
-            padding: 22px 20px 20px;
+            padding: 16px 14px 14px;
             text-align: center;
             border-bottom: 1px solid #eef2f5;
         }
         .sb-logo {
-            max-width: 120px;
-            max-height: 80px;
-            width: auto;
-            height: auto;
+            max-width: 96px;
+            max-height: 64px;
+            width: auto; height: auto;
             display: block;
-            margin: 0 auto 12px;
+            margin: 0 auto 10px;
             object-fit: contain;
         }
         .sb-dept-name {
-            font-size: 12.5px;
+            font-size: 11.5px;
             font-weight: 800;
             color: #1e3a8a;
-            line-height: 1.35;
+            line-height: 1.3;
             text-transform: uppercase;
             letter-spacing: 0.4px;
         }
         .sb-role-tag {
             display: inline-block;
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 700;
             color: #ffffff;
             background: #1e3a8a;
-            padding: 3px 12px;
+            padding: 3px 11px;
             border-radius: 20px;
-            margin-top: 8px;
+            margin-top: 7px;
             text-transform: uppercase;
             letter-spacing: 0.6px;
         }
-
-        /* --- COLORED BOTTOM HALF: LINKS --- */
         .sb-bottom {
             background: linear-gradient(180deg, #1e3a8a 0%, #172f6e 100%);
-            padding: 14px 12px 18px;
+            padding: 10px 9px 14px;
             color: white;
             flex: 1;
         }
-
         .sb-section-title {
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: 800;
             color: rgba(96,165,250,0.85);
             text-transform: uppercase;
             letter-spacing: 0.9px;
-            padding: 12px 10px 6px;
+            padding: 9px 9px 4px;
         }
-
         .sb-link {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 9px 12px;
-            border-radius: 9px;
+            gap: 9px;
+            padding: 6px 10px;
+            border-radius: 8px;
             text-decoration: none;
             color: rgba(255,255,255,0.88);
-            font-size: 12.5px;
+            font-size: 11.5px;
             font-weight: 600;
             transition: background .15s, color .15s, transform .1s;
             margin-bottom: 2px;
@@ -117,21 +108,16 @@
             transform: translateX(2px);
         }
         .sb-link:hover i { color: #ffffff; }
-        .sb-link.active {
-            background: #60a5fa;
-            color: #1e3a8a;
-        }
+        .sb-link.active { background: #60a5fa; color: #1e3a8a; }
         .sb-link.active i { color: #1e3a8a; }
         .sb-link i {
-            font-size: 14px;
-            width: 18px;
+            font-size: 13px;
+            width: 16px;
             text-align: center;
             flex-shrink: 0;
             color: #60a5fa;
             transition: color .15s;
         }
-
-        /* PRIMARY (highlighted white pill) */
         .sb-link.sb-primary {
             background: #60a5fa;
             color: #1e3a8a;
@@ -145,13 +131,11 @@
             transform: translateY(-1px);
         }
         .sb-link.sb-primary:hover i { color: #1e3a8a; }
-
         .sb-divider {
             height: 1px;
             background: rgba(96,165,250,0.25);
-            margin: 12px 8px;
+            margin: 9px 6px;
         }
-
         .sb-link.sb-logout { color: #fecaca; }
         .sb-link.sb-logout i { color: #fca5a5; }
         .sb-link.sb-logout:hover {
@@ -160,66 +144,64 @@
         }
         .sb-link.sb-logout:hover i { color: #ffffff; }
 
-        /* ============ MAIN COLUMN ============ */
+        /* ============ MAIN ============ */
         .main { min-width: 0; }
 
         /* HERO */
         .hero {
             background: linear-gradient(135deg, #1e3a8a, #172f6e);
             color: white;
-            border-radius: 18px;
-            padding: 28px 32px;
-            margin-bottom: 24px;
+            border-radius: 14px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 12px 30px rgba(30,58,138,0.25);
+            box-shadow: 0 8px 22px rgba(30,58,138,0.2);
         }
         .hero::before {
             content: ''; position: absolute; right: -60px; top: -60px;
-            width: 240px; height: 240px;
+            width: 200px; height: 200px;
             background: rgba(96,165,250,0.15); border-radius: 50%;
         }
         .hero::after {
             content: ''; position: absolute; right: 60px; bottom: -80px;
-            width: 160px; height: 160px;
+            width: 140px; height: 140px;
             background: rgba(96,165,250,0.1); border-radius: 50%;
         }
         .hero h1 {
-            font-size: 24px; font-weight: 800;
-            margin: 0 0 6px; position: relative; z-index: 1;
+            font-size: 19px; font-weight: 800;
+            margin: 0 0 4px; position: relative; z-index: 1;
         }
         .hero h1 span { color: #60a5fa; }
         .hero .sub {
-            font-size: 13px; opacity: 0.85;
+            font-size: 12px; opacity: 0.85;
             position: relative; z-index: 1;
         }
         .hero-meta {
-            display: flex; gap: 32px; flex-wrap: wrap;
-            margin-top: 22px; position: relative; z-index: 1;
+            display: flex; gap: 22px; flex-wrap: wrap;
+            margin-top: 16px; position: relative; z-index: 1;
         }
-        .hero-meta .hm-item {
-            display: flex; align-items: center; gap: 12px;
-        }
+        .hero-meta .hm-item { display: flex; align-items: center; gap: 10px; }
         .hero-meta .hm-icon {
-            width: 42px; height: 42px; border-radius: 12px;
+            width: 34px; height: 34px; border-radius: 9px;
             background: rgba(96,165,250,0.18);
             display: flex; align-items: center; justify-content: center;
-            font-size: 18px; color: #60a5fa;
+            font-size: 14px; color: #60a5fa;
         }
         .hero-meta .hm-num {
-            font-size: 22px; font-weight: 800; line-height: 1;
+            font-size: 17px; font-weight: 800; line-height: 1;
             color: #ffffff;
         }
         .hero-meta .hm-lbl {
-            font-size: 11px; opacity: 0.75;
+            font-size: 9.5px; opacity: 0.75;
             text-transform: uppercase; letter-spacing: 0.6px;
             margin-top: 3px;
         }
 
         /* FLASH */
         .flash {
-            padding: 12px 16px; border-radius: 10px;
-            margin-bottom: 14px; font-size: 13px; font-weight: 500;
+            padding: 9px 13px; border-radius: 8px;
+            margin-bottom: 11px; font-size: 12px; font-weight: 500;
         }
         .flash.success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
         .flash.danger  { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
@@ -227,75 +209,76 @@
 
         /* SECTION TITLE */
         .section-title {
-            font-size: 13px;
+            font-size: 11.5px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.8px;
             color: #64748b;
-            margin: 26px 0 14px;
+            margin: 16px 0 10px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 7px;
         }
         .section-title i { color: #1e3a8a; }
 
-        /* ACTION CARDS */
+        /* ============ ACTION CARDS — SMALL ============ */
         .action-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
         }
         .action-card {
             display: block;
             text-decoration: none;
             color: white;
-            padding: 24px 24px 22px;
-            border-radius: 16px;
+            padding: 14px 16px;
+            border-radius: 12px;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-            transition: transform .2s, box-shadow .2s;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.09);
+            transition: transform .18s, box-shadow .18s;
         }
         .action-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 14px 32px rgba(0,0,0,0.16);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.15);
             color: white;
         }
         .action-card .ac-icon {
-            width: 52px; height: 52px;
-            border-radius: 14px;
+            width: 36px; height: 36px;
+            border-radius: 9px;
             background: rgba(255,255,255,0.18);
             backdrop-filter: blur(4px);
             display: flex; align-items: center; justify-content: center;
-            font-size: 24px;
-            margin-bottom: 16px;
+            font-size: 17px;
+            margin-bottom: 10px;
         }
         .action-card h3 {
-            font-size: 17px; font-weight: 800;
-            margin: 0 0 6px;
+            font-size: 13.5px; font-weight: 800;
+            margin: 0 0 4px;
             letter-spacing: -0.2px;
+            line-height: 1.25;
         }
         .action-card p {
-            font-size: 12.5px;
-            line-height: 1.5;
+            font-size: 10.5px;
+            line-height: 1.45;
             margin: 0;
             opacity: 0.92;
         }
         .action-card .ac-arrow {
             position: absolute;
-            right: 20px; top: 26px;
-            font-size: 20px;
+            right: 13px; top: 15px;
+            font-size: 14px;
             opacity: 0.7;
             transition: transform .2s, opacity .2s;
         }
         .action-card:hover .ac-arrow {
-            transform: translateX(4px);
+            transform: translateX(3px);
             opacity: 1;
         }
         .action-card .ac-bg-icon {
             position: absolute;
-            right: -10px; bottom: -20px;
-            font-size: 120px;
+            right: -8px; bottom: -14px;
+            font-size: 72px;
             opacity: 0.08;
             line-height: 1;
         }
@@ -304,56 +287,57 @@
         .action-card.purple { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
         .action-card.green  { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
 
-        /* COURSE CARDS */
+        /* ============ COURSE CARDS — SMALL ============ */
         .course-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
         }
         .course-card {
             background: white;
-            border-radius: 14px;
-            padding: 20px 22px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-radius: 11px;
+            padding: 13px 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             transition: box-shadow .15s, border-color .15s;
             border: 1px solid transparent;
         }
         .course-card:hover {
-            box-shadow: 0 6px 22px rgba(30,58,138,0.12);
+            box-shadow: 0 6px 18px rgba(30,58,138,0.12);
             border-color: #bfdbfe;
         }
         .course-card .cc-head {
             display: flex; justify-content: space-between;
-            align-items: start; margin-bottom: 4px; gap: 8px;
+            align-items: start; margin-bottom: 3px; gap: 8px;
         }
         .course-card h3 {
-            font-size: 14.5px; font-weight: 800;
+            font-size: 13px; font-weight: 800;
             margin: 0; color: #1e3a8a;
+            line-height: 1.25;
         }
         .course-card .level-tag {
-            font-size: 10.5px; font-weight: 700;
+            font-size: 9.5px; font-weight: 700;
             background: #dbeafe; color: #1e40af;
-            padding: 2px 8px; border-radius: 6px;
+            padding: 2px 7px; border-radius: 6px;
             text-transform: uppercase; white-space: nowrap;
         }
         .course-card .cc-current {
-            font-size: 12px; color: #64748b;
-            margin-top: 8px; display: flex; align-items: center; gap: 6px;
+            font-size: 11px; color: #64748b;
+            margin-top: 5px; display: flex; align-items: center; gap: 5px;
         }
         .course-card .cc-current i { color: #3b82f6; }
         .course-card .cc-stats {
-            display: flex; gap: 16px;
-            margin-top: 14px; padding-top: 14px;
-            border-top: 1px solid #f1f5f9; font-size: 12.5px;
+            display: flex; gap: 12px;
+            margin-top: 9px; padding-top: 9px;
+            border-top: 1px solid #f1f5f9; font-size: 11px;
         }
         .course-card .cc-stats span {
-            display: flex; align-items: center; gap: 5px; color: #475569;
+            display: flex; align-items: center; gap: 4px; color: #475569;
         }
         .course-card .cc-stats strong { color: #1e3a8a; font-weight: 800; }
-        .course-card .cc-actions { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+        .course-card .cc-actions { display: flex; gap: 5px; margin-top: 9px; flex-wrap: wrap; }
         .cc-btn {
-            font-size: 11.5px; font-weight: 700;
-            padding: 6px 12px; border-radius: 7px;
+            font-size: 10.5px; font-weight: 700;
+            padding: 5px 10px; border-radius: 6px;
             text-decoration: none;
             display: inline-flex; align-items: center; gap: 4px;
         }
@@ -366,13 +350,13 @@
 
         /* EMPTY */
         .empty {
-            padding: 40px 20px; text-align: center;
-            color: #94a3b8; font-size: 13px;
-            background: white; border-radius: 14px;
+            padding: 30px 20px; text-align: center;
+            color: #94a3b8; font-size: 12.5px;
+            background: white; border-radius: 12px;
         }
 
         @media (max-width: 1000px) {
-            .hero-meta { gap: 22px; }
+            .hero-meta { gap: 16px; }
         }
     </style>
 </head>
@@ -380,11 +364,8 @@
 
 <div class="layout">
 
-    <!-- ================================================== -->
-    <!-- SIDEBAR — white top (logo), dark blue bottom       -->
-    <!-- ================================================== -->
+    <!-- SIDEBAR -->
     <aside class="sidebar">
-
         <div class="sb-top">
             <img src="{{ url_for('static', filename='images/logo.jpg') }}"
                  alt="{{ department.name }} logo"
@@ -394,7 +375,6 @@
         </div>
 
         <div class="sb-bottom">
-
             <div class="sb-section-title">Marks</div>
             <a href="{{ url_for('hod_marks_picker') }}" class="sb-link sb-primary">
                 <i class="bi bi-pencil-square"></i> Enter Marks
@@ -435,14 +415,10 @@
             <a href="{{ url_for('logout') }}" class="sb-link sb-logout">
                 <i class="bi bi-box-arrow-right"></i> Logout
             </a>
-
         </div>
-
     </aside>
 
-    <!-- ================================================== -->
-    <!-- MAIN COLUMN                                        -->
-    <!-- ================================================== -->
+    <!-- MAIN -->
     <main class="main">
 
         <div class="hero">
@@ -487,14 +463,12 @@
             {% endfor %}
         {% endwith %}
 
-        <!-- PRIMARY ACTIONS -->
         <div class="section-title">
             <i class="bi bi-lightning-charge-fill"></i>
             What do you want to do?
         </div>
 
         <div class="action-grid">
-
             <a href="{{ url_for('hod_marks_picker') }}" class="action-card blue">
                 <div class="ac-icon"><i class="bi bi-clock-history"></i></div>
                 <h3>Enter Marks for a Past Semester</h3>
@@ -526,10 +500,8 @@
                 <i class="bi bi-arrow-right ac-arrow"></i>
                 <i class="bi bi-person-badge ac-bg-icon"></i>
             </a>
-
         </div>
 
-        <!-- COURSE OVERVIEW -->
         <div class="section-title">
             <i class="bi bi-collection-fill"></i>
             Your Courses
@@ -579,7 +551,7 @@
         </div>
         {% else %}
         <div class="empty">
-            <i class="bi bi-journal-x" style="font-size:40px; display:block; margin-bottom:10px; color:#cbd5e1;"></i>
+            <i class="bi bi-journal-x" style="font-size:34px; display:block; margin-bottom:8px; color:#cbd5e1;"></i>
             No courses in your department yet.
         </div>
         {% endif %}
