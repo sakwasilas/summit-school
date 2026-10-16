@@ -21,6 +21,7 @@ from models import (
     User, Admin, HOD, Department, Course, Semester, Subject,
     Question, Quiz, StudentProfile, Result, Message,
     ActivityLog, KnecMark, Module,
+    ShortCourseMark, PeriodicMark,
 )
 from utils import parse_docx_questions
 
@@ -34,7 +35,7 @@ app.secret_key = "132silas456sakwa789ayanga"
 
 
 # ============================================================
-# QUERY HELPERS (eager loading)
+# QUERY HELPERS
 # ============================================================
 def student_query(db):
     return db.query(StudentProfile).options(
@@ -60,6 +61,56 @@ def quiz_query(db):
         joinedload(Quiz.course),
         joinedload(Quiz.subject),
     )
+
+
+# ============================================================
+# ASSESSMENT TYPE HELPERS
+# ============================================================
+def get_course_assessment_type(course):
+    return (getattr(course, "assessment_type", None) or "knec").strip().lower()
+
+
+def get_periodic_labels(course):
+    if get_course_assessment_type(course) != "periodic":
+        return []
+    raw = (getattr(course, "periodic_labels", None) or "").strip()
+    if not raw:
+        return ["Month 1", "Month 2", "Month 3", "Final"]
+    return [l.strip() for l in raw.split(",") if l.strip()]
+
+
+def get_student_subject_marks(db, student_id, subject_id, semester_id, course):
+    atype = get_course_assessment_type(course)
+
+    if atype == "knec":
+        m = db.query(KnecMark).filter_by(
+            student_id=student_id, subject_id=subject_id, semester_id=semester_id
+        ).first()
+        if not m:
+            return None
+        return {
+            "cat1": m.cat1, "cat2": m.cat2, "final": m.final,
+            "total": (m.cat1 or 0) + (m.cat2 or 0) + (m.final or 0),
+        }
+
+    if atype == "short":
+        m = db.query(ShortCourseMark).filter_by(
+            student_id=student_id, subject_id=subject_id, semester_id=semester_id
+        ).first()
+        if not m:
+            return None
+        return {"score": m.score, "remarks": m.remarks, "total": m.score or 0}
+
+    labels = get_periodic_labels(course)
+    rows = db.query(PeriodicMark).filter_by(
+        student_id=student_id, subject_id=subject_id, semester_id=semester_id
+    ).all()
+    if not rows:
+        return None
+    cells = {r.label: r.score for r in rows}
+    scores = [c for c in cells.values() if c is not None]
+    avg = round(sum(scores) / len(scores), 2) if scores else None
+    return {"cells": cells, "labels": labels, "average": avg, "total": avg or 0}
 
 
 # ============================================================
@@ -174,6 +225,8 @@ def _delete_student_tree(db, student):
     db.query(ActivityLog).filter(ActivityLog.student_id == student.id).delete(synchronize_session=False)
     db.query(Result).filter(Result.student_id == student.id).delete(synchronize_session=False)
     db.query(KnecMark).filter(KnecMark.student_id == student.id).delete(synchronize_session=False)
+    db.query(ShortCourseMark).filter(ShortCourseMark.student_id == student.id).delete(synchronize_session=False)
+    db.query(PeriodicMark).filter(PeriodicMark.student_id == student.id).delete(synchronize_session=False)
     user = student.user
     db.delete(student)
     if user:
@@ -482,13 +535,33 @@ def add_course():
             department_id = request.form.get("department_id") or None
             department_id = int(department_id) if department_id else None
 
+            assessment_type = (request.form.get("assessment_type") or "knec").strip().lower()
+            if assessment_type not in ("knec", "short", "periodic"):
+                assessment_type = "knec"
+
+            max_score = request.form.get("max_score", type=int) or 100
+            if max_score <= 0 or max_score > 1000:
+                max_score = 100
+
+            periodic_labels = (request.form.get("periodic_labels") or "").strip()
+            if assessment_type == "periodic" and not periodic_labels:
+                periodic_labels = "Month 1,Month 2,Month 3,Final"
+            if assessment_type != "periodic":
+                periodic_labels = None
+
             if db.query(Course).filter_by(name=course_name).first():
                 flash(f"Course '{course_name}' already exists!", "warning")
                 return redirect(url_for("add_course"))
 
-            db.add(Course(name=course_name, level=course_level, department_id=department_id))
+            db.add(Course(
+                name=course_name, level=course_level,
+                department_id=department_id,
+                assessment_type=assessment_type,
+                max_score=max_score,
+                periodic_labels=periodic_labels,
+            ))
             db.commit()
-            flash("Course added successfully!", "success")
+            flash(f"✅ Course added ({assessment_type.upper()}).", "success")
             return redirect(url_for("manage_courses"))
 
         departments = db.query(Department).order_by(Department.name.asc()).all()
@@ -519,6 +592,17 @@ def edit_course(course_id):
             course.level = request.form["course_level"].strip()
             dept = request.form.get("department_id") or None
             course.department_id = int(dept) if dept else None
+
+            atype = (request.form.get("assessment_type") or course.assessment_type or "knec").strip().lower()
+            if atype not in ("knec", "short", "periodic"):
+                atype = "knec"
+            course.assessment_type = atype
+
+            course.max_score = request.form.get("max_score", type=int) or course.max_score or 100
+
+            labels = (request.form.get("periodic_labels") or "").strip()
+            course.periodic_labels = labels if atype == "periodic" else None
+
             db.commit()
             flash("Course updated.", "success")
             return redirect(url_for("manage_courses"))
@@ -587,10 +671,8 @@ def admin_course_modules(course_id):
                     flash(f"'{name}' already exists for this course.", "warning")
                 else:
                     last = (
-                        db.query(Module)
-                        .filter_by(course_id=course_id)
-                        .order_by(Module.order.desc())
-                        .first()
+                        db.query(Module).filter_by(course_id=course_id)
+                        .order_by(Module.order.desc()).first()
                     )
                     next_order = (last.order + 1) if last else 1
                     db.add(Module(course_id=course_id, name=name, order=next_order))
@@ -619,19 +701,14 @@ def admin_course_modules(course_id):
             return redirect(url_for("admin_course_modules", course_id=course_id))
 
         modules = (
-            db.query(Module)
-            .filter_by(course_id=course_id)
-            .order_by(Module.order.asc(), Module.name.asc())
-            .all()
+            db.query(Module).filter_by(course_id=course_id)
+            .order_by(Module.order.asc(), Module.name.asc()).all()
         )
-
-        mod_stats = []
-        for m in modules:
-            mod_stats.append({
-                "module": m,
-                "subjects": db.query(Subject).filter_by(module_id=m.id).count(),
-                "students": db.query(StudentProfile).filter_by(module_id=m.id).count(),
-            })
+        mod_stats = [{
+            "module": m,
+            "subjects": db.query(Subject).filter_by(module_id=m.id).count(),
+            "students": db.query(StudentProfile).filter_by(module_id=m.id).count(),
+        } for m in modules]
 
         return render_template("admin/course_modules.html", course=course, mod_stats=mod_stats)
     finally:
@@ -698,17 +775,10 @@ def add_subject():
             return redirect(url_for("manage_courses"))
 
         if is_hod():
-            courses = (
-                db.query(Course)
-                .filter_by(department_id=session["department_id"])
-                .order_by(Course.name.asc())
-                .all()
-            )
+            courses = db.query(Course).filter_by(department_id=session["department_id"]).order_by(Course.name.asc()).all()
             semesters = (
-                semester_query(db)
-                .filter(Semester.course_id.in_(hod_course_ids))
-                .order_by(Semester.created_at.desc())
-                .all()
+                semester_query(db).filter(Semester.course_id.in_(hod_course_ids))
+                .order_by(Semester.created_at.desc()).all()
                 if hod_course_ids else []
             )
         else:
@@ -773,16 +843,12 @@ def edit_subject(subject_id):
             return redirect(url_for("manage_courses"))
 
         semesters = (
-            semester_query(db)
-            .filter_by(course_id=subject.course_id)
-            .order_by(Semester.created_at.desc())
-            .all()
+            semester_query(db).filter_by(course_id=subject.course_id)
+            .order_by(Semester.created_at.desc()).all()
         )
         modules = (
-            db.query(Module)
-            .filter_by(course_id=subject.course_id)
-            .order_by(Module.order.asc(), Module.name.asc())
-            .all()
+            db.query(Module).filter_by(course_id=subject.course_id)
+            .order_by(Module.order.asc(), Module.name.asc()).all()
         )
         return render_template(
             "admin/edit_subject.html",
@@ -814,6 +880,9 @@ def delete_subject(subject_id):
 
         _delete_quizzes_for(db, subject_id=subject_id)
         db.query(Message).filter(Message.subject_id == subject_id).delete(synchronize_session=False)
+        db.query(KnecMark).filter(KnecMark.subject_id == subject_id).delete(synchronize_session=False)
+        db.query(ShortCourseMark).filter(ShortCourseMark.subject_id == subject_id).delete(synchronize_session=False)
+        db.query(PeriodicMark).filter(PeriodicMark.subject_id == subject_id).delete(synchronize_session=False)
         db.delete(subject)
         db.commit()
         flash("Subject deleted successfully.", "success")
@@ -1140,10 +1209,8 @@ def admin_assign_modules():
                 return redirect(url_for("admin_assign_modules"))
 
             students = (
-                db.query(StudentProfile)
-                .filter_by(course_id=course_id)
-                .order_by(StudentProfile.full_name.asc())
-                .all()
+                db.query(StudentProfile).filter_by(course_id=course_id)
+                .order_by(StudentProfile.full_name.asc()).all()
             )
 
             updated = 0
@@ -1181,16 +1248,12 @@ def admin_assign_modules():
             course = db.query(Course).filter_by(id=course_id).first()
             if course:
                 students = (
-                    db.query(StudentProfile)
-                    .filter_by(course_id=course_id)
-                    .order_by(StudentProfile.full_name.asc())
-                    .all()
+                    db.query(StudentProfile).filter_by(course_id=course_id)
+                    .order_by(StudentProfile.full_name.asc()).all()
                 )
                 modules = (
-                    db.query(Module)
-                    .filter_by(course_id=course_id)
-                    .order_by(Module.order.asc(), Module.name.asc())
-                    .all()
+                    db.query(Module).filter_by(course_id=course_id)
+                    .order_by(Module.order.asc(), Module.name.asc()).all()
                 )
 
         return render_template(
@@ -1454,10 +1517,8 @@ def admin_marks_department(dept_id):
             course = db.query(Course).filter_by(id=course_id, department_id=dept_id).first()
         if course:
             semesters = (
-                semester_query(db)
-                .filter_by(course_id=course.id)
-                .order_by(Semester.created_at.desc())
-                .all()
+                semester_query(db).filter_by(course_id=course.id)
+                .order_by(Semester.created_at.desc()).all()
             )
             if semester_id:
                 semester = next((s for s in semesters if s.id == semester_id), None)
@@ -1468,16 +1529,13 @@ def admin_marks_department(dept_id):
                 all_sem_subjects = (
                     subject_query(db)
                     .filter_by(course_id=course.id, semester_id=semester.id)
-                    .order_by(Subject.name.asc())
-                    .all()
+                    .order_by(Subject.name.asc()).all()
                 )
                 used_module_ids = {s.module_id for s in all_sem_subjects if s.module_id}
                 if used_module_ids:
                     available_modules = (
-                        db.query(Module)
-                        .filter(Module.id.in_(used_module_ids))
-                        .order_by(Module.order.asc(), Module.name.asc())
-                        .all()
+                        db.query(Module).filter(Module.id.in_(used_module_ids))
+                        .order_by(Module.order.asc(), Module.name.asc()).all()
                     )
                 subjects = (
                     [s for s in all_sem_subjects if s.module_id == module_id]
@@ -1521,6 +1579,7 @@ def admin_enter_marks():
 
         course = subject.course
         department = course.department if course else None
+        atype = get_course_assessment_type(course)
 
         students_q = student_query(db).filter_by(course_id=subject.course_id)
         if getattr(subject, "module_id", None):
@@ -1531,49 +1590,123 @@ def admin_enter_marks():
         students = students_q.order_by(StudentProfile.full_name.asc()).all()
 
         if request.method == "POST":
-            def to_int_or_none(v):
+            def to_float(v):
+                v = (v or "").strip()
+                if not v:
+                    return None
+                try:
+                    return float(v)
+                except ValueError:
+                    return None
+
+            def to_int(v):
                 v = (v or "").strip()
                 return int(v) if v.isdigit() else None
 
             saved = 0
-            for s in students:
-                c1 = to_int_or_none(request.form.get(f"cat1_{s.id}"))
-                c2 = to_int_or_none(request.form.get(f"cat2_{s.id}"))
-                fn = to_int_or_none(request.form.get(f"final_{s.id}"))
 
-                existing = (
-                    db.query(KnecMark)
-                    .filter_by(student_id=s.id, subject_id=subject_id, semester_id=semester_id)
-                    .first()
-                )
+            if atype == "short":
+                max_s = course.max_score or 100
+                for s in students:
+                    sc = to_float(request.form.get(f"score_{s.id}"))
+                    rm = (request.form.get(f"remarks_{s.id}") or "").strip() or None
 
-                if c1 is None and c2 is None and fn is None:
+                    if sc is not None and not (0 <= sc <= max_s):
+                        flash(f"Score for {s.full_name} must be 0–{max_s}.", "warning")
+                        continue
+
+                    existing = db.query(ShortCourseMark).filter_by(
+                        student_id=s.id, subject_id=subject_id, semester_id=semester_id
+                    ).first()
+
+                    if sc is None and not rm:
+                        if existing:
+                            db.delete(existing)
+                        continue
+
                     if existing:
-                        db.delete(existing)
-                    continue
+                        existing.score = sc
+                        existing.remarks = rm
+                        existing.entered_at = datetime.utcnow()
+                    else:
+                        db.add(ShortCourseMark(
+                            student_id=s.id, subject_id=subject_id,
+                            semester_id=semester_id, score=sc, remarks=rm,
+                        ))
+                    saved += 1
 
-                if c1 is not None and not (0 <= c1 <= 15):
-                    flash(f"CAT1 for {s.full_name} must be 0–15.", "warning")
-                    continue
-                if c2 is not None and not (0 <= c2 <= 15):
-                    flash(f"CAT2 for {s.full_name} must be 0–15.", "warning")
-                    continue
-                if fn is not None and not (0 <= fn <= 70):
-                    flash(f"Final for {s.full_name} must be 0–70.", "warning")
-                    continue
+            elif atype == "periodic":
+                max_s = course.max_score or 100
+                labels = get_periodic_labels(course)
+                for s in students:
+                    for label in labels:
+                        sc = to_float(request.form.get(f"score_{s.id}__{label}"))
+                        rm = (request.form.get(f"remarks_{s.id}__{label}") or "").strip() or None
 
-                if existing:
-                    existing.cat1, existing.cat2, existing.final = c1, c2, fn
-                    existing.entered_at = datetime.utcnow()
-                else:
-                    db.add(KnecMark(
-                        student_id=s.id, subject_id=subject_id, semester_id=semester_id,
-                        cat1=c1, cat2=c2, final=fn,
-                    ))
-                saved += 1
+                        if sc is not None and not (0 <= sc <= max_s):
+                            flash(f"'{label}' for {s.full_name} must be 0–{max_s}.", "warning")
+                            continue
+
+                        existing = db.query(PeriodicMark).filter_by(
+                            student_id=s.id, subject_id=subject_id,
+                            semester_id=semester_id, label=label,
+                        ).first()
+
+                        if sc is None and not rm:
+                            if existing:
+                                db.delete(existing)
+                            continue
+
+                        if existing:
+                            existing.score = sc
+                            existing.remarks = rm
+                            existing.entered_at = datetime.utcnow()
+                        else:
+                            db.add(PeriodicMark(
+                                student_id=s.id, subject_id=subject_id,
+                                semester_id=semester_id, label=label,
+                                score=sc, remarks=rm,
+                            ))
+                        saved += 1
+
+            else:  # KNEC
+                for s in students:
+                    c1 = to_int(request.form.get(f"cat1_{s.id}"))
+                    c2 = to_int(request.form.get(f"cat2_{s.id}"))
+                    fn = to_int(request.form.get(f"final_{s.id}"))
+
+                    existing = db.query(KnecMark).filter_by(
+                        student_id=s.id, subject_id=subject_id, semester_id=semester_id
+                    ).first()
+
+                    if c1 is None and c2 is None and fn is None:
+                        if existing:
+                            db.delete(existing)
+                        continue
+
+                    if c1 is not None and not (0 <= c1 <= 15):
+                        flash(f"CAT1 for {s.full_name} must be 0–15.", "warning")
+                        continue
+                    if c2 is not None and not (0 <= c2 <= 15):
+                        flash(f"CAT2 for {s.full_name} must be 0–15.", "warning")
+                        continue
+                    if fn is not None and not (0 <= fn <= 70):
+                        flash(f"Final for {s.full_name} must be 0–70.", "warning")
+                        continue
+
+                    if existing:
+                        existing.cat1, existing.cat2, existing.final = c1, c2, fn
+                        existing.entered_at = datetime.utcnow()
+                    else:
+                        db.add(KnecMark(
+                            student_id=s.id, subject_id=subject_id,
+                            semester_id=semester_id,
+                            cat1=c1, cat2=c2, final=fn,
+                        ))
+                    saved += 1
 
             db.commit()
-            flash(f"✅ Saved marks for {saved} student(s).", "success")
+            flash(f"✅ Saved marks for {saved} record(s).", "success")
 
             if department:
                 return redirect(url_for(
@@ -1584,15 +1717,24 @@ def admin_enter_marks():
                 ))
             return redirect(url_for("admin_marks_picker"))
 
-        existing = {
-            m.student_id: m
-            for m in db.query(KnecMark).filter_by(subject_id=subject_id, semester_id=semester_id).all()
-        }
+        if atype == "short":
+            existing = {m.student_id: m for m in db.query(ShortCourseMark).filter_by(
+                subject_id=subject_id, semester_id=semester_id).all()}
+        elif atype == "periodic":
+            existing = {}
+            for m in db.query(PeriodicMark).filter_by(
+                subject_id=subject_id, semester_id=semester_id).all():
+                existing.setdefault(m.student_id, {})[m.label] = m
+        else:
+            existing = {m.student_id: m for m in db.query(KnecMark).filter_by(
+                subject_id=subject_id, semester_id=semester_id).all()}
 
         return render_template(
             "admin/marks_entry.html",
             subject=subject, semester=semester, course=course,
             department=department, students=students, existing=existing,
+            assessment_type=atype,
+            periodic_labels=get_periodic_labels(course),
         )
     finally:
         db.close()
@@ -1638,23 +1780,36 @@ def admin_class_marks():
         if not semester:
             return "Semester not found", 404
 
+        course = semester.course
+        atype = get_course_assessment_type(course)
+
         students = (
             student_query(db).filter_by(course_id=semester.course_id)
             .order_by(StudentProfile.full_name.asc()).all()
         )
         subjects = (
-            subject_query(db)
-            .filter_by(course_id=semester.course_id, semester_id=semester_id)
+            subject_query(db).filter_by(course_id=semester.course_id, semester_id=semester_id)
             .order_by(Subject.name.asc()).all()
         )
 
-        marks = {}
-        for m in db.query(KnecMark).filter_by(semester_id=semester_id).all():
-            marks.setdefault(m.student_id, {})[m.subject_id] = m
+        if atype == "short":
+            marks = {}
+            for m in db.query(ShortCourseMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {})[m.subject_id] = m
+        elif atype == "periodic":
+            marks = {}
+            for m in db.query(PeriodicMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {}).setdefault(m.subject_id, {})[m.label] = m
+        else:
+            marks = {}
+            for m in db.query(KnecMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {})[m.subject_id] = m
 
         return render_template(
             "admin/class_marks.html",
             semester=semester, students=students, subjects=subjects, marks=marks,
+            assessment_type=atype,
+            periodic_labels=get_periodic_labels(course),
         )
     finally:
         db.close()
@@ -1677,56 +1832,77 @@ def admin_class_marks_export():
             return "Semester not found", 404
 
         course = semester.course
+        atype = get_course_assessment_type(course)
+
         students = (
             student_query(db).filter_by(course_id=semester.course_id)
             .order_by(StudentProfile.full_name.asc()).all()
         )
         subjects = (
-            subject_query(db)
-            .filter_by(course_id=semester.course_id, semester_id=semester_id)
+            subject_query(db).filter_by(course_id=semester.course_id, semester_id=semester_id)
             .order_by(Subject.name.asc()).all()
         )
 
-        marks = {}
-        for m in db.query(KnecMark).filter_by(semester_id=semester_id).all():
-            marks.setdefault(m.student_id, {})[m.subject_id] = m
-
         data = []
-        for s in students:
-            row = {
-                "Admission No": s.admission_number,
-                "Student Name": s.full_name,
-                "Exam Type": (s.exam_type or "").upper(),
-            }
-            grand_total = 0
-            counted = 0
-            for subj in subjects:
-                m = marks.get(s.id, {}).get(subj.id)
-                c1 = m.cat1 if m and m.cat1 is not None else ""
-                c2 = m.cat2 if m and m.cat2 is not None else ""
-                fn = m.final if m and m.final is not None else ""
-                total = (m.cat1 or 0) + (m.cat2 or 0) + (m.final or 0) if m else ""
+        if atype == "knec":
+            marks = {}
+            for m in db.query(KnecMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {})[m.subject_id] = m
+            for s in students:
+                row = {"Admission No": s.admission_number, "Student Name": s.full_name,
+                       "Exam Type": (s.exam_type or "").upper()}
+                grand_total = counted = 0
+                for subj in subjects:
+                    m = marks.get(s.id, {}).get(subj.id)
+                    c1 = m.cat1 if m and m.cat1 is not None else ""
+                    c2 = m.cat2 if m and m.cat2 is not None else ""
+                    fn = m.final if m and m.final is not None else ""
+                    total = (m.cat1 or 0) + (m.cat2 or 0) + (m.final or 0) if m else ""
+                    prefix = subj.name.split(" ", 1)[0]
+                    row[f"{prefix} CAT1"] = c1
+                    row[f"{prefix} CAT2"] = c2
+                    row[f"{prefix} Final"] = fn
+                    row[f"{prefix} Total"] = total
+                    if isinstance(total, int):
+                        grand_total += total
+                        counted += 1
+                row["Grand Total"] = grand_total
+                row["Average"] = round(grand_total / counted, 2) if counted else ""
+                data.append(row)
 
-                prefix = subj.name.split(" ", 1)[0]
-                row[f"{prefix} CAT1"] = c1
-                row[f"{prefix} CAT2"] = c2
-                row[f"{prefix} Final"] = fn
-                row[f"{prefix} Total"] = total
+        elif atype == "short":
+            marks = {}
+            for m in db.query(ShortCourseMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {})[m.subject_id] = m
+            for s in students:
+                row = {"Admission No": s.admission_number, "Student Name": s.full_name}
+                grand_total = counted = 0
+                for subj in subjects:
+                    m = marks.get(s.id, {}).get(subj.id)
+                    score = m.score if m and m.score is not None else ""
+                    row[f"{subj.name} Score"] = score
+                    row[f"{subj.name} Remarks"] = m.remarks if m and m.remarks else ""
+                    if isinstance(score, (int, float)):
+                        grand_total += score
+                        counted += 1
+                row["Grand Total"] = grand_total
+                row["Average"] = round(grand_total / counted, 2) if counted else ""
+                data.append(row)
 
-                if isinstance(total, int):
-                    grand_total += total
-                    counted += 1
-
-            row["Grand Total"] = grand_total
-            row["Average"] = round(grand_total / counted, 2) if counted else ""
-            data.append(row)
+        else:  # periodic
+            labels = get_periodic_labels(course)
+            marks = {}
+            for m in db.query(PeriodicMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {}).setdefault(m.subject_id, {})[m.label] = m
+            for s in students:
+                row = {"Admission No": s.admission_number, "Student Name": s.full_name}
+                for subj in subjects:
+                    cells = marks.get(s.id, {}).get(subj.id, {})
+                    for label in labels:
+                        row[f"{subj.name} {label}"] = cells[label].score if label in cells else ""
+                data.append(row)
 
         df = pd.DataFrame(data)
-        identity_cols = ["Admission No", "Student Name", "Exam Type"]
-        total_cols = ["Grand Total", "Average"]
-        subject_cols = [c for c in df.columns if c not in identity_cols + total_cols]
-        df = df[identity_cols + subject_cols + total_cols]
-
         buf = io.BytesIO()
         with pd.ExcelWriter(buf, engine="openpyxl") as writer:
             df.to_excel(writer, index=False, sheet_name="Marks")
@@ -1779,6 +1955,9 @@ def admin_reports_class():
         if not semester:
             return "Semester not found", 404
 
+        course = semester.course
+        atype = get_course_assessment_type(course)
+
         students = (
             student_query(db).filter_by(course_id=semester.course_id)
             .order_by(StudentProfile.full_name.asc()).all()
@@ -1786,28 +1965,52 @@ def admin_reports_class():
 
         student_summary = []
         for s in students:
-            is_knec = (s.exam_type or "").strip().lower() == "knec"
             total_sum = 0
             subjects_count = 0
 
-            if is_knec:
-                for m in db.query(KnecMark).filter_by(student_id=s.id, semester_id=semester_id).all():
+            if atype == "knec":
+                for m in db.query(KnecMark).filter_by(
+                    student_id=s.id, semester_id=semester_id
+                ).all():
                     total_sum += (m.cat1 or 0) + (m.cat2 or 0) + (m.final or 0)
                     subjects_count += 1
+            elif atype == "short":
+                for m in db.query(ShortCourseMark).filter_by(
+                    student_id=s.id, semester_id=semester_id
+                ).all():
+                    if m.score is not None:
+                        total_sum += m.score
+                        subjects_count += 1
+            else:
+                rows = db.query(PeriodicMark).filter_by(
+                    student_id=s.id, semester_id=semester_id
+                ).all()
+                by_subject = {}
+                for r in rows:
+                    by_subject.setdefault(r.subject_id, []).append(r.score)
+                for scores in by_subject.values():
+                    valid = [sc for sc in scores if sc is not None]
+                    if valid:
+                        total_sum += sum(valid) / len(valid)
+                        subjects_count += 1
 
             avg = round(total_sum / subjects_count, 2) if subjects_count else None
-            grade = None
-            if avg is not None:
+
+            if avg is None:
+                grade = result = None
+            elif atype == "knec":
                 grade = (1 if avg >= 84 else 2 if avg >= 75 else 3 if avg >= 66
                          else 4 if avg >= 60 else 5 if avg >= 50
                          else 6 if avg >= 40 else 7)
-            result = None
-            if avg is not None:
                 result = ("DISTINCTION" if avg >= 75 else "CREDIT" if avg >= 60
                           else "PASS" if avg >= 40 else "REFER")
+            else:
+                grade = (1 if avg >= 80 else 2 if avg >= 65 else 3 if avg >= 50 else 4)
+                result = ("DISTINCTION" if avg >= 80 else "CREDIT" if avg >= 65
+                          else "PASS" if avg >= 50 else "FAIL")
 
             student_summary.append({
-                "student": s, "is_knec": is_knec, "avg": avg,
+                "student": s, "avg": avg,
                 "overall_grade": grade, "overall_result": result,
                 "subjects_count": subjects_count,
             })
@@ -1816,6 +2019,7 @@ def admin_reports_class():
             "admin/reports_class.html",
             semester=semester, student_summary=student_summary,
             total_students=len(students),
+            assessment_type=atype,
         )
     finally:
         db.close()
@@ -1838,6 +2042,8 @@ def admin_reports_class_export():
             return "Semester not found", 404
 
         course = semester.course
+        atype = get_course_assessment_type(course)
+
         students = (
             student_query(db).filter_by(course_id=semester.course_id)
             .order_by(StudentProfile.full_name.asc()).all()
@@ -1845,24 +2051,43 @@ def admin_reports_class_export():
 
         data = []
         for s in students:
-            is_knec = (s.exam_type or "").strip().lower() == "knec"
             total_sum = 0
             subjects_count = 0
-            if is_knec:
+
+            if atype == "knec":
                 for m in db.query(KnecMark).filter_by(student_id=s.id, semester_id=semester_id).all():
                     total_sum += (m.cat1 or 0) + (m.cat2 or 0) + (m.final or 0)
                     subjects_count += 1
+            elif atype == "short":
+                for m in db.query(ShortCourseMark).filter_by(student_id=s.id, semester_id=semester_id).all():
+                    if m.score is not None:
+                        total_sum += m.score
+                        subjects_count += 1
+            else:
+                rows = db.query(PeriodicMark).filter_by(student_id=s.id, semester_id=semester_id).all()
+                by_subject = {}
+                for r in rows:
+                    by_subject.setdefault(r.subject_id, []).append(r.score)
+                for scores in by_subject.values():
+                    valid = [sc for sc in scores if sc is not None]
+                    if valid:
+                        total_sum += sum(valid) / len(valid)
+                        subjects_count += 1
 
             avg = round(total_sum / subjects_count, 2) if subjects_count else ""
-            grade = ""
-            if isinstance(avg, float):
+
+            if not isinstance(avg, float):
+                grade = result = ""
+            elif atype == "knec":
                 grade = (1 if avg >= 84 else 2 if avg >= 75 else 3 if avg >= 66
                          else 4 if avg >= 60 else 5 if avg >= 50
                          else 6 if avg >= 40 else 7)
-            result = ""
-            if isinstance(avg, float):
                 result = ("DISTINCTION" if avg >= 75 else "CREDIT" if avg >= 60
                           else "PASS" if avg >= 40 else "REFER")
+            else:
+                grade = (1 if avg >= 80 else 2 if avg >= 65 else 3 if avg >= 50 else 4)
+                result = ("DISTINCTION" if avg >= 80 else "CREDIT" if avg >= 65
+                          else "PASS" if avg >= 50 else "FAIL")
 
             data.append({
                 "Admission No": s.admission_number,
@@ -1870,6 +2095,7 @@ def admin_reports_class_export():
                 "Course": course.name if course else "",
                 "Semester": semester.name,
                 "Exam Type": (s.exam_type or "").upper(),
+                "Assessment Type": atype.upper(),
                 "Subjects Graded": subjects_count,
                 "Total Marks": total_sum,
                 "Average": avg, "Grade": grade, "Overall Result": result,
@@ -1909,28 +2135,33 @@ def admin_report_student(student_id, semester_id):
         if not sem:
             return "Semester not found for this student", 404
 
+        course = student.course
+        atype = get_course_assessment_type(course)
+
         subjects = (
-            subject_query(db)
-            .filter_by(course_id=student.course_id, semester_id=sem.id)
+            subject_query(db).filter_by(course_id=student.course_id, semester_id=sem.id)
             .order_by(Subject.name.asc()).all()
         )
 
         rows = []
+        grand_total = 0
+        counted = 0
+
         for subj in subjects:
-            m = db.query(KnecMark).filter_by(
-                student_id=student.id, subject_id=subj.id, semester_id=sem.id
-            ).first()
-            c1 = m.cat1 if m and m.cat1 is not None else None
-            c2 = m.cat2 if m and m.cat2 is not None else None
-            fn = m.final if m and m.final is not None else None
-            rows.append({
-                "subject": subj, "cat1": c1, "cat2": c2, "final": fn,
-                "total": (c1 or 0) + (c2 or 0) + (fn or 0),
-            })
+            info = get_student_subject_marks(db, student.id, subj.id, sem.id, course)
+            rows.append({"subject": subj, "info": info})
+            if info:
+                grand_total += info["total"]
+                counted += 1
+
+        avg = round(grand_total / counted, 2) if counted else None
 
         return render_template(
             "students/print_report.html",
             student=student, semester=sem, rows=rows,
+            assessment_type=atype,
+            periodic_labels=get_periodic_labels(course),
+            grand_total=grand_total, counted=counted, avg=avg,
             current_year=datetime.now().year, admin_mode=True,
         )
     finally:
@@ -2026,8 +2257,7 @@ def hod_manage_subjects():
         semesters = []
         if course_ids:
             semesters = (
-                semester_query(db)
-                .filter(Semester.course_id.in_(course_ids))
+                semester_query(db).filter(Semester.course_id.in_(course_ids))
                 .order_by(Semester.name.asc()).all()
             )
 
@@ -2191,6 +2421,8 @@ def hod_delete_subject(subject_id):
         _delete_quizzes_for(db, subject_id=subject_id)
         db.query(Message).filter(Message.subject_id == subject_id).delete(synchronize_session=False)
         db.query(KnecMark).filter(KnecMark.subject_id == subject_id).delete(synchronize_session=False)
+        db.query(ShortCourseMark).filter(ShortCourseMark.subject_id == subject_id).delete(synchronize_session=False)
+        db.query(PeriodicMark).filter(PeriodicMark.subject_id == subject_id).delete(synchronize_session=False)
         db.delete(subject)
         db.commit()
         flash("✅ Subject deleted.", "success")
@@ -2411,14 +2643,10 @@ def hod_students_upload():
                     errors.append(f"course '{course_name}' not found in your department")
                 else:
                     if semester_name:
-                        sem = (
-                            db.query(Semester)
-                            .filter(
-                                Semester.course_id == matched_course.id,
-                                Semester.name.ilike(semester_name),
-                            )
-                            .first()
-                        )
+                        sem = db.query(Semester).filter(
+                            Semester.course_id == matched_course.id,
+                            Semester.name.ilike(semester_name),
+                        ).first()
                         if not sem:
                             errors.append(f"semester '{semester_name}' not found for course '{course_name}'")
                         else:
@@ -2466,7 +2694,6 @@ def hod_students_upload():
 
 @app.route("/hod/students/upload/confirm", methods=["POST"])
 def hod_students_upload_confirm():
-    """Bulk-optimized confirm: preloads all reference data, then does ONE bulk insert."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2479,7 +2706,6 @@ def hod_students_upload_confirm():
     db = SessionLocal()
     imported, skipped = 0, 0
     try:
-        # ---- 1. Preload reference data in a handful of queries ----
         course_ids = list({r["course_id"] for r in rows})
 
         courses = {
@@ -2520,7 +2746,6 @@ def hod_students_upload_confirm():
         for m in db.query(Module).filter(Module.course_id.in_(course_ids)).all():
             modules_lookup[(m.course_id, m.name)] = m
 
-        # ---- 2. Build users + pending student data (no StudentProfile yet) ----
         new_users = []
         pending = []
         username_taken = set(existing_usernames)
@@ -2571,15 +2796,12 @@ def hod_students_upload_confirm():
             })
             existing_admissions.add(adm)
 
-        # ---- 3. Bulk insert users, then students with user_id ----
         if new_users:
             db.add_all(new_users)
-            db.flush()  # assigns IDs
-
+            db.flush()
             new_students = []
             for user, data in zip(new_users, pending):
                 new_students.append(StudentProfile(user_id=user.id, **data))
-
             db.add_all(new_students)
             db.commit()
             imported = len(new_students)
@@ -2600,6 +2822,7 @@ def hod_students_upload_confirm():
         db.close()
 
     return redirect(url_for("hod_students_list"))
+
 
 @app.route("/hod/student/<int:student_id>/set-module", methods=["POST"])
 def hod_set_student_module(student_id):
@@ -2836,21 +3059,10 @@ def hod_student_detail(student_id):
             sem_count = 0
 
             for subj in subjects:
-                m = db.query(KnecMark).filter_by(
-                    student_id=student.id, subject_id=subj.id, semester_id=sem.id,
-                ).first()
-                c1 = m.cat1 if m and m.cat1 is not None else None
-                c2 = m.cat2 if m and m.cat2 is not None else None
-                fn = m.final if m and m.final is not None else None
-                total = (c1 or 0) + (c2 or 0) + (fn or 0) if m else 0
-                has_marks = m is not None
-
-                rows.append({
-                    "subject": subj, "cat1": c1, "cat2": c2, "final": fn,
-                    "total": total, "has_marks": has_marks,
-                })
-                if has_marks:
-                    sem_total += total
+                info = get_student_subject_marks(db, student.id, subj.id, sem.id, course)
+                rows.append({"subject": subj, "info": info, "has_marks": info is not None})
+                if info:
+                    sem_total += info["total"]
                     sem_count += 1
 
             avg = round(sem_total / sem_count, 2) if sem_count else None
@@ -2868,6 +3080,8 @@ def hod_student_detail(student_id):
             department=db.query(Department).filter_by(id=department_id).first(),
             student=student, course=course, semester_reports=semester_reports,
             grand_total=grand_total, grand_count=grand_count, overall_avg=overall_avg,
+            assessment_type=get_course_assessment_type(course),
+            periodic_labels=get_periodic_labels(course),
         )
     finally:
         db.close()
@@ -2964,16 +3178,14 @@ def hod_all_courses():
             total_subjects = 0
             for sem in semesters:
                 subs = (
-                    subject_query(db)
-                    .filter_by(course_id=course.id, semester_id=sem.id)
+                    subject_query(db).filter_by(course_id=course.id, semester_id=sem.id)
                     .order_by(Subject.name.asc()).all()
                 )
                 total_subjects += len(subs)
                 semesters_data.append({"semester": sem, "subjects": subs})
 
             unassigned = (
-                subject_query(db)
-                .filter(Subject.course_id == course.id)
+                subject_query(db).filter(Subject.course_id == course.id)
                 .filter(Subject.semester_id.is_(None))
                 .order_by(Subject.name.asc()).all()
             )
@@ -3083,15 +3295,13 @@ def hod_marks_department(dept_id):
 
             if semester:
                 all_sem_subjects = (
-                    subject_query(db)
-                    .filter_by(course_id=course.id, semester_id=semester.id)
+                    subject_query(db).filter_by(course_id=course.id, semester_id=semester.id)
                     .order_by(Subject.name.asc()).all()
                 )
                 used_module_ids = {s.module_id for s in all_sem_subjects if s.module_id}
                 if used_module_ids:
                     available_modules = (
-                        db.query(Module)
-                        .filter(Module.id.in_(used_module_ids))
+                        db.query(Module).filter(Module.id.in_(used_module_ids))
                         .order_by(Module.order.asc(), Module.name.asc()).all()
                     )
                 subjects = (
@@ -3141,6 +3351,8 @@ def hod_enter_marks():
             flash("Subject and semester belong to different courses.", "danger")
             return redirect(url_for("hod_marks_picker"))
 
+        atype = get_course_assessment_type(course)
+
         students_q = student_query(db).filter_by(course_id=subject.course_id)
         if getattr(subject, "module_id", None):
             students_q = students_q.filter(
@@ -3150,49 +3362,111 @@ def hod_enter_marks():
         students = students_q.order_by(StudentProfile.full_name.asc()).all()
 
         if request.method == "POST":
-            def to_int_or_none(v):
+            def to_float(v):
+                v = (v or "").strip()
+                if not v:
+                    return None
+                try:
+                    return float(v)
+                except ValueError:
+                    return None
+
+            def to_int(v):
                 v = (v or "").strip()
                 return int(v) if v.isdigit() else None
 
             saved = 0
-            for s in students:
-                c1 = to_int_or_none(request.form.get(f"cat1_{s.id}"))
-                c2 = to_int_or_none(request.form.get(f"cat2_{s.id}"))
-                fn = to_int_or_none(request.form.get(f"final_{s.id}"))
 
-                existing = (
-                    db.query(KnecMark)
-                    .filter_by(student_id=s.id, subject_id=subject_id, semester_id=semester_id)
-                    .first()
-                )
-
-                if c1 is None and c2 is None and fn is None:
+            if atype == "short":
+                max_s = course.max_score or 100
+                for s in students:
+                    sc = to_float(request.form.get(f"score_{s.id}"))
+                    rm = (request.form.get(f"remarks_{s.id}") or "").strip() or None
+                    if sc is not None and not (0 <= sc <= max_s):
+                        flash(f"Score for {s.full_name} must be 0–{max_s}.", "warning")
+                        continue
+                    existing = db.query(ShortCourseMark).filter_by(
+                        student_id=s.id, subject_id=subject_id, semester_id=semester_id
+                    ).first()
+                    if sc is None and not rm:
+                        if existing:
+                            db.delete(existing)
+                        continue
                     if existing:
-                        db.delete(existing)
-                    continue
+                        existing.score = sc
+                        existing.remarks = rm
+                        existing.entered_at = datetime.utcnow()
+                    else:
+                        db.add(ShortCourseMark(
+                            student_id=s.id, subject_id=subject_id,
+                            semester_id=semester_id, score=sc, remarks=rm,
+                        ))
+                    saved += 1
 
-                if c1 is not None and not (0 <= c1 <= 15):
-                    flash(f"CAT1 for {s.full_name} must be 0–15.", "warning")
-                    continue
-                if c2 is not None and not (0 <= c2 <= 15):
-                    flash(f"CAT2 for {s.full_name} must be 0–15.", "warning")
-                    continue
-                if fn is not None and not (0 <= fn <= 70):
-                    flash(f"Final for {s.full_name} must be 0–70.", "warning")
-                    continue
+            elif atype == "periodic":
+                max_s = course.max_score or 100
+                labels = get_periodic_labels(course)
+                for s in students:
+                    for label in labels:
+                        sc = to_float(request.form.get(f"score_{s.id}__{label}"))
+                        rm = (request.form.get(f"remarks_{s.id}__{label}") or "").strip() or None
+                        if sc is not None and not (0 <= sc <= max_s):
+                            flash(f"'{label}' for {s.full_name} must be 0–{max_s}.", "warning")
+                            continue
+                        existing = db.query(PeriodicMark).filter_by(
+                            student_id=s.id, subject_id=subject_id,
+                            semester_id=semester_id, label=label,
+                        ).first()
+                        if sc is None and not rm:
+                            if existing:
+                                db.delete(existing)
+                            continue
+                        if existing:
+                            existing.score = sc
+                            existing.remarks = rm
+                            existing.entered_at = datetime.utcnow()
+                        else:
+                            db.add(PeriodicMark(
+                                student_id=s.id, subject_id=subject_id,
+                                semester_id=semester_id, label=label,
+                                score=sc, remarks=rm,
+                            ))
+                        saved += 1
 
-                if existing:
-                    existing.cat1, existing.cat2, existing.final = c1, c2, fn
-                    existing.entered_at = datetime.utcnow()
-                else:
-                    db.add(KnecMark(
-                        student_id=s.id, subject_id=subject_id, semester_id=semester_id,
-                        cat1=c1, cat2=c2, final=fn,
-                    ))
-                saved += 1
+            else:
+                for s in students:
+                    c1 = to_int(request.form.get(f"cat1_{s.id}"))
+                    c2 = to_int(request.form.get(f"cat2_{s.id}"))
+                    fn = to_int(request.form.get(f"final_{s.id}"))
+                    existing = db.query(KnecMark).filter_by(
+                        student_id=s.id, subject_id=subject_id, semester_id=semester_id
+                    ).first()
+                    if c1 is None and c2 is None and fn is None:
+                        if existing:
+                            db.delete(existing)
+                        continue
+                    if c1 is not None and not (0 <= c1 <= 15):
+                        flash(f"CAT1 for {s.full_name} must be 0–15.", "warning")
+                        continue
+                    if c2 is not None and not (0 <= c2 <= 15):
+                        flash(f"CAT2 for {s.full_name} must be 0–15.", "warning")
+                        continue
+                    if fn is not None and not (0 <= fn <= 70):
+                        flash(f"Final for {s.full_name} must be 0–70.", "warning")
+                        continue
+                    if existing:
+                        existing.cat1, existing.cat2, existing.final = c1, c2, fn
+                        existing.entered_at = datetime.utcnow()
+                    else:
+                        db.add(KnecMark(
+                            student_id=s.id, subject_id=subject_id,
+                            semester_id=semester_id,
+                            cat1=c1, cat2=c2, final=fn,
+                        ))
+                    saved += 1
 
             db.commit()
-            flash(f"✅ Saved marks for {saved} student(s).", "success")
+            flash(f"✅ Saved marks for {saved} record(s).", "success")
             return redirect(url_for(
                 "hod_marks_department",
                 dept_id=department_id,
@@ -3200,15 +3474,24 @@ def hod_enter_marks():
                 semester_id=semester_id,
             ))
 
-        existing = {
-            m.student_id: m
-            for m in db.query(KnecMark).filter_by(subject_id=subject_id, semester_id=semester_id).all()
-        }
+        if atype == "short":
+            existing = {m.student_id: m for m in db.query(ShortCourseMark).filter_by(
+                subject_id=subject_id, semester_id=semester_id).all()}
+        elif atype == "periodic":
+            existing = {}
+            for m in db.query(PeriodicMark).filter_by(
+                subject_id=subject_id, semester_id=semester_id).all():
+                existing.setdefault(m.student_id, {})[m.label] = m
+        else:
+            existing = {m.student_id: m for m in db.query(KnecMark).filter_by(
+                subject_id=subject_id, semester_id=semester_id).all()}
 
         return render_template(
             "admin/marks_entry.html",
             subject=subject, semester=semester, course=course,
             department=course.department, students=students, existing=existing,
+            assessment_type=atype,
+            periodic_labels=get_periodic_labels(course),
             hod_mode=True,
         )
     finally:
@@ -3239,23 +3522,35 @@ def hod_class_marks():
             flash("That semester is not in your department.", "danger")
             return redirect(url_for("hod_dashboard"))
 
+        atype = get_course_assessment_type(course)
+
         students = (
             student_query(db).filter_by(course_id=semester.course_id)
             .order_by(StudentProfile.full_name.asc()).all()
         )
         subjects = (
-            subject_query(db)
-            .filter_by(course_id=semester.course_id, semester_id=semester_id)
+            subject_query(db).filter_by(course_id=semester.course_id, semester_id=semester_id)
             .order_by(Subject.name.asc()).all()
         )
 
-        marks = {}
-        for m in db.query(KnecMark).filter_by(semester_id=semester_id).all():
-            marks.setdefault(m.student_id, {})[m.subject_id] = m
+        if atype == "short":
+            marks = {}
+            for m in db.query(ShortCourseMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {})[m.subject_id] = m
+        elif atype == "periodic":
+            marks = {}
+            for m in db.query(PeriodicMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {}).setdefault(m.subject_id, {})[m.label] = m
+        else:
+            marks = {}
+            for m in db.query(KnecMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {})[m.subject_id] = m
 
         return render_template(
             "admin/class_marks.html",
             semester=semester, students=students, subjects=subjects, marks=marks,
+            assessment_type=atype,
+            periodic_labels=get_periodic_labels(course),
             hod_mode=True,
         )
     finally:
@@ -3299,43 +3594,27 @@ def hod_student_marks(student_id):
         subjects = []
         if semester:
             subjects = (
-                subject_query(db)
-                .filter_by(course_id=student.course_id, semester_id=semester.id)
+                subject_query(db).filter_by(course_id=student.course_id, semester_id=semester.id)
                 .order_by(Subject.name.asc()).all()
             )
 
         if request.method == "POST" and semester:
-            def to_int_or_none(v):
+            def to_int(v):
                 v = (v or "").strip()
                 return int(v) if v.isdigit() else None
 
             saved = 0
             for subj in subjects:
-                c1 = to_int_or_none(request.form.get(f"cat1_{subj.id}"))
-                c2 = to_int_or_none(request.form.get(f"cat2_{subj.id}"))
-                fn = to_int_or_none(request.form.get(f"final_{subj.id}"))
-
-                existing = (
-                    db.query(KnecMark)
-                    .filter_by(student_id=student.id, subject_id=subj.id, semester_id=semester.id)
-                    .first()
-                )
-
+                c1 = to_int(request.form.get(f"cat1_{subj.id}"))
+                c2 = to_int(request.form.get(f"cat2_{subj.id}"))
+                fn = to_int(request.form.get(f"final_{subj.id}"))
+                existing = db.query(KnecMark).filter_by(
+                    student_id=student.id, subject_id=subj.id, semester_id=semester.id
+                ).first()
                 if c1 is None and c2 is None and fn is None:
                     if existing:
                         db.delete(existing)
                     continue
-
-                if c1 is not None and not (0 <= c1 <= 15):
-                    flash(f"CAT1 for {subj.name} must be 0–15.", "warning")
-                    continue
-                if c2 is not None and not (0 <= c2 <= 15):
-                    flash(f"CAT2 for {subj.name} must be 0–15.", "warning")
-                    continue
-                if fn is not None and not (0 <= fn <= 70):
-                    flash(f"Final for {subj.name} must be 0–70.", "warning")
-                    continue
-
                 if existing:
                     existing.cat1, existing.cat2, existing.final = c1, c2, fn
                     existing.entered_at = datetime.utcnow()
@@ -3345,7 +3624,6 @@ def hod_student_marks(student_id):
                         cat1=c1, cat2=c2, final=fn,
                     ))
                 saved += 1
-
             db.commit()
             flash(f"✅ Saved marks for {saved} subject(s).", "success")
             return redirect(url_for(
@@ -3355,12 +3633,10 @@ def hod_student_marks(student_id):
 
         rows = []
         for subj in subjects:
-            m = (
-                db.query(KnecMark)
-                .filter_by(student_id=student.id, subject_id=subj.id,
-                           semester_id=semester.id if semester else None)
-                .first()
-            )
+            m = db.query(KnecMark).filter_by(
+                student_id=student.id, subject_id=subj.id,
+                semester_id=semester.id if semester else None,
+            ).first()
             rows.append({
                 "subject": subj,
                 "cat1": m.cat1 if m and m.cat1 is not None else None,
@@ -3400,56 +3676,76 @@ def hod_class_marks_export():
             flash("That semester is not in your department.", "danger")
             return redirect(url_for("hod_dashboard"))
 
+        atype = get_course_assessment_type(course)
+
         students = (
             student_query(db).filter_by(course_id=semester.course_id)
             .order_by(StudentProfile.full_name.asc()).all()
         )
         subjects = (
-            subject_query(db)
-            .filter_by(course_id=semester.course_id, semester_id=semester_id)
+            subject_query(db).filter_by(course_id=semester.course_id, semester_id=semester_id)
             .order_by(Subject.name.asc()).all()
         )
 
-        marks = {}
-        for m in db.query(KnecMark).filter_by(semester_id=semester_id).all():
-            marks.setdefault(m.student_id, {})[m.subject_id] = m
-
         data = []
-        for s in students:
-            row = {
-                "Admission No": s.admission_number,
-                "Student Name": s.full_name,
-                "Exam Type": (s.exam_type or "").upper(),
-            }
-            grand_total = 0
-            counted = 0
-            for subj in subjects:
-                m = marks.get(s.id, {}).get(subj.id)
-                c1 = m.cat1 if m and m.cat1 is not None else ""
-                c2 = m.cat2 if m and m.cat2 is not None else ""
-                fn = m.final if m and m.final is not None else ""
-                total = (m.cat1 or 0) + (m.cat2 or 0) + (m.final or 0) if m else ""
+        if atype == "knec":
+            marks = {}
+            for m in db.query(KnecMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {})[m.subject_id] = m
+            for s in students:
+                row = {"Admission No": s.admission_number, "Student Name": s.full_name}
+                grand_total = counted = 0
+                for subj in subjects:
+                    m = marks.get(s.id, {}).get(subj.id)
+                    c1 = m.cat1 if m and m.cat1 is not None else ""
+                    c2 = m.cat2 if m and m.cat2 is not None else ""
+                    fn = m.final if m and m.final is not None else ""
+                    total = (m.cat1 or 0) + (m.cat2 or 0) + (m.final or 0) if m else ""
+                    prefix = subj.name.split(" ", 1)[0]
+                    row[f"{prefix} CAT1"] = c1
+                    row[f"{prefix} CAT2"] = c2
+                    row[f"{prefix} Final"] = fn
+                    row[f"{prefix} Total"] = total
+                    if isinstance(total, int):
+                        grand_total += total
+                        counted += 1
+                row["Grand Total"] = grand_total
+                row["Average"] = round(grand_total / counted, 2) if counted else ""
+                data.append(row)
 
-                prefix = subj.name.split(" ", 1)[0]
-                row[f"{prefix} CAT1"] = c1
-                row[f"{prefix} CAT2"] = c2
-                row[f"{prefix} Final"] = fn
-                row[f"{prefix} Total"] = total
+        elif atype == "short":
+            marks = {}
+            for m in db.query(ShortCourseMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {})[m.subject_id] = m
+            for s in students:
+                row = {"Admission No": s.admission_number, "Student Name": s.full_name}
+                grand_total = counted = 0
+                for subj in subjects:
+                    m = marks.get(s.id, {}).get(subj.id)
+                    score = m.score if m and m.score is not None else ""
+                    row[f"{subj.name} Score"] = score
+                    row[f"{subj.name} Remarks"] = m.remarks if m and m.remarks else ""
+                    if isinstance(score, (int, float)):
+                        grand_total += score
+                        counted += 1
+                row["Grand Total"] = grand_total
+                row["Average"] = round(grand_total / counted, 2) if counted else ""
+                data.append(row)
 
-                if isinstance(total, int):
-                    grand_total += total
-                    counted += 1
-
-            row["Grand Total"] = grand_total
-            row["Average"] = round(grand_total / counted, 2) if counted else ""
-            data.append(row)
+        else:
+            labels = get_periodic_labels(course)
+            marks = {}
+            for m in db.query(PeriodicMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {}).setdefault(m.subject_id, {})[m.label] = m
+            for s in students:
+                row = {"Admission No": s.admission_number, "Student Name": s.full_name}
+                for subj in subjects:
+                    cells = marks.get(s.id, {}).get(subj.id, {})
+                    for label in labels:
+                        row[f"{subj.name} {label}"] = cells[label].score if label in cells else ""
+                data.append(row)
 
         df = pd.DataFrame(data)
-        identity_cols = ["Admission No", "Student Name", "Exam Type"]
-        total_cols = ["Grand Total", "Average"]
-        subject_cols = [c for c in df.columns if c not in identity_cols + total_cols]
-        df = df[identity_cols + subject_cols + total_cols]
-
         buf = io.BytesIO()
         with pd.ExcelWriter(buf, engine="openpyxl") as writer:
             df.to_excel(writer, index=False, sheet_name="Marks")
@@ -3491,19 +3787,16 @@ def hod_reports_class():
             flash("That semester is not in your department.", "danger")
             return redirect(url_for("hod_dashboard"))
 
+        atype = get_course_assessment_type(course)
+
         students = (
             student_query(db).filter_by(course_id=semester.course_id)
             .order_by(StudentProfile.full_name.asc()).all()
         )
         subjects = (
-            subject_query(db)
-            .filter_by(course_id=semester.course_id, semester_id=semester_id)
+            subject_query(db).filter_by(course_id=semester.course_id, semester_id=semester_id)
             .order_by(Subject.name.asc()).all()
         )
-
-        marks = {}
-        for m in db.query(KnecMark).filter_by(semester_id=semester_id).all():
-            marks.setdefault(m.student_id, {})[m.subject_id] = m
 
         rows = []
         for s in students:
@@ -3513,34 +3806,33 @@ def hod_reports_class():
                 "average": None, "grade": None, "result": None,
             }
             for subj in subjects:
-                m = marks.get(s.id, {}).get(subj.id)
-                c1 = m.cat1 if m and m.cat1 is not None else None
-                c2 = m.cat2 if m and m.cat2 is not None else None
-                fn = m.final if m and m.final is not None else None
-                total = ((c1 or 0) + (c2 or 0) + (fn or 0)) if m else None
-
-                row["cells"].append({
-                    "subject": subj, "cat1": c1, "cat2": c2,
-                    "final": fn, "total": total,
-                })
-                if total is not None:
-                    row["grand_total"] += total
+                info = get_student_subject_marks(db, s.id, subj.id, semester_id, course)
+                row["cells"].append({"subject": subj, "info": info})
+                if info:
+                    row["grand_total"] += info["total"]
                     row["counted"] += 1
 
             if row["counted"]:
                 row["average"] = round(row["grand_total"] / row["counted"], 2)
                 avg = row["average"]
-                row["grade"] = (1 if avg >= 84 else 2 if avg >= 75 else 3 if avg >= 66
-                                else 4 if avg >= 60 else 5 if avg >= 50
-                                else 6 if avg >= 40 else 7)
-                row["result"] = ("DISTINCTION" if avg >= 75 else "CREDIT" if avg >= 60
-                                 else "PASS" if avg >= 40 else "REFER")
+                if atype == "knec":
+                    row["grade"] = (1 if avg >= 84 else 2 if avg >= 75 else 3 if avg >= 66
+                                    else 4 if avg >= 60 else 5 if avg >= 50
+                                    else 6 if avg >= 40 else 7)
+                    row["result"] = ("DISTINCTION" if avg >= 75 else "CREDIT" if avg >= 60
+                                     else "PASS" if avg >= 40 else "REFER")
+                else:
+                    row["grade"] = (1 if avg >= 80 else 2 if avg >= 65 else 3 if avg >= 50 else 4)
+                    row["result"] = ("DISTINCTION" if avg >= 80 else "CREDIT" if avg >= 65
+                                     else "PASS" if avg >= 50 else "FAIL")
             rows.append(row)
 
         return render_template(
             "hod/reports_class.html",
             department=db.query(Department).filter_by(id=department_id).first(),
             course=course, semester=semester, subjects=subjects, rows=rows,
+            assessment_type=atype,
+            periodic_labels=get_periodic_labels(course),
             hod_name=session.get("username"),
         )
     finally:
@@ -3570,6 +3862,8 @@ def hod_reports_class_export():
             flash("That semester is not in your department.", "danger")
             return redirect(url_for("hod_dashboard"))
 
+        atype = get_course_assessment_type(course)
+
         students = (
             student_query(db).filter_by(course_id=semester.course_id)
             .order_by(StudentProfile.full_name.asc()).all()
@@ -3577,24 +3871,43 @@ def hod_reports_class_export():
 
         data = []
         for s in students:
-            is_knec = (s.exam_type or "").strip().lower() == "knec"
             total_sum = 0
             subjects_count = 0
-            if is_knec:
+
+            if atype == "knec":
                 for m in db.query(KnecMark).filter_by(student_id=s.id, semester_id=semester_id).all():
                     total_sum += (m.cat1 or 0) + (m.cat2 or 0) + (m.final or 0)
                     subjects_count += 1
+            elif atype == "short":
+                for m in db.query(ShortCourseMark).filter_by(student_id=s.id, semester_id=semester_id).all():
+                    if m.score is not None:
+                        total_sum += m.score
+                        subjects_count += 1
+            else:
+                rows = db.query(PeriodicMark).filter_by(student_id=s.id, semester_id=semester_id).all()
+                by_subject = {}
+                for r in rows:
+                    by_subject.setdefault(r.subject_id, []).append(r.score)
+                for scores in by_subject.values():
+                    valid = [sc for sc in scores if sc is not None]
+                    if valid:
+                        total_sum += sum(valid) / len(valid)
+                        subjects_count += 1
 
             avg = round(total_sum / subjects_count, 2) if subjects_count else ""
-            grade = ""
-            if isinstance(avg, float):
+
+            if not isinstance(avg, float):
+                grade = result = ""
+            elif atype == "knec":
                 grade = (1 if avg >= 84 else 2 if avg >= 75 else 3 if avg >= 66
                          else 4 if avg >= 60 else 5 if avg >= 50
                          else 6 if avg >= 40 else 7)
-            result = ""
-            if isinstance(avg, float):
                 result = ("DISTINCTION" if avg >= 75 else "CREDIT" if avg >= 60
                           else "PASS" if avg >= 40 else "REFER")
+            else:
+                grade = (1 if avg >= 80 else 2 if avg >= 65 else 3 if avg >= 50 else 4)
+                result = ("DISTINCTION" if avg >= 80 else "CREDIT" if avg >= 65
+                          else "PASS" if avg >= 50 else "FAIL")
 
             data.append({
                 "Admission No": s.admission_number,
@@ -3602,6 +3915,7 @@ def hod_reports_class_export():
                 "Course": course.name if course else "",
                 "Semester": semester.name,
                 "Exam Type": (s.exam_type or "").upper(),
+                "Assessment Type": atype.upper(),
                 "Subjects Graded": subjects_count,
                 "Total Marks": total_sum,
                 "Average": avg, "Grade": grade, "Overall Result": result,
@@ -3647,28 +3961,29 @@ def hod_report_student(student_id, semester_id):
         if not sem:
             return "Semester not found for this student", 404
 
+        atype = get_course_assessment_type(course)
         subjects = (
-            subject_query(db)
-            .filter_by(course_id=student.course_id, semester_id=sem.id)
+            subject_query(db).filter_by(course_id=student.course_id, semester_id=sem.id)
             .order_by(Subject.name.asc()).all()
         )
 
         rows = []
+        grand_total = 0
+        counted = 0
         for subj in subjects:
-            m = db.query(KnecMark).filter_by(
-                student_id=student.id, subject_id=subj.id, semester_id=sem.id
-            ).first()
-            c1 = m.cat1 if m and m.cat1 is not None else None
-            c2 = m.cat2 if m and m.cat2 is not None else None
-            fn = m.final if m and m.final is not None else None
-            rows.append({
-                "subject": subj, "cat1": c1, "cat2": c2, "final": fn,
-                "total": (c1 or 0) + (c2 or 0) + (fn or 0),
-            })
+            info = get_student_subject_marks(db, student.id, subj.id, sem.id, course)
+            rows.append({"subject": subj, "info": info})
+            if info:
+                grand_total += info["total"]
+                counted += 1
+        avg = round(grand_total / counted, 2) if counted else None
 
         return render_template(
             "students/print_report.html",
             student=student, semester=sem, rows=rows,
+            assessment_type=atype,
+            periodic_labels=get_periodic_labels(course),
+            grand_total=grand_total, counted=counted, avg=avg,
             current_year=datetime.now().year, admin_mode=True,
         )
     finally:
@@ -3833,7 +4148,8 @@ def student_dashboard():
             flash("Complete your profile before proceeding.", "warning")
             return redirect(url_for("complete_profile"))
 
-        is_knec = (student_profile.exam_type or "").strip().lower() == "knec"
+        course = student_profile.course
+        atype = get_course_assessment_type(course)
 
         semesters = (
             semester_query(db).filter_by(course_id=student_profile.course_id)
@@ -3841,8 +4157,7 @@ def student_dashboard():
         )
 
         all_quizzes = (
-            quiz_query(db)
-            .filter_by(course_id=student_profile.course_id, status="active")
+            quiz_query(db).filter_by(course_id=student_profile.course_id, status="active")
             .order_by(Quiz.id.asc()).all()
         )
         quizzes_by_subject = {}
@@ -3860,19 +4175,12 @@ def student_dashboard():
                 "subject": subject, "quizzes": qs,
                 "total": len(qs), "taken": taken,
                 "percent": round(taken / len(qs) * 100) if qs else 0,
-                "cat1": None, "cat2": None, "final": None, "total_marks": None,
+                "info": None,
             }
-            if is_knec and subject.semester_id:
-                m = db.query(KnecMark).filter_by(
-                    student_id=student_profile.id,
-                    subject_id=subject.id,
-                    semester_id=subject.semester_id,
-                ).first()
-                if m:
-                    row["cat1"] = m.cat1
-                    row["cat2"] = m.cat2
-                    row["final"] = m.final
-                    row["total_marks"] = (m.cat1 or 0) + (m.cat2 or 0) + (m.final or 0)
+            if subject.semester_id:
+                row["info"] = get_student_subject_marks(
+                    db, student_profile.id, subject.id, subject.semester_id, course
+                )
             return row
 
         all_subjects = (
@@ -3885,8 +4193,7 @@ def student_dashboard():
         semester_groups = []
         for sem in semesters:
             subs = (
-                subject_query(db)
-                .filter_by(course_id=student_profile.course_id, semester_id=sem.id)
+                subject_query(db).filter_by(course_id=student_profile.course_id, semester_id=sem.id)
                 .order_by(Subject.name.asc()).all()
             )
             if sem.is_current:
@@ -3897,8 +4204,7 @@ def student_dashboard():
             })
 
         unassigned = (
-            subject_query(db)
-            .filter(Subject.course_id == student_profile.course_id)
+            subject_query(db).filter(Subject.course_id == student_profile.course_id)
             .filter(Subject.semester_id.is_(None))
             .order_by(Subject.name.asc()).all()
         )
@@ -3916,7 +4222,9 @@ def student_dashboard():
         return render_template(
             "students/student_dashboard.html",
             username=user.username, student_profile=student_profile,
-            is_knec=is_knec, semester_groups=semester_groups,
+            is_knec=(atype == "knec"),
+            assessment_type=atype,
+            semester_groups=semester_groups,
             current_semester=current_semester,
             unassigned_subjects=unassigned_subjects,
             all_subjects_data=all_subjects_data,
@@ -4010,9 +4318,10 @@ def student_results():
             flash("Student profile not found.", "error")
             return redirect(url_for("logout"))
 
-        is_knec = (student.exam_type or "").strip().lower() == "knec"
+        course = student.course
+        atype = get_course_assessment_type(course)
 
-        if not is_knec:
+        if (student.exam_type or "").strip().lower() != "knec" and atype == "knec":
             results = (
                 db.query(Result)
                 .options(
@@ -4026,6 +4335,7 @@ def student_results():
             return render_template(
                 "students/results.html",
                 is_knec=False, results=results, student=student,
+                assessment_type=atype,
                 current_year=datetime.now().year,
             )
 
@@ -4037,27 +4347,22 @@ def student_results():
         semester_reports = []
         for sem in semesters:
             subjects = (
-                subject_query(db)
-                .filter_by(course_id=student.course_id, semester_id=sem.id)
+                subject_query(db).filter_by(course_id=student.course_id, semester_id=sem.id)
                 .order_by(Subject.name.asc()).all()
             )
             rows = []
             for subj in subjects:
-                m = db.query(KnecMark).filter_by(
-                    student_id=student.id, subject_id=subj.id, semester_id=sem.id,
-                ).first()
-                c1 = m.cat1 if m and m.cat1 is not None else None
-                c2 = m.cat2 if m and m.cat2 is not None else None
-                fn = m.final if m and m.final is not None else None
-                rows.append({
-                    "subject": subj, "cat1": c1, "cat2": c2, "final": fn,
-                    "total": (c1 or 0) + (c2 or 0) + (fn or 0),
-                })
-            semester_reports.append({"semester": sem, "rows": rows, "is_current": bool(sem.is_current)})
+                info = get_student_subject_marks(db, student.id, subj.id, sem.id, course)
+                rows.append({"subject": subj, "info": info})
+            semester_reports.append({
+                "semester": sem, "rows": rows, "is_current": bool(sem.is_current),
+            })
 
         return render_template(
             "students/results.html",
             is_knec=True, student=student, semester_reports=semester_reports,
+            assessment_type=atype,
+            periodic_labels=get_periodic_labels(course),
             current_year=datetime.now().year,
         )
     finally:
@@ -4084,6 +4389,9 @@ def student_print_report():
             flash("Printable reports are only available for KNEC students.", "warning")
             return redirect(url_for("student_results"))
 
+        course = student.course
+        atype = get_course_assessment_type(course)
+
         sem_id = request.args.get("semester_id", type=int)
         if sem_id:
             sem = db.query(Semester).filter_by(id=sem_id, course_id=student.course_id).first()
@@ -4095,27 +4403,27 @@ def student_print_report():
             return redirect(url_for("student_results"))
 
         subjects = (
-            subject_query(db)
-            .filter_by(course_id=student.course_id, semester_id=sem.id)
+            subject_query(db).filter_by(course_id=student.course_id, semester_id=sem.id)
             .order_by(Subject.name.asc()).all()
         )
 
         rows = []
+        grand_total = 0
+        counted = 0
         for subj in subjects:
-            m = db.query(KnecMark).filter_by(
-                student_id=student.id, subject_id=subj.id, semester_id=sem.id,
-            ).first()
-            c1 = m.cat1 if m and m.cat1 is not None else None
-            c2 = m.cat2 if m and m.cat2 is not None else None
-            fn = m.final if m and m.final is not None else None
-            rows.append({
-                "subject": subj, "cat1": c1, "cat2": c2, "final": fn,
-                "total": (c1 or 0) + (c2 or 0) + (fn or 0),
-            })
+            info = get_student_subject_marks(db, student.id, subj.id, sem.id, course)
+            rows.append({"subject": subj, "info": info})
+            if info:
+                grand_total += info["total"]
+                counted += 1
+        avg = round(grand_total / counted, 2) if counted else None
 
         return render_template(
             "students/print_report.html",
             student=student, semester=sem, rows=rows,
+            assessment_type=atype,
+            periodic_labels=get_periodic_labels(course),
+            grand_total=grand_total, counted=counted, avg=avg,
             current_year=datetime.now().year,
         )
     finally:
