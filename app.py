@@ -80,6 +80,7 @@ def get_periodic_labels(course):
 
 
 def get_student_subject_marks(db, student_id, subject_id, semester_id, course):
+    """Return a dict describing ONE student's mark in ONE subject (or None)."""
     atype = get_course_assessment_type(course)
 
     if atype == "knec":
@@ -101,6 +102,7 @@ def get_student_subject_marks(db, student_id, subject_id, semester_id, course):
             return None
         return {"score": m.score, "remarks": m.remarks, "total": m.score or 0}
 
+    # periodic
     labels = get_periodic_labels(course)
     rows = db.query(PeriodicMark).filter_by(
         student_id=student_id, subject_id=subject_id, semester_id=semester_id
@@ -2642,6 +2644,11 @@ def hod_students_upload():
                 if not matched_course:
                     errors.append(f"course '{course_name}' not found in your department")
                 else:
+                    # Auto-correct exam_type based on course type
+                    if get_course_assessment_type(matched_course) in ("short", "periodic"):
+                        if exam_type != "internal":
+                            exam_type = "internal"
+
                     if semester_name:
                         sem = db.query(Semester).filter(
                             Semester.course_id == matched_course.id,
@@ -3039,6 +3046,8 @@ def hod_student_detail(student_id):
             flash("That student is not in your department.", "danger")
             return redirect(url_for("hod_dashboard"))
 
+        atype = get_course_assessment_type(course)
+
         semesters = (
             semester_query(db).filter_by(course_id=student.course_id)
             .order_by(Semester.created_at.asc()).all()
@@ -3080,7 +3089,7 @@ def hod_student_detail(student_id):
             department=db.query(Department).filter_by(id=department_id).first(),
             student=student, course=course, semester_reports=semester_reports,
             grand_total=grand_total, grand_count=grand_count, overall_avg=overall_avg,
-            assessment_type=get_course_assessment_type(course),
+            assessment_type=atype,
             periodic_labels=get_periodic_labels(course),
         )
     finally:
@@ -3295,7 +3304,8 @@ def hod_marks_department(dept_id):
 
             if semester:
                 all_sem_subjects = (
-                    subject_query(db).filter_by(course_id=course.id, semester_id=semester.id)
+                    subject_query(db)
+                    .filter_by(course_id=course.id, semester_id=semester.id)
                     .order_by(Subject.name.asc()).all()
                 )
                 used_module_ids = {s.module_id for s in all_sem_subjects if s.module_id}
@@ -3557,6 +3567,9 @@ def hod_class_marks():
         db.close()
 
 
+# ============================================================
+# PER-STUDENT MARKS ENTRY (FIXED - NOW 3-WAY)
+# ============================================================
 @app.route("/hod/student/<int:student_id>/marks", methods=["GET", "POST"])
 def hod_student_marks(student_id):
     if session.get("role") != "hod":
@@ -3574,6 +3587,8 @@ def hod_student_marks(student_id):
         if not course or course.department_id != department_id:
             flash("That student is not in your department.", "danger")
             return redirect(url_for("hod_dashboard"))
+
+        atype = get_course_assessment_type(course)
 
         semester_id = (
             request.args.get("semester_id", type=int)
@@ -3598,56 +3613,179 @@ def hod_student_marks(student_id):
                 .order_by(Subject.name.asc()).all()
             )
 
+        # ============================================================
+        # POST — save marks with 3-way branching
+        # ============================================================
         if request.method == "POST" and semester:
+            def to_float(v):
+                v = (v or "").strip()
+                if not v:
+                    return None
+                try:
+                    return float(v)
+                except ValueError:
+                    return None
+
             def to_int(v):
                 v = (v or "").strip()
                 return int(v) if v.isdigit() else None
 
             saved = 0
-            for subj in subjects:
-                c1 = to_int(request.form.get(f"cat1_{subj.id}"))
-                c2 = to_int(request.form.get(f"cat2_{subj.id}"))
-                fn = to_int(request.form.get(f"final_{subj.id}"))
-                existing = db.query(KnecMark).filter_by(
-                    student_id=student.id, subject_id=subj.id, semester_id=semester.id
-                ).first()
-                if c1 is None and c2 is None and fn is None:
+
+            if atype == "short":
+                max_s = course.max_score or 100
+                for subj in subjects:
+                    sc = to_float(request.form.get(f"score_{subj.id}"))
+                    rm = (request.form.get(f"remarks_{subj.id}") or "").strip() or None
+
+                    if sc is not None and not (0 <= sc <= max_s):
+                        flash(f"Score for {subj.name} must be 0–{max_s}.", "warning")
+                        continue
+
+                    existing = db.query(ShortCourseMark).filter_by(
+                        student_id=student.id, subject_id=subj.id, semester_id=semester.id
+                    ).first()
+
+                    if sc is None and not rm:
+                        if existing:
+                            db.delete(existing)
+                        continue
+
                     if existing:
-                        db.delete(existing)
-                    continue
-                if existing:
-                    existing.cat1, existing.cat2, existing.final = c1, c2, fn
-                    existing.entered_at = datetime.utcnow()
-                else:
-                    db.add(KnecMark(
-                        student_id=student.id, subject_id=subj.id, semester_id=semester.id,
-                        cat1=c1, cat2=c2, final=fn,
-                    ))
-                saved += 1
+                        existing.score = sc
+                        existing.remarks = rm
+                        existing.entered_at = datetime.utcnow()
+                    else:
+                        db.add(ShortCourseMark(
+                            student_id=student.id, subject_id=subj.id,
+                            semester_id=semester.id, score=sc, remarks=rm,
+                        ))
+                    saved += 1
+
+            elif atype == "periodic":
+                max_s = course.max_score or 100
+                labels = get_periodic_labels(course)
+                for subj in subjects:
+                    for label in labels:
+                        sc = to_float(request.form.get(f"score_{subj.id}__{label}"))
+                        rm = (request.form.get(f"remarks_{subj.id}__{label}") or "").strip() or None
+
+                        if sc is not None and not (0 <= sc <= max_s):
+                            flash(f"'{label}' for {subj.name} must be 0–{max_s}.", "warning")
+                            continue
+
+                        existing = db.query(PeriodicMark).filter_by(
+                            student_id=student.id, subject_id=subj.id,
+                            semester_id=semester.id, label=label,
+                        ).first()
+
+                        if sc is None and not rm:
+                            if existing:
+                                db.delete(existing)
+                            continue
+
+                        if existing:
+                            existing.score = sc
+                            existing.remarks = rm
+                            existing.entered_at = datetime.utcnow()
+                        else:
+                            db.add(PeriodicMark(
+                                student_id=student.id, subject_id=subj.id,
+                                semester_id=semester.id, label=label,
+                                score=sc, remarks=rm,
+                            ))
+                        saved += 1
+
+            else:  # KNEC
+                for subj in subjects:
+                    c1 = to_int(request.form.get(f"cat1_{subj.id}"))
+                    c2 = to_int(request.form.get(f"cat2_{subj.id}"))
+                    fn = to_int(request.form.get(f"final_{subj.id}"))
+
+                    existing = db.query(KnecMark).filter_by(
+                        student_id=student.id, subject_id=subj.id, semester_id=semester.id
+                    ).first()
+
+                    if c1 is None and c2 is None and fn is None:
+                        if existing:
+                            db.delete(existing)
+                        continue
+
+                    if existing:
+                        existing.cat1, existing.cat2, existing.final = c1, c2, fn
+                        existing.entered_at = datetime.utcnow()
+                    else:
+                        db.add(KnecMark(
+                            student_id=student.id, subject_id=subj.id, semester_id=semester.id,
+                            cat1=c1, cat2=c2, final=fn,
+                        ))
+                    saved += 1
+
             db.commit()
-            flash(f"✅ Saved marks for {saved} subject(s).", "success")
+            flash(f"✅ Saved marks for {saved} record(s).", "success")
             return redirect(url_for(
                 "hod_student_marks",
                 student_id=student.id, semester_id=semester.id,
             ))
 
+        # ============================================================
+        # GET — build rows for the template with 3-way branching
+        # ============================================================
         rows = []
-        for subj in subjects:
-            m = db.query(KnecMark).filter_by(
-                student_id=student.id, subject_id=subj.id,
+
+        if atype == "short":
+            marks = {
+                m.subject_id: m
+                for m in db.query(ShortCourseMark).filter_by(
+                    student_id=student.id,
+                    semester_id=semester.id if semester else None,
+                ).all()
+            }
+            for subj in subjects:
+                m = marks.get(subj.id)
+                rows.append({
+                    "subject": subj,
+                    "score": m.score if m else None,
+                    "remarks": m.remarks if m else None,
+                })
+
+        elif atype == "periodic":
+            marks = {}
+            for m in db.query(PeriodicMark).filter_by(
+                student_id=student.id,
                 semester_id=semester.id if semester else None,
-            ).first()
-            rows.append({
-                "subject": subj,
-                "cat1": m.cat1 if m and m.cat1 is not None else None,
-                "cat2": m.cat2 if m and m.cat2 is not None else None,
-                "final": m.final if m and m.final is not None else None,
-            })
+            ).all():
+                marks.setdefault(m.subject_id, {})[m.label] = m.score
+
+            for subj in subjects:
+                rows.append({
+                    "subject": subj,
+                    "cells": marks.get(subj.id, {}),
+                })
+
+        else:  # KNEC
+            marks = {
+                m.subject_id: m
+                for m in db.query(KnecMark).filter_by(
+                    student_id=student.id,
+                    semester_id=semester.id if semester else None,
+                ).all()
+            }
+            for subj in subjects:
+                m = marks.get(subj.id)
+                rows.append({
+                    "subject": subj,
+                    "cat1": m.cat1 if m and m.cat1 is not None else None,
+                    "cat2": m.cat2 if m and m.cat2 is not None else None,
+                    "final": m.final if m and m.final is not None else None,
+                })
 
         return render_template(
             "hod/student_marks.html",
             student=student, course=course, semester=semester,
             semesters=semesters, rows=rows,
+            assessment_type=atype,
+            periodic_labels=get_periodic_labels(course),
         )
     finally:
         db.close()
