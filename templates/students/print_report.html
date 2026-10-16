@@ -19,8 +19,8 @@
         position: fixed;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%);
-        width: 420px; height: 420px;
-        opacity: 0.06;
+        width: 550px; height: 550px;      /* ENLARGED */
+        opacity: 0.05;
         pointer-events: none;
         z-index: 0;
     }
@@ -41,8 +41,21 @@
     }
 
     /* ============ HEADER ============ */
-    .logo-top { text-align: center; margin-bottom: 6px; }
-    .logo-top img { width: 58px; height: 58px; object-fit: contain; }
+    .logo-top {
+        text-align: center;
+        margin-bottom: 10px;              /* was 6px */
+    }
+    .logo-top img {
+        width: 130px;                     /* ENLARGED, was 58px */
+        height: 130px;                    /* ENLARGED, was 58px */
+        object-fit: contain;
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin: 0 auto;
+        display: block;
+        mix-blend-mode: multiply;         /* fades the pale background away */
+    }
 
     .college-name {
         text-align: center;
@@ -320,9 +333,6 @@
 
     <table class="marks-table">
         <thead>
-            {# ============================================================
-               KNEC headers
-               ============================================================ #}
             {% if assessment_type == "knec" %}
             <tr>
                 <th>Unit Code</th>
@@ -333,9 +343,6 @@
                 <th class="center">Grade</th>
             </tr>
 
-            {# ============================================================
-               SHORT COURSE headers
-               ============================================================ #}
             {% elif assessment_type == "short" %}
             <tr>
                 <th>Unit Code</th>
@@ -344,9 +351,6 @@
                 <th>Remarks</th>
             </tr>
 
-            {# ============================================================
-               PERIODIC headers — Month 1, Month 2, ...
-               ============================================================ #}
             {% elif assessment_type == "periodic" %}
             <tr>
                 <th>Unit Code</th>
@@ -366,7 +370,6 @@
                 {% set code = parts[0] %}
                 {% set name = parts[1] if parts|length > 1 else '' %}
 
-                {# ---- KNEC row ---- #}
                 {% if assessment_type == "knec" %}
                     {% set info = row.info %}
                     {% set cat30 = ((info.cat1 or 0) if info else 0) + ((info.cat2 or 0) if info else 0) %}
@@ -393,7 +396,6 @@
                         </td>
                     </tr>
 
-                {# ---- SHORT COURSE row ---- #}
                 {% elif assessment_type == "short" %}
                     {% set info = row.info %}
                     {% set score = info.score if info and info.score is not none else 0 %}
@@ -409,7 +411,6 @@
                         </td>
                     </tr>
 
-                {# ---- PERIODIC row ---- #}
                 {% elif assessment_type == "periodic" %}
                     {% set info = row.info %}
                     {% set avg = info.average if info and info.average is not none else 0 %}
