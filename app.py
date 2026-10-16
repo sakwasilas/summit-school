@@ -2520,9 +2520,9 @@ def hod_students_upload_confirm():
         for m in db.query(Module).filter(Module.course_id.in_(course_ids)).all():
             modules_lookup[(m.course_id, m.name)] = m
 
-        # ---- 2. Build all objects in memory ----
+        # ---- 2. Build users + pending student data (no StudentProfile yet) ----
         new_users = []
-        new_students = []
+        pending = []
         username_taken = set(existing_usernames)
 
         for r in rows:
@@ -2558,28 +2558,27 @@ def hod_students_upload_confirm():
                     module_id = mod.id
                     module_label = mod.name
 
-            student = StudentProfile(
-                full_name=r["full_name"],
-                admission_number=adm,
-                exam_type=r["exam_type"],
-                phone_number=r["phone_number"],
-                course_id=course.id,
-                current_semester_id=sem_id,
-                module=module_label,
-                module_id=module_id,
-            )
-
             new_users.append(user)
-            new_students.append(student)
+            pending.append({
+                "course_id": course.id,
+                "full_name": r["full_name"],
+                "admission_number": adm,
+                "exam_type": r["exam_type"],
+                "phone_number": r["phone_number"],
+                "current_semester_id": sem_id,
+                "module": module_label,
+                "module_id": module_id,
+            })
             existing_admissions.add(adm)
 
-        # ---- 3. Bulk insert ----
+        # ---- 3. Bulk insert users, then students with user_id ----
         if new_users:
             db.add_all(new_users)
-            db.flush()  # assign all IDs at once
+            db.flush()  # assigns IDs
 
-            for user, student in zip(new_users, new_students):
-                student.user_id = user.id
+            new_students = []
+            for user, data in zip(new_users, pending):
+                new_students.append(StudentProfile(user_id=user.id, **data))
 
             db.add_all(new_students)
             db.commit()
@@ -2601,7 +2600,6 @@ def hod_students_upload_confirm():
         db.close()
 
     return redirect(url_for("hod_students_list"))
-
 
 @app.route("/hod/student/<int:student_id>/set-module", methods=["POST"])
 def hod_set_student_module(student_id):
