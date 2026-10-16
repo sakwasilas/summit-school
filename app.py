@@ -632,23 +632,60 @@ def delete_course(course_id):
             flash(f"Cannot delete — {enrolled} student(s) still enrolled.", "danger")
             return redirect(url_for("manage_courses"))
 
+        # ---- 1. Delete dependent rows first (deepest first) ----
+        # Modules that belong to this course
+        module_ids = [
+            m.id for m in db.query(Module).filter_by(course_id=course_id).all()
+        ]
+
+        # Marks (all three tables) referencing subjects or semesters of this course
+        subject_ids = [
+            s.id for s in db.query(Subject).filter_by(course_id=course_id).all()
+        ]
+        semester_ids = [
+            s.id for s in db.query(Semester).filter_by(course_id=course_id).all()
+        ]
+
+        if subject_ids:
+            db.query(KnecMark).filter(KnecMark.subject_id.in_(subject_ids)).delete(synchronize_session=False)
+            db.query(ShortCourseMark).filter(ShortCourseMark.subject_id.in_(subject_ids)).delete(synchronize_session=False)
+            db.query(PeriodicMark).filter(PeriodicMark.subject_id.in_(subject_ids)).delete(synchronize_session=False)
+
+        if semester_ids:
+            db.query(KnecMark).filter(KnecMark.semester_id.in_(semester_ids)).delete(synchronize_session=False)
+            db.query(ShortCourseMark).filter(ShortCourseMark.semester_id.in_(semester_ids)).delete(synchronize_session=False)
+            db.query(PeriodicMark).filter(PeriodicMark.semester_id.in_(semester_ids)).delete(synchronize_session=False)
+
+        # Quizzes + their questions/results
         _delete_quizzes_for(db, course_id=course_id)
+
+        # Messages referencing this course or its subjects
         db.query(Message).filter(Message.course_id == course_id).delete(synchronize_session=False)
+        if subject_ids:
+            db.query(Message).filter(Message.subject_id.in_(subject_ids)).delete(synchronize_session=False)
 
-        for subject in db.query(Subject).filter(Subject.course_id == course_id).all():
-            db.delete(subject)
+        # Subjects
+        db.query(Subject).filter(Subject.course_id == course_id).delete(synchronize_session=False)
 
+        # Semesters (this is the one that was failing)
+        db.query(Semester).filter(Semester.course_id == course_id).delete(synchronize_session=False)
+
+        # Modules
+        db.query(Module).filter(Module.course_id == course_id).delete(synchronize_session=False)
+
+        # ---- 2. Finally delete the course itself ----
         db.delete(course)
         db.commit()
         flash("Course deleted successfully.", "success")
     except Exception as e:
         db.rollback()
+        import traceback
+        traceback.print_exc()
         flash(f"Error deleting course: {str(e)}", "danger")
     finally:
         db.close()
 
     return redirect(url_for("manage_courses"))
-
 
 @app.route("/admin/course/<int:course_id>/modules", methods=["GET", "POST"])
 def admin_course_modules(course_id):
