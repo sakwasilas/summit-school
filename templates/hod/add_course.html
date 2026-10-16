@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <style>
         body { background: #f5f7fb; font-family: 'Segoe UI', sans-serif; padding: 28px; color: #253047; }
-        .wrap { max-width: 620px; margin: 0 auto; }
+        .wrap { max-width: 640px; margin: 0 auto; }
         .back-link { color: #4a5568; text-decoration: none; font-size: 13px; }
         .back-link:hover { text-decoration: underline; }
         h1 { font-size: 24px; font-weight: 800; margin: 12px 0 6px; }
@@ -73,6 +73,113 @@
             gap: 10px;
             align-items: center;
         }
+
+        /* ===== Assessment type picker ===== */
+        .at-label {
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #64748b;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .at-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .at-card {
+            display: block;
+            border: 1.5px solid #dfe6ed;
+            border-radius: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: all .15s;
+            background: white;
+            position: relative;
+        }
+        .at-card:hover {
+            border-color: #1abc9c;
+            background: #f8fdfb;
+        }
+        .at-card input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .at-card .at-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+        .at-card .at-icon {
+            width: 34px; height: 34px;
+            border-radius: 9px;
+            background: #e8f6f3;
+            color: #0e8074;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .at-card .at-title {
+            font-weight: 800;
+            font-size: 13.5px;
+            color: #1e3a8a;
+        }
+        .at-card .at-desc {
+            font-size: 11.5px;
+            color: #64748b;
+            line-height: 1.45;
+            padding-left: 44px;
+        }
+        .at-card.selected {
+            border-color: #1abc9c;
+            background: #f0fbf8;
+            box-shadow: 0 0 0 3px rgba(26,188,156,.12);
+        }
+        .at-card.selected .at-icon {
+            background: #1abc9c;
+            color: white;
+        }
+        .at-radio-dot {
+            position: absolute;
+            right: 16px; top: 16px;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            background: white;
+            transition: all .15s;
+        }
+        .at-card.selected .at-radio-dot {
+            border-color: #1abc9c;
+            background: #1abc9c;
+            box-shadow: inset 0 0 0 3px white;
+        }
+
+        /* conditional blocks */
+        .cond {
+            display: none;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+        }
+        .cond.show { display: block; }
+        .cond .form-label { margin-bottom: 6px; }
+        .cond .hint {
+            font-size: 11.5px;
+            color: #94a3b8;
+            margin-top: 6px;
+            line-height: 1.5;
+        }
+
+        .alert { border-radius: 10px; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -89,7 +196,7 @@
     {% endif %}
 
     <h1>Add New Course</h1>
-    <p class="subtitle">Create a course and assign it to a department.</p>
+    <p class="subtitle">Create a course and choose how it is assessed.</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for cat, msg in messages %}
@@ -106,7 +213,7 @@
             </div>
         {% endif %}
 
-        <form method="POST">
+        <form method="POST" id="courseForm">
 
             <div class="mb-3">
                 <label class="form-label">Course Name</label>
@@ -134,7 +241,81 @@
             </div>
             {% endif %}
 
-            <div class="d-flex gap-2">
+            <!-- ============================================================
+                 ASSESSMENT TYPE PICKER
+                 ============================================================ -->
+            <label class="at-label">Assessment Type</label>
+
+            <div class="at-grid">
+
+                <!-- KNEC -->
+                <label class="at-card selected" id="card-knec">
+                    <input type="radio" name="assessment_type" value="knec" checked>
+                    <span class="at-radio-dot"></span>
+                    <div class="at-head">
+                        <div class="at-icon"><i class="bi bi-mortarboard-fill"></i></div>
+                        <div class="at-title">KNEC — CAT1 + CAT2 + Final</div>
+                    </div>
+                    <div class="at-desc">
+                        Standard KNEC format: CAT1 (0–15) + CAT2 (0–15) + Final (0–70).
+                        Best for Diploma, Craft, Artisan.
+                    </div>
+                </label>
+
+                <!-- SHORT -->
+                <label class="at-card" id="card-short">
+                    <input type="radio" name="assessment_type" value="short">
+                    <span class="at-radio-dot"></span>
+                    <div class="at-head">
+                        <div class="at-icon"><i class="bi bi-award-fill"></i></div>
+                        <div class="at-title">Short Course — Single Final Score</div>
+                    </div>
+                    <div class="at-desc">
+                        One score + optional remarks. Best for Excel, CorelDraw, Photoshop, short certificates.
+                    </div>
+                </label>
+
+                <!-- PERIODIC -->
+                <label class="at-card" id="card-periodic">
+                    <input type="radio" name="assessment_type" value="periodic">
+                    <span class="at-radio-dot"></span>
+                    <div class="at-head">
+                        <div class="at-icon"><i class="bi bi-calendar-week-fill"></i></div>
+                        <div class="at-title">Periodic — Monthly / Termly Tests</div>
+                    </div>
+                    <div class="at-desc">
+                        Several tests per student over a term (Month 1, Month 2, ..., Final).
+                        Best for Languages, Weekend classes, Progress-based training.
+                    </div>
+                </label>
+
+            </div>
+
+            <!-- MAX SCORE (short + periodic) -->
+            <div class="cond" id="block-max-score">
+                <label class="form-label" for="max_score">Maximum Score per Test</label>
+                <input type="number" id="max_score" name="max_score"
+                       class="form-control" value="100" min="1" max="1000">
+                <div class="hint">
+                    e.g. <strong>100</strong> for percentages, <strong>20</strong> for a 20-mark test.
+                </div>
+            </div>
+
+            <!-- PERIODIC LABELS (periodic only) -->
+            <div class="cond" id="block-periodic-labels">
+                <label class="form-label" for="periodic_labels">
+                    Assessment Labels (comma-separated)
+                </label>
+                <input type="text" id="periodic_labels" name="periodic_labels"
+                       class="form-control"
+                       value="Month 1,Month 2,Month 3,Final">
+                <div class="hint">
+                    Each label becomes a column in the marks grid. Examples:
+                    <em>Week 1,Week 2,Mid-Term,Final</em> or <em>Term 1,Term 2,Term 3</em>.
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn-save">
                     <i class="bi bi-check2-circle"></i> Save Course
                 </button>
@@ -145,5 +326,40 @@
     </div>
 
 </div>
+
+<script>
+(function () {
+    const cards = {
+        knec:     document.getElementById('card-knec'),
+        short:    document.getElementById('card-short'),
+        periodic: document.getElementById('card-periodic'),
+    };
+    const blockMaxScore = document.getElementById('block-max-score');
+    const blockPeriodicLabels = document.getElementById('block-periodic-labels');
+    const radios = document.querySelectorAll('input[name="assessment_type"]');
+
+    function refresh() {
+        const checked = document.querySelector('input[name="assessment_type"]:checked');
+        const val = checked ? checked.value : 'knec';
+
+        Object.keys(cards).forEach(k => {
+            if (!cards[k]) return;
+            cards[k].classList.toggle('selected', k === val);
+        });
+
+        // Max score shows for short + periodic
+        blockMaxScore.classList.toggle(
+            'show', val === 'short' || val === 'periodic'
+        );
+
+        // Periodic labels only for periodic
+        blockPeriodicLabels.classList.toggle('show', val === 'periodic');
+    }
+
+    radios.forEach(r => r.addEventListener('change', refresh));
+    refresh();
+})();
+</script>
+
 </body>
 </html>

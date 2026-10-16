@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Course</title>
+    <title>Edit Course</title>
     <style>
-        /* Body Styles */
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
@@ -16,30 +15,21 @@
             margin: 0;
             padding: 20px;
         }
-
-        /* Form Styles */
         form {
             background-color: #ffffff;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 440px;
+            max-width: 460px;
         }
-
-        h2 {
-            text-align: center;
-            color: #333;
-        }
-
+        h2 { text-align: center; color: #333; }
         label {
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 5px;
-            display: block;
+            font-size: 14px; color: #555;
+            margin-bottom: 5px; display: block;
         }
-
         input[type="text"],
+        input[type="number"],
         select {
             width: 100%;
             padding: 10px;
@@ -50,100 +40,85 @@
             font-size: 14px;
             background-color: white;
         }
-
-        input[type="text"]:focus,
-        select:focus {
-            border-color: #007bff;
-            outline: none;
+        input:focus, select:focus {
+            border-color: #007bff; outline: none;
         }
-
         button {
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
+            width: 100%; padding: 12px;
+            background-color: #007bff; color: white;
+            border: none; border-radius: 4px;
+            cursor: pointer; font-size: 16px;
         }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
+        button:hover { background-color: #0056b3; }
         a {
-            display: block;
-            text-align: center;
-            margin-top: 15px;
-            color: #007bff;
-            text-decoration: none;
-            font-size: 14px;
+            display: block; text-align: center;
+            margin-top: 15px; color: #007bff;
+            text-decoration: none; font-size: 14px;
         }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
+        a:hover { text-decoration: underline; }
         .alert {
-            padding: 10px 14px;
-            border-radius: 6px;
-            margin-bottom: 14px;
-            font-size: 13px;
+            padding: 10px 14px; border-radius: 6px;
+            margin-bottom: 14px; font-size: 13px;
         }
         .alert-warning { background: #fff3cd; color: #856404; }
         .alert-danger  { background: #f8d7da; color: #721c24; }
         .alert-success { background: #d4edda; color: #155724; }
-        .alert-info    { background: #d1ecf1; color: #0c5460; }
-
         .hint {
-            font-size: 12px;
-            color: #888;
-            margin-top: -6px;
-            margin-bottom: 8px;
+            font-size: 12px; color: #888;
+            margin-top: -6px; margin-bottom: 8px;
         }
-
-        .no-depts-warning {
-            background: #fff3cd;
-            color: #856404;
-            padding: 10px 14px;
-            border-radius: 6px;
+        .assessment-block {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 14px;
+            margin: 12px 0;
+        }
+        .assessment-block h4 {
+            margin: 0 0 10px;
             font-size: 13px;
-            margin-bottom: 12px;
+            color: #1e3a8a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .no-depts-warning a {
-            display: inline;
-            color: #856404;
-            font-weight: 700;
-            text-decoration: underline;
-            margin: 0;
-        }
-
-        /* HOD info banner */
-        .dept-note {
-            background: #eef7f5;
-            border: 1px solid #c9ece5;
-            color: #0e6251;
-            padding: 10px 14px;
+        .radio-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
             border-radius: 6px;
-            font-size: 13px;
-            margin-bottom: 12px;
-            line-height: 1.5;
+            cursor: pointer;
+            margin-bottom: 6px;
+            border: 1px solid transparent;
+            transition: all 0.15s;
+        }
+        .radio-row:hover { background: #eff6ff; }
+        .radio-row input[type="radio"] { margin-top: 3px; }
+        .radio-row .rr-title { font-weight: 700; font-size: 13px; color: #1e3a8a; }
+        .radio-row .rr-desc { font-size: 11.5px; color: #64748b; margin-top: 2px; }
+        .radio-row.checked { background: #dbeafe; border-color: #93c5fd; }
+        .conditional {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px dashed #cbd5e1;
+        }
+        .conditional.show { display: block; }
+        .warn-banner {
+            background: #fef3c7; border-left: 4px solid #f59e0b;
+            color: #78350f; padding: 10px 14px;
+            border-radius: 6px; font-size: 12.5px;
+            margin-bottom: 12px; line-height: 1.5;
         }
     </style>
 </head>
 <body>
 
-    <form method="POST" action="{{ url_for('add_course') }}">
+    <form method="POST" action="{{ url_for('edit_course', course_id=course.id) }}">
 
-        {# Back link: HOD goes to HOD dashboard, admin goes to admin dashboard #}
-        {% if session.get('role') == 'hod' %}
-            <a href="{{ url_for('hod_dashboard') }}">← Back to Dashboard</a>
-        {% else %}
-            <a href="{{ url_for('admin_dashboard') }}">← Back to Dashboard</a>
-        {% endif %}
+        <a href="{{ url_for('manage_courses') }}">← Back to Courses</a>
 
-        <h2>Add New Course</h2>
+        <h2>Edit Course</h2>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% for cat, msg in messages %}
@@ -151,71 +126,109 @@
           {% endfor %}
         {% endwith %}
 
-        {# ================= HOD VIEW ================= #}
-        {% if session.get('role') == 'hod' %}
+        <div class="warn-banner">
+            ⚠ Changing the assessment type affects <strong>how future marks are entered</strong>.
+            Existing marks stay in the database but may not appear in the new layout.
+        </div>
 
-            <div class="dept-note">
-                ℹ This course will be added to <strong>your department</strong> automatically.
+        <label for="course_name">Course Name</label>
+        <input type="text" id="course_name" name="course_name"
+               value="{{ course.name }}" required>
+
+        <label for="course_level">Course Level</label>
+        <input type="text" id="course_level" name="course_level"
+               value="{{ course.level or '' }}" required>
+
+        <label for="department_id">Department</label>
+        <select id="department_id" name="department_id">
+            <option value="">— none —</option>
+            {% for d in departments %}
+                <option value="{{ d.id }}"
+                    {% if course.department_id == d.id %}selected{% endif %}>
+                    {{ d.name }}{% if d.code %} ({{ d.code }}){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+
+        <!-- ============================================================
+             ASSESSMENT TYPE
+             ============================================================ -->
+        <div class="assessment-block">
+            <h4>Assessment Type</h4>
+
+            {% set current = (course.assessment_type or 'knec')|lower %}
+
+            <label class="radio-row" id="row-knec">
+                <input type="radio" name="assessment_type" value="knec"
+                       {% if current == 'knec' %}checked{% endif %}>
+                <div>
+                    <div class="rr-title">KNEC — CAT1 + CAT2 + Final</div>
+                    <div class="rr-desc">CAT1 (0–15) + CAT2 (0–15) + Final (0–70).</div>
+                </div>
+            </label>
+
+            <label class="radio-row" id="row-short">
+                <input type="radio" name="assessment_type" value="short"
+                       {% if current == 'short' %}checked{% endif %}>
+                <div>
+                    <div class="rr-title">Short Course — Single Final Score</div>
+                    <div class="rr-desc">One score + optional remarks.</div>
+                </div>
+            </label>
+
+            <label class="radio-row" id="row-periodic">
+                <input type="radio" name="assessment_type" value="periodic"
+                       {% if current == 'periodic' %}checked{% endif %}>
+                <div>
+                    <div class="rr-title">Periodic — Monthly / Termly Tests</div>
+                    <div class="rr-desc">Multiple tests per student (Month 1, Month 2, ...).</div>
+                </div>
+            </label>
+
+            <div class="conditional" id="block-max-score">
+                <label for="max_score">Maximum Score per Test</label>
+                <input type="number" id="max_score" name="max_score"
+                       value="{{ course.max_score or 100 }}" min="1" max="1000">
             </div>
 
-            <label for="course_name">Course Name</label>
-            <input type="text" id="course_name" name="course_name"
-                   placeholder="e.g. DIPLOMA IN INFORMATION COMMUNICATION TECHNOLOGY"
-                   required>
+            <div class="conditional" id="block-periodic-labels">
+                <label for="periodic_labels">Assessment Labels (comma-separated)</label>
+                <input type="text" id="periodic_labels" name="periodic_labels"
+                       value="{{ course.periodic_labels or 'Month 1,Month 2,Month 3,Final' }}">
+            </div>
+        </div>
 
-            <label for="course_level">Course Level</label>
-            <input type="text" id="course_level" name="course_level"
-                   placeholder="e.g. Diploma, Certificate, Artisan"
-                   required>
-
-            <button type="submit">Add Course</button>
-
-            <a href="{{ url_for('manage_courses') }}">← Back to Courses</a>
-
-        {# ================= ADMIN VIEW ================= #}
-        {% else %}
-
-            {% if not departments %}
-              <div class="no-depts-warning">
-                ⚠ No departments exist yet.
-                <a href="{{ url_for('manage_departments') }}">Create one first</a>
-                before adding a course.
-              </div>
-            {% endif %}
-
-            <label for="course_name">Course Name</label>
-            <input type="text" id="course_name" name="course_name"
-                   placeholder="e.g. DIPLOMA IN INFORMATION COMMUNICATION TECHNOLOGY"
-                   required>
-
-            <label for="course_level">Course Level</label>
-            <input type="text" id="course_level" name="course_level"
-                   placeholder="e.g. Diploma, Certificate, Artisan"
-                   required>
-
-            <label for="department_id">Department</label>
-            <select id="department_id" name="department_id" required
-                    {% if not departments %}disabled{% endif %}>
-                <option value="">— choose department —</option>
-                {% for d in departments %}
-                    <option value="{{ d.id }}">
-                        {{ d.name }}{% if d.code %} ({{ d.code }}){% endif %}
-                    </option>
-                {% endfor %}
-            </select>
-            <div class="hint">The department this course belongs to (e.g. ICT, Business, Artisan).</div>
-
-            <button type="submit" {% if not departments %}disabled style="opacity:0.6; cursor:not-allowed;"{% endif %}>
-                Add Course
-            </button>
-
-            <a href="{{ url_for('manage_departments') }}">
-                Manage Departments
-            </a>
-
-        {% endif %}
+        <button type="submit">Save Changes</button>
+        <a href="{{ url_for('manage_courses') }}">Cancel</a>
 
     </form>
+
+    <script>
+        const radios = document.querySelectorAll('input[name="assessment_type"]');
+        const rows = {
+            knec: document.getElementById('row-knec'),
+            short: document.getElementById('row-short'),
+            periodic: document.getElementById('row-periodic'),
+        };
+        const blockMaxScore = document.getElementById('block-max-score');
+        const blockPeriodicLabels = document.getElementById('block-periodic-labels');
+
+        function refresh() {
+            const checked = document.querySelector('input[name="assessment_type"]:checked');
+            const val = checked ? checked.value : 'knec';
+
+            Object.keys(rows).forEach(k => {
+                if (!rows[k]) return;
+                rows[k].classList.toggle('checked', k === val);
+            });
+
+            blockMaxScore.classList.toggle('show', val === 'short' || val === 'periodic');
+            blockPeriodicLabels.classList.toggle('show', val === 'periodic');
+        }
+
+        radios.forEach(r => r.addEventListener('change', refresh));
+        refresh();
+    </script>
 
 </body>
 </html>

@@ -1,12 +1,9 @@
+# ============================================================
+# models.py — Summit Technical College
+# ============================================================
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    ForeignKey,
-    Text,
-    DateTime,
-    Float,
-    Boolean,
+    Column, Integer, String, ForeignKey, Text,
+    DateTime, Float, Boolean,
 )
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -14,6 +11,9 @@ from datetime import datetime
 from connections import Base
 
 
+# ============================================================
+# ADMIN
+# ============================================================
 class Admin(Base):
     __tablename__ = "admins"
 
@@ -26,6 +26,9 @@ class Admin(Base):
         self.password = password
 
 
+# ============================================================
+# USER
+# ============================================================
 class User(Base):
     __tablename__ = "users"
 
@@ -40,6 +43,9 @@ class User(Base):
         self.password = password
 
 
+# ============================================================
+# DEPARTMENT
+# ============================================================
 class Department(Base):
     __tablename__ = "departments"
 
@@ -53,6 +59,14 @@ class Department(Base):
         self.code = code
 
 
+# ============================================================
+# COURSE
+# ------------------------------------------------------------
+# assessment_type:
+#   "knec"     → CAT1 (15) + CAT2 (15) + Final (70)
+#   "short"    → single score (0–max_score) + remarks
+#   "periodic" → monthly tests using periodic_labels
+# ============================================================
 class Course(Base):
     __tablename__ = "courses"
 
@@ -61,27 +75,36 @@ class Course(Base):
     level = Column(String(255))
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
 
+    # NEW: how this course is assessed
+    assessment_type = Column(String(20), default="knec")    # "knec" | "short" | "periodic"
+    max_score = Column(Integer, default=100)                # for short & periodic
+    periodic_labels = Column(String(255), nullable=True)    # e.g. "Month 1,Month 2,Final"
+
     department = relationship("Department", backref="courses")
     subjects = relationship(
         "Subject", back_populates="course", cascade="all, delete-orphan"
     )
 
-    def __init__(self, name, level, department_id=None):
+    def __init__(self, name, level, department_id=None,
+                 assessment_type="knec", max_score=100, periodic_labels=None):
         self.name = name
         self.level = level
         self.department_id = department_id
+        self.assessment_type = assessment_type
+        self.max_score = max_score
+        self.periodic_labels = periodic_labels
 
 
 # ============================================================
-# NEW — Module (belongs to a Course, groups subjects by level)
+# MODULE
 # ============================================================
 class Module(Base):
     __tablename__ = "modules"
 
-    id         = Column(Integer, primary_key=True, index=True)
-    course_id  = Column(Integer, ForeignKey("courses.id"), nullable=False)
-    name       = Column(String(120), nullable=False)   # "Module 1", "Module 2"
-    order      = Column(Integer, default=0)            # for sorting
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    name = Column(String(120), nullable=False)
+    order = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     course = relationship("Course", backref="modules")
@@ -92,6 +115,9 @@ class Module(Base):
         self.order = order
 
 
+# ============================================================
+# SEMESTER
+# ============================================================
 class Semester(Base):
     __tablename__ = "semesters"
 
@@ -109,6 +135,9 @@ class Semester(Base):
         self.is_current = is_current
 
 
+# ============================================================
+# SUBJECT
+# ============================================================
 class Subject(Base):
     __tablename__ = "subjects"
 
@@ -117,10 +146,10 @@ class Subject(Base):
     course_id = Column(Integer, ForeignKey("courses.id"))
     semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=True)
 
-    # Old free-text label — kept until the cleanup step.
-    module = Column(String(50), nullable=True)   # "MODULE 1", "MODULE 2", ...
+    # Old free-text label
+    module = Column(String(50), nullable=True)
 
-    # NEW — real FK to the Module table.
+    # Real FK to Module
     module_id = Column(Integer, ForeignKey("modules.id"), nullable=True)
     module_obj = relationship("Module", backref="subjects")
 
@@ -135,6 +164,9 @@ class Subject(Base):
         self.module_id = module_id
 
 
+# ============================================================
+# QUIZ
+# ============================================================
 class Quiz(Base):
     __tablename__ = "quizzes"
 
@@ -142,22 +174,16 @@ class Quiz(Base):
     title = Column(String(100), nullable=False)
     course_id = Column(Integer, ForeignKey("courses.id"))
     subject_id = Column(Integer, ForeignKey("subjects.id"))
-
     duration = Column(Integer, default=30)
     upload_time = Column(DateTime, default=datetime.utcnow)
-
     status = Column(String(50), default="inactive")
 
     course = relationship("Course", backref="quizzes")
     subject = relationship("Subject", backref="quizzes")
-    questions = relationship(
-        "Question", cascade="all, delete-orphan", backref="quiz"
-    )
+    questions = relationship("Question", cascade="all, delete-orphan", backref="quiz")
     results = relationship("Result", backref="quiz")
 
-    def __init__(
-        self, title, course_id, subject_id, duration=30, status="inactive",
-    ):
+    def __init__(self, title, course_id, subject_id, duration=30, status="inactive"):
         self.title = title
         self.course_id = course_id
         self.subject_id = subject_id
@@ -165,6 +191,9 @@ class Quiz(Base):
         self.status = status
 
 
+# ============================================================
+# QUESTION
+# ============================================================
 class Question(Base):
     __tablename__ = "questions"
 
@@ -182,10 +211,8 @@ class Question(Base):
     image = Column(Text)
     extra_content = Column(Text)
 
-    def __init__(
-        self, quiz_id, question_text, option_a, option_b, option_c,
-        option_d, correct_option, marks=1, image=None, extra_content=None,
-    ):
+    def __init__(self, quiz_id, question_text, option_a, option_b, option_c,
+                 option_d, correct_option, marks=1, image=None, extra_content=None):
         self.quiz_id = quiz_id
         self.question_text = question_text
         self.option_a = option_a
@@ -198,6 +225,9 @@ class Question(Base):
         self.extra_content = extra_content
 
 
+# ============================================================
+# RESULT (quiz results)
+# ============================================================
 class Result(Base):
     __tablename__ = "results"
 
@@ -219,6 +249,9 @@ class Result(Base):
         self.percentage = percentage
 
 
+# ============================================================
+# STUDENT PROFILE
+# ============================================================
 class StudentProfile(Base):
     __tablename__ = "student_profiles"
 
@@ -232,26 +265,21 @@ class StudentProfile(Base):
     phone_number = Column(String(50), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    # which semester this student is currently in
     current_semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=True)
 
-    # Old free-text label — kept until cleanup.
+    # Old free-text
     module = Column(String(50), nullable=True)
-
-    # NEW — real FK to Module.
+    # Real FK
     module_id = Column(Integer, ForeignKey("modules.id"), nullable=True)
     module_obj = relationship("Module", foreign_keys=[module_id], backref="students")
 
     course = relationship("Course", backref="students")
     user = relationship("User", back_populates="profile")
-
     current_semester = relationship("Semester", foreign_keys=[current_semester_id])
 
-    def __init__(
-        self, full_name, exam_type, course_id, admission_number,
-        phone_number, user_id, blocked=False,
-        current_semester_id=None, module=None, module_id=None,
-    ):
+    def __init__(self, full_name, exam_type, course_id, admission_number,
+                 phone_number, user_id, blocked=False,
+                 current_semester_id=None, module=None, module_id=None):
         self.full_name = full_name
         self.exam_type = exam_type
         self.course_id = course_id
@@ -264,6 +292,9 @@ class StudentProfile(Base):
         self.module_id = module_id
 
 
+# ============================================================
+# MESSAGE
+# ============================================================
 class Message(Base):
     __tablename__ = "messages"
 
@@ -279,6 +310,9 @@ class Message(Base):
     subject = relationship("Subject", backref="messages")
 
 
+# ============================================================
+# ACTIVITY LOG
+# ============================================================
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
 
@@ -291,6 +325,9 @@ class ActivityLog(Base):
     student = relationship("StudentProfile", backref="activities")
 
 
+# ============================================================
+# KNEC MARKS (CAT1 + CAT2 + Final)
+# ============================================================
 class KnecMark(Base):
     __tablename__ = "knec_marks"
 
@@ -319,6 +356,67 @@ class KnecMark(Base):
         self.final = final
 
 
+# ============================================================
+# NEW — SHORT COURSE MARKS (Excel, CorelDraw, etc.)
+# ============================================================
+class ShortCourseMark(Base):
+    __tablename__ = "short_course_marks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("student_profiles.id"), nullable=False)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
+    semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=True)
+
+    score = Column(Float, nullable=True)          # 0–100 or course.max_score
+    remarks = Column(String(255), nullable=True)
+    entered_at = Column(DateTime, default=datetime.utcnow)
+
+    student = relationship("StudentProfile", backref="short_marks")
+    subject = relationship("Subject", backref="short_marks")
+    semester = relationship("Semester", backref="short_marks")
+
+    def __init__(self, student_id, subject_id, semester_id=None,
+                 score=None, remarks=None):
+        self.student_id = student_id
+        self.subject_id = subject_id
+        self.semester_id = semester_id
+        self.score = score
+        self.remarks = remarks
+
+
+# ============================================================
+# NEW — PERIODIC MARKS (Languages: Month 1, Month 2, Final, ...)
+# ============================================================
+class PeriodicMark(Base):
+    __tablename__ = "periodic_marks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("student_profiles.id"), nullable=False)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
+    semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=True)
+
+    label = Column(String(50), nullable=False)      # "Month 1", "Final", "Oral Test"
+    score = Column(Float, nullable=True)
+    remarks = Column(String(255), nullable=True)
+    entered_at = Column(DateTime, default=datetime.utcnow)
+
+    student = relationship("StudentProfile", backref="periodic_marks")
+    subject = relationship("Subject", backref="periodic_marks")
+    semester = relationship("Semester", backref="periodic_marks")
+
+    def __init__(self, student_id, subject_id, semester_id, label,
+                 score=None, remarks=None):
+        self.student_id = student_id
+        self.subject_id = subject_id
+        self.semester_id = semester_id
+        self.label = label
+        self.score = score
+        self.remarks = remarks
+
+
+# ============================================================
+# HOD
+# ============================================================
 class HOD(Base):
     __tablename__ = "hods"
 
