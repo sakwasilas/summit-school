@@ -537,19 +537,32 @@ def add_course():
             department_id = request.form.get("department_id") or None
             department_id = int(department_id) if department_id else None
 
-            assessment_type = (request.form.get("assessment_type") or "knec").strip().lower()
-            if assessment_type not in ("knec", "short", "periodic"):
-                assessment_type = "knec"
+            # --- CHECK DEPARTMENT FIRST ---
+            dept = None
+            if department_id:
+                dept = db.query(Department).filter_by(id=department_id).first()
 
-            max_score = request.form.get("max_score", type=int) or 100
-            if max_score <= 0 or max_score > 1000:
+            # If it's CPA or KASNEB, force "short" (Single Score) 
+            # and ignore whatever was clicked in the form
+            if dept and dept.name.strip().upper() in ("CPA", "KASNEB"):
+                assessment_type = "short"
+                periodic_labels = None 
                 max_score = 100
+            else:
+                # Otherwise, use the normal form logic
+                assessment_type = (request.form.get("assessment_type") or "knec").strip().lower()
+                if assessment_type not in ("knec", "short", "periodic"):
+                    assessment_type = "knec"
 
-            periodic_labels = (request.form.get("periodic_labels") or "").strip()
-            if assessment_type == "periodic" and not periodic_labels:
-                periodic_labels = "Month 1,Month 2,Month 3,Final"
-            if assessment_type != "periodic":
-                periodic_labels = None
+                max_score = request.form.get("max_score", type=int) or 100
+                if max_score <= 0 or max_score > 1000:
+                    max_score = 100
+
+                periodic_labels = (request.form.get("periodic_labels") or "").strip()
+                if assessment_type == "periodic" and not periodic_labels:
+                    periodic_labels = "Month 1,Month 2,Month 3,Final"
+                if assessment_type != "periodic":
+                    periodic_labels = None
 
             if db.query(Course).filter_by(name=course_name).first():
                 flash(f"Course '{course_name}' already exists!", "warning")
@@ -595,15 +608,23 @@ def edit_course(course_id):
             dept = request.form.get("department_id") or None
             course.department_id = int(dept) if dept else None
 
-            atype = (request.form.get("assessment_type") or course.assessment_type or "knec").strip().lower()
-            if atype not in ("knec", "short", "periodic"):
-                atype = "knec"
-            course.assessment_type = atype
+            # --- CHECK DEPARTMENT HERE TOO ---
+            dept_obj = None
+            if course.department_id:
+                dept_obj = db.query(Department).filter_by(id=course.department_id).first()
 
-            course.max_score = request.form.get("max_score", type=int) or course.max_score or 100
-
-            labels = (request.form.get("periodic_labels") or "").strip()
-            course.periodic_labels = labels if atype == "periodic" else None
+            if dept_obj and dept_obj.name.strip().upper() in ("CPA", "KASNEB"):
+                course.assessment_type = "short"
+                course.periodic_labels = None
+                course.max_score = 100
+            else:
+                atype = (request.form.get("assessment_type") or course.assessment_type or "knec").strip().lower()
+                if atype not in ("knec", "short", "periodic"):
+                    atype = "knec"
+                course.assessment_type = atype
+                course.max_score = request.form.get("max_score", type=int) or course.max_score or 100
+                labels = (request.form.get("periodic_labels") or "").strip()
+                course.periodic_labels = labels if atype == "periodic" else None
 
             db.commit()
             flash("Course updated.", "success")
@@ -633,12 +654,10 @@ def delete_course(course_id):
             return redirect(url_for("manage_courses"))
 
         # ---- 1. Delete dependent rows first (deepest first) ----
-        # Modules that belong to this course
         module_ids = [
             m.id for m in db.query(Module).filter_by(course_id=course_id).all()
         ]
 
-        # Marks (all three tables) referencing subjects or semesters of this course
         subject_ids = [
             s.id for s in db.query(Subject).filter_by(course_id=course_id).all()
         ]
@@ -656,21 +675,14 @@ def delete_course(course_id):
             db.query(ShortCourseMark).filter(ShortCourseMark.semester_id.in_(semester_ids)).delete(synchronize_session=False)
             db.query(PeriodicMark).filter(PeriodicMark.semester_id.in_(semester_ids)).delete(synchronize_session=False)
 
-        # Quizzes + their questions/results
         _delete_quizzes_for(db, course_id=course_id)
 
-        # Messages referencing this course or its subjects
         db.query(Message).filter(Message.course_id == course_id).delete(synchronize_session=False)
         if subject_ids:
             db.query(Message).filter(Message.subject_id.in_(subject_ids)).delete(synchronize_session=False)
 
-        # Subjects
         db.query(Subject).filter(Subject.course_id == course_id).delete(synchronize_session=False)
-
-        # Semesters (this is the one that was failing)
         db.query(Semester).filter(Semester.course_id == course_id).delete(synchronize_session=False)
-
-        # Modules
         db.query(Module).filter(Module.course_id == course_id).delete(synchronize_session=False)
 
         # ---- 2. Finally delete the course itself ----
