@@ -2,93 +2,253 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Manage Semesters</title>
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Semesters — Summit Technical College</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            color: #0f1724;
+            -webkit-font-smoothing: antialiased;
+            background: #f0f2f5;
+        }
+
+        .page { display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* HEADER */
+        .top-header {
+            background: #ffffff;
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            flex-wrap: wrap;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .top-header img { width: 56px; height: 56px; object-fit: contain; flex-shrink: 0; }
+        .top-header .header-text { display: flex; flex-direction: column; line-height: 1.05; }
+        .top-header h1 { font-size: 20px; font-weight: 900; color: #1e3a8a; letter-spacing: -0.5px; text-transform: uppercase; margin: 0; }
+        .top-header .sub { font-size: 10px; font-weight: 600; color: #64748b; letter-spacing: 2.5px; text-transform: uppercase; margin-top: 5px; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .logout-btn {
+            padding: 9px 16px; background: #f1f5f9; color: #475569;
+            border-radius: 9px; text-decoration: none; font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 6px; transition: all .15s;
+        }
+        .logout-btn:hover { background: #fee2e2; color: #b91c1c; }
+
+        /* MAIN */
+        .main { padding: 28px 32px 60px; max-width: 1450px; margin: 0 auto; width: 100%; }
+
+        .page-head {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 22px; flex-wrap: wrap; gap: 12px;
+        }
+        .page-head h2 { font-size: 22px; font-weight: 800; color: #0f1724; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+        .page-head h2 i { color: #1e3a8a; }
+        .page-head p { color: #64748b; font-size: 13px; margin: 0; }
+
+        /* FLASH */
+        .flash { padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; margin-bottom: 18px; border: 1px solid transparent; }
+        .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
+        .flash.danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+
+        /* CARDS */
+        .custom-card {
+            background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.05);
+            border: 1px solid #e2e8f0; margin-bottom: 22px; overflow: hidden;
+        }
+        .custom-card-header {
+            padding: 16px 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;
+            font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;
+        }
+        .custom-card-body { padding: 20px; }
+
+        /* FORM ELEMENTS */
+        .form-control, .form-select {
+            padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e1;
+            font-size: 13.5px; transition: all 0.15s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* TABLE */
+        .table-responsive { overflow-x: auto; }
+        table.premium-table { width: 100%; border-collapse: collapse; font-size: 13.5px; white-space: nowrap; }
+        table.premium-table thead th {
+            background: #1e293b; color: #f8fafc; text-align: left; padding: 14px 20px;
+            font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        table.premium-table tbody td {
+            padding: 14px 20px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; color: #334155;
+        }
+        table.premium-table tbody tr:hover td { background: #f8fafc; }
+
+        /* BADGES */
+        .badge-active { background: #d1fae5; color: #065f46; padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; }
+        .badge-inactive { background: #f1f5f9; color: #64748b; padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 11px; }
+
+        /* ACTIONS */
+        .act-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 7px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+            text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: all .15s;
+        }
+        .act-btn:hover { transform: translateY(-1px); }
+        .act-set { background: #dbeafe; color: #1e40af; }
+        .act-set:hover { background: #3b82f6; color: white; }
+        .act-delete { background: #fee2e2; color: #991b1b; }
+        .act-delete:hover { background: #ef4444; color: white; }
+
+        @media (max-width: 900px) {
+            .top-header { padding: 12px 20px; }
+            .main { padding: 20px; }
+        }
+    </style>
 </head>
-<body class="container py-4">
+<body>
 
-    <h1 class="mb-4">Manage Semesters</h1>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for cat, msg in messages %}
-        <div class="alert alert-{{ cat }}">{{ msg }}</div>
-      {% endfor %}
-    {% endwith %}
-
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">Add a semester</h5>
-            <form method="POST" action="{{ url_for('add_semester') }}" class="row g-2">
-                <div class="col-md-5">
-                    <input type="text" name="name" class="form-control"
-                           placeholder="e.g. Jan-Mar 2026" required>
-                </div>
-                <div class="col-md-5">
-                    <select name="course_id" class="form-select" required>
-                        <option value="">— choose course —</option>
-                        {% for c in courses %}
-                            <option value="{{ c.id }}">{{ c.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary w-100">Add</button>
-                </div>
-            </form>
+<div class="page">
+    <!-- HEADER -->
+    <header class="top-header">
+        <div class="header-left">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Summit Technical College">
+            <div class="header-text">
+                <h1>AcademiaPro</h1>
+                <div class="sub">Manage Semesters</div>
+            </div>
         </div>
-    </div>
+        <div class="header-right">
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </header>
 
-    <table class="table table-bordered align-middle">
-        <thead>
-            <tr>
-                <th>Course</th>
-                <th>Semester</th>
-                <th>Current?</th>
-                <th style="width:220px">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for s in semesters %}
-            <tr>
-                <td>{{ s.course.name if s.course else "—" }}</td>
-                <td>{{ s.name }}</td>
-                <td>
-                    {% if s.is_current %}
-                        <span class="badge bg-success">Current</span>
-                    {% else %}
-                        <span class="badge bg-secondary">—</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if not s.is_current %}
-                    <form method="POST"
-                          action="{{ url_for('set_current_semester', semester_id=s.id) }}"
-                          class="d-inline">
-                        <button class="btn btn-sm btn-outline-primary">
-                            Set current
-                        </button>
-                    </form>
-                    {% endif %}
-                    <form method="POST"
-                          action="{{ url_for('delete_semester', semester_id=s.id) }}"
-                          class="d-inline"
-                          onsubmit="return confirm('Delete this semester?');">
-                        <button class="btn btn-sm btn-outline-danger">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="4" class="text-center text-muted">
-                No semesters yet.
-            </td></tr>
+    <!-- MAIN CONTENT -->
+    <main class="main">
+        
+        <div class="page-head">
+            <div>
+                <h2><i class="bi bi-calendar3"></i> Manage Semesters</h2>
+                <p>Add semesters, mark them as current, or remove old ones.</p>
+            </div>
+            <a href="javascript:history.back()" class="logout-btn">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, msg in messages %}
+            <div class="flash {{ category if category in ['success','danger','warning'] else 'info' }}">
+                <i class="bi bi-info-circle-fill"></i>
+                {{ msg }}
+            </div>
             {% endfor %}
-        </tbody>
-    </table>
+        {% endwith %}
 
-    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
-        ← Back to dashboard
-    </a>
+        <!-- ADD SEMESTER FORM -->
+        <div class="custom-card">
+            <div class="custom-card-header">
+                <i class="bi bi-plus-circle-fill text-primary"></i> Add a New Semester
+            </div>
+            <div class="custom-card-body">
+                <form method="POST" action="{{ url_for('add_semester') }}" class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label text-muted fw-bold" style="font-size:11px;">SEMESTER NAME</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Jan-Mar 2026" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label text-muted fw-bold" style="font-size:11px;">COURSE</label>
+                        <select name="course_id" class="form-select" required>
+                            <option value="">— choose course —</option>
+                            {% for c in courses %}
+                                <!-- Auto-select the course if navigated from the Manage Courses page -->
+                                <option value="{{ c.id }}" {% if selected_course_id == c.id %}selected{% endif %}>
+                                    {{ c.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="btn btn-primary w-100 fw-bold" style="padding: 10px; border-radius: 8px;">
+                            <i class="bi bi-plus-lg"></i> Add
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- SEMESTERS TABLE -->
+        <div class="custom-card">
+            <div class="custom-card-header">
+                <i class="bi bi-list-check text-success"></i> All Semesters
+            </div>
+            <div class="table-responsive">
+                <table class="premium-table">
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Semester Term</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in semesters %}
+                        <tr>
+                            <td class="fw-bold text-dark">{{ s.course.name if s.course else "—" }}</td>
+                            <td>{{ s.name }}</td>
+                            <td>
+                                {% if s.is_current %}
+                                    <span class="badge-active"><i class="bi bi-check-circle-fill"></i> Current</span>
+                                {% else %}
+                                    <span class="badge-inactive">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                {% if not s.is_current %}
+                                <form method="POST" action="{{ url_for('set_current_semester', semester_id=s.id) }}" class="d-inline">
+                                    <button class="act-btn act-set">
+                                        <i class="bi bi-check2-circle"></i> Set Current
+                                    </button>
+                                </form>
+                                {% endif %}
+                                
+                                <form method="POST" action="{{ url_for('delete_semester', semester_id=s.id) }}" class="d-inline" onsubmit="return confirm('Delete this semester?');">
+                                    <button class="act-btn act-delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                <i class="bi bi-calendar-x" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
+                                No semesters yet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+</div>
 
 </body>
 </html>

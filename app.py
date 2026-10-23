@@ -1142,7 +1142,16 @@ def manage_semesters():
     try:
         courses = db.query(Course).order_by(Course.name.asc()).all()
         semesters = semester_query(db).order_by(Semester.created_at.desc()).all()
-        return render_template("admin/manage_semesters.html", courses=courses, semesters=semesters)
+        
+        # --- NEW: Check if a course was passed from the button ---
+        selected_course_id = request.args.get("course_id", type=int)
+        
+        return render_template(
+            "admin/manage_semesters.html", 
+            courses=courses, 
+            semesters=semesters,
+            selected_course_id=selected_course_id # Pass to template
+        )
     finally:
         db.close()
 
