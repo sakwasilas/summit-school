@@ -670,12 +670,10 @@ def manage_courses():
                 Course.level.ilike(like)
             ))
 
-        # 3. Pagination
+        # 3. Pagination (using the custom helper for SQLAlchemy 2.x)
         page = request.args.get("page", 1, type=int)
         per_page = 10
-        pagination = base_q.order_by(Course.name.asc()).paginate(
-            page=page, per_page=per_page, error_out=False
-        )
+        pagination = paginate_query(base_q.order_by(Course.name.asc()), page, per_page)
         
         courses = pagination.items
 
