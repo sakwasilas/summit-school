@@ -648,25 +648,48 @@ def delete_hod(hod_id):
 
 @app.route("/manage_courses", methods=["GET"])
 def manage_courses():
+    """List courses with search and pagination."""
     blocked = require_admin_or_hod()
     if blocked:
         return blocked
 
     db = SessionLocal()
     try:
+        # 1. Base Query
         if is_hod():
-            courses = (
-                db.query(Course)
-                .filter_by(department_id=session["department_id"])
-                .order_by(Course.name.asc())
-                .all()
-            )
+            base_q = db.query(Course).filter_by(department_id=session["department_id"])
         else:
-            courses = db.query(Course).order_by(Course.name.asc()).all()
+            base_q = db.query(Course)
+
+        # 2. Search
+        search_query = request.args.get("search", "").strip()
+        if search_query:
+            like = f"%{search_query}%"
+            base_q = base_q.filter(or_(
+                Course.name.ilike(like),
+                Course.level.ilike(like)
+            ))
+
+        # 3. Pagination
+        page = request.args.get("page", 1, type=int)
+        per_page = 10
+        pagination = base_q.order_by(Course.name.asc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        courses = pagination.items
+
+        # 4. Attach stats for the template
+        for c in courses:
+            c.students_count = db.query(StudentProfile).filter_by(course_id=c.id).count()
+            c.subjects_count = db.query(Subject).filter_by(course_id=c.id).count()
 
         return render_template(
             "admin/manage_courses.html",
-            courses=courses, hod_mode=is_hod(),
+            courses=courses,
+            pagination=pagination,
+            search_query=search_query,
+            hod_mode=is_hod(),
         )
     finally:
         db.close()

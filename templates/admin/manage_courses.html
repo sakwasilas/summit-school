@@ -118,20 +118,59 @@
             gap: 6px;
             transition: all .15s;
         }
-        .quick-link.blue {
-            background: #1e3a8a; color: white;
-        }
+        .quick-link.blue { background: #1e3a8a; color: white; }
         .quick-link.blue:hover { background: #172f6e; color: white; }
-        .quick-link.purple {
-            background: #f5f3ff; color: #6d28d9;
-            border: 1px solid #ddd6fe;
-        }
+        .quick-link.purple { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
         .quick-link.purple:hover { background: #8b5cf6; color: white; border-color: #8b5cf6; }
-        .quick-link.orange {
-            background: #fff7ed; color: #c2410c;
-            border: 1px solid #fed7aa;
-        }
+        .quick-link.orange { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
         .quick-link.orange:hover { background: #f59e0b; color: white; border-color: #f59e0b; }
+
+        /* Search Bar */
+        .search-form {
+            display: flex;
+            gap: 8px;
+            flex-grow: 1;
+            max-width: 400px;
+            margin-left: auto;
+        }
+        .search-input {
+            flex-grow: 1;
+            padding: 9px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .search-btn {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            padding: 9px 16px;
+            border-radius: 9px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+        .search-btn:hover { background: #e2e8f0; }
+        .search-clear {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            color: #ef4444;
+            background: #fee2e2;
+            border-radius: 9px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.15s;
+        }
+        .search-clear:hover { background: #fecaca; }
 
         /* ============ PREMIUM TABLE ============ */
         .table-card {
@@ -140,11 +179,10 @@
             overflow: hidden;
             box-shadow: 0 2px 15px rgba(0,0,0,.06);
             border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
         }
         
-        .table-responsive {
-            overflow-x: auto;
-        }
+        .table-responsive { overflow-x: auto; }
 
         table.courses-table {
             width: 100%;
@@ -153,7 +191,6 @@
             white-space: nowrap;
         }
 
-        /* Table Headers */
         table.courses-table thead th {
             background: #1e293b;
             color: #f8fafc;
@@ -166,7 +203,6 @@
             border-bottom: 2px solid #0f172a;
         }
 
-        /* Table Rows */
         table.courses-table tbody td {
             padding: 16px 20px;
             border-bottom: 1px solid #e2e8f0;
@@ -174,20 +210,10 @@
             color: #334155;
         }
 
-        table.courses-table tbody tr:last-child td {
-            border-bottom: none;
-        }
+        table.courses-table tbody tr:last-child td { border-bottom: none; }
+        table.courses-table tbody tr:hover td { background: #f8fafc; }
 
-        table.courses-table tbody tr:hover td {
-            background: #f8fafc;
-        }
-
-        /* Specific Columns */
-        .col-idx {
-            width: 50px;
-            color: #94a3b8 !important;
-            font-weight: 600;
-        }
+        .col-idx { width: 50px; color: #94a3b8 !important; font-weight: 600; }
 
         .course-name {
             font-weight: 700;
@@ -209,7 +235,6 @@
             display: inline-block;
         }
 
-        /* Stat Pills */
         .stat-pill {
             display: inline-flex;
             align-items: center;
@@ -224,49 +249,53 @@
         }
         .stat-pill i { color: #64748b; }
 
-        /* ============ ACTION BUTTONS ============ */
-        .actions {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-
+        /* Actions */
+        .actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
         .act-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 7px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            text-decoration: none;
-            border: 1px solid transparent;
-            cursor: pointer;
-            transition: all .15s;
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 7px 12px; border-radius: 6px;
+            font-size: 12px; font-weight: 600;
+            text-decoration: none; border: 1px solid transparent;
+            cursor: pointer; transition: all .15s;
         }
-
         .act-subjects { background: #fef3c7; color: #92400e; }
         .act-subjects:hover { background: #f59e0b; color: white; border-color: #f59e0b; }
-
         .act-semesters { background: #e0e7ff; color: #3730a3; }
         .act-semesters:hover { background: #6366f1; color: white; border-color: #6366f1; }
-
         .act-students { background: #dbeafe; color: #1e40af; }
         .act-students:hover { background: #3b82f6; color: white; border-color: #3b82f6; }
-
         .act-edit { background: #d1fae5; color: #065f46; }
         .act-edit:hover { background: #10b981; color: white; border-color: #10b981; }
-
         .act-delete { background: #fee2e2; color: #991b1b; padding: 7px 9px; }
         .act-delete:hover { background: #ef4444; color: white; border-color: #ef4444; }
 
-        /* Empty State */
-        .empty {
-            padding: 60px 20px;
-            text-align: center;
-            color: #94a3b8;
-            font-size: 13.5px;
+        /* Pagination */
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+            gap: 10px;
         }
+        .page-info { color: #64748b; font-size: 13px; }
+        .page-links { display: flex; gap: 4px; }
+        .page-link {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 32px; height: 32px;
+            border-radius: 6px; border: 1px solid #e2e8f0;
+            background: white; color: #475569;
+            text-decoration: none; font-size: 13px; font-weight: 600;
+            transition: all 0.15s;
+        }
+        .page-link:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .page-link.active { background: #1e3a8a; color: white; border-color: #1e3a8a; }
+        .page-link.disabled { opacity: 0.5; pointer-events: none; background: #f8fafc; }
+
+        /* Empty */
+        .empty { padding: 60px 20px; text-align: center; color: #94a3b8; font-size: 13.5px; }
         .empty i { font-size: 44px; display: block; margin-bottom: 12px; color: #cbd5e1; }
         .empty h5 { color: #334155; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
 
@@ -274,10 +303,9 @@
             .top-header { padding: 12px 20px; }
             .top-header h1 { font-size: 15px; }
             .main { padding: 20px; }
-            
-            /* Make action buttons wrap on mobile */
-            .actions { flex-wrap: wrap; }
-            .act-btn { padding: 6px 10px; font-size: 11px; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+            .search-form { max-width: 100%; margin-left: 0; }
+            .actions { flex-wrap: wrap; justify-content: flex-start; }
         }
     </style>
 </head>
@@ -288,8 +316,7 @@
     <!-- HEADER -->
     <header class="top-header">
         <div class="header-left">
-            <img src="{{ url_for('static', filename='images/logo.png') }}"
-                 alt="Summit Technical College">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Summit Technical College">
             <div class="header-text">
                 <h1>AcademiaPro</h1>
                 <div class="sub">Manage Courses</div>
@@ -324,7 +351,7 @@
             {% endfor %}
         {% endwith %}
 
-        <!-- QUICK LINKS -->
+        <!-- QUICK LINKS & SEARCH -->
         <div class="action-bar">
             <div class="quick-links">
                 <a href="{{ url_for('add_course') }}" class="quick-link blue">
@@ -337,6 +364,16 @@
                     <i class="bi bi-bookmark-plus"></i> Add Subject
                 </a>
             </div>
+            
+            <form method="GET" action="{{ url_for('manage_courses') }}" class="search-form">
+                <input type="text" name="search" value="{{ search_query }}" class="search-input" placeholder="Search courses...">
+                <button type="submit" class="search-btn"><i class="bi bi-search"></i> Search</button>
+                {% if search_query %}
+                <a href="{{ url_for('manage_courses') }}" class="search-clear" title="Clear search">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+                {% endif %}
+            </form>
         </div>
 
         <!-- PREMIUM COURSES TABLE -->
@@ -355,7 +392,7 @@
                     <tbody>
                         {% for c in courses %}
                         <tr>
-                            <td class="col-idx">{{ loop.index }}</td>
+                            <td class="col-idx">{{ ((pagination.page - 1) * pagination.per_page) + loop.index }}</td>
                             
                             <td>
                                 <div class="course-name">{{ c.name }}</div>
@@ -381,7 +418,7 @@
                             </td>
                             
                             <td style="text-align: right; padding-right: 24px;">
-                                <div class="actions" style="justify-content: flex-end;">
+                                <div class="actions">
                                     <a href="{{ url_for('add_subject') }}?course_id={{ c.id }}"
                                        class="act-btn act-subjects" title="Manage subjects">
                                         <i class="bi bi-bookmark-fill"></i> Subjects
@@ -417,13 +454,46 @@
                     </tbody>
                 </table>
             </div>
+            
+            <!-- PAGINATION FOOTER -->
+            {% if pagination.pages > 1 %}
+            <div class="pagination-bar">
+                <span class="page-info">
+                    Showing <strong>{{ pagination.first }}</strong>–<strong>{{ pagination.last }}</strong> of <strong>{{ pagination.total }}</strong> courses
+                </span>
+                <div class="page-links">
+                    <a href="{{ url_for('manage_courses', page=pagination.prev_num, search=search_query) }}" 
+                       class="page-link {% if not pagination.has_prev %}disabled{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                    
+                    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if p %}
+                            <a href="{{ url_for('manage_courses', page=p, search=search_query) }}" 
+                               class="page-link {% if p == pagination.page %}active{% endif %}">
+                                {{ p }}
+                            </a>
+                        {% else %}
+                            <span class="page-link" style="border:none;background:none;">…</span>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <a href="{{ url_for('manage_courses', page=pagination.next_num, search=search_query) }}" 
+                       class="page-link {% if not pagination.has_next %}disabled{% endif %}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            
             {% else %}
             <div class="empty">
                 <i class="bi bi-journal-bookmark"></i>
-                <h5>No courses yet</h5>
-                <p>Start by adding your first course.</p>
-                <a href="{{ url_for('add_course') }}" class="quick-link blue" style="margin-top:12px;display:inline-flex;">
-                    <i class="bi bi-plus-circle-fill"></i> Add Course
+                <h5>{% if search_query %}No matching courses{% else %}No courses yet{% endif %}</h5>
+                <p>{% if search_query %}Try adjusting your search terms.{% else %}Start by adding your first course.{% endif %}</p>
+                <a href="{{ url_for('manage_courses') if search_query else url_for('add_course') }}" class="quick-link blue" style="margin-top:12px;display:inline-flex;">
+                    <i class="bi bi-{% if search_query %}arrow-counterclockwise{% else %}plus-circle-fill{% endif %}"></i> 
+                    {% if search_query %}Clear Search{% else %}Add Course{% endif %}
                 </a>
             </div>
             {% endif %}
