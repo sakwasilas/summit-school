@@ -289,6 +289,9 @@
             <a href="{{ url_for('manage_students') }}" class="nav-link">
                 <i class="bi bi-people-fill"></i> Manage Students
             </a>
+            <a href="{{ url_for('admin_students_upload') }}" class="nav-link">
+                <i class="bi bi-cloud-arrow-up-fill"></i> Upload Students
+            </a>
             <a href="{{ url_for('admin_messages') }}" class="nav-link">
                 <i class="bi bi-envelope-fill"></i> Messages
             </a>
@@ -320,7 +323,6 @@
             <a href="{{ url_for('manage_courses') }}" class="nav-link">
                 <i class="bi bi-book"></i> Courses
             </a>
-            <!-- NEW — Manage Modules -->
             <a href="{{ url_for('admin_modules_picker') }}" class="nav-link">
                 <i class="bi bi-diagram-3"></i> Modules
             </a>
@@ -427,6 +429,16 @@
                     <i class="bi bi-arrow-right q-arrow"></i>
                 </a>
 
+                <!-- NEW — Upload Students -->
+                <a href="{{ url_for('admin_students_upload') }}" class="quick-card">
+                    <div class="q-icon teal"><i class="bi bi-cloud-arrow-up-fill"></i></div>
+                    <div class="q-body">
+                        <h4>Upload Students</h4>
+                        <p>Bulk import by department</p>
+                    </div>
+                    <i class="bi bi-arrow-right q-arrow"></i>
+                </a>
+
                 <!-- Assign Modules to Students -->
                 <a href="{{ url_for('admin_assign_modules') }}" class="quick-card">
                     <div class="q-icon teal"><i class="bi bi-diagram-3-fill"></i></div>
@@ -437,7 +449,7 @@
                     <i class="bi bi-arrow-right q-arrow"></i>
                 </a>
 
-                <!-- NEW — Manage Modules -->
+                <!-- Manage Modules -->
                 <a href="{{ url_for('admin_modules_picker') }}" class="quick-card">
                     <div class="q-icon orange"><i class="bi bi-diagram-2-fill"></i></div>
                     <div class="q-body">

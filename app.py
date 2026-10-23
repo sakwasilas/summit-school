@@ -1,6 +1,8 @@
-# ============================================================
-# IMPORTS
-# ============================================================
+"""
+============================================================
+IMPORTS
+============================================================
+"""
 import os
 import io
 import re
@@ -26,17 +28,21 @@ from models import (
 from utils import parse_docx_questions
 
 
-# ============================================================
-# APP CONFIG
-# ============================================================
+"""
+============================================================
+APP CONFIG
+============================================================
+"""
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 app.secret_key = "132silas456sakwa789ayanga"
 
 
-# ============================================================
-# QUERY HELPERS
-# ============================================================
+"""
+============================================================
+QUERY HELPERS
+============================================================
+"""
 def student_query(db):
     return db.query(StudentProfile).options(
         joinedload(StudentProfile.course),
@@ -63,14 +69,30 @@ def quiz_query(db):
     )
 
 
-# ============================================================
-# ASSESSMENT TYPE HELPERS
-# ============================================================
+"""
+============================================================
+ASSESSMENT TYPE HELPERS
+============================================================
+Supported types:
+  "knec"    -> CAT 1 /15, CAT 2 /15, Final /70   (auto marks entry by HOD/admin)
+  "kasneb"  -> Online exams + CAT 1 /100, CAT 2 /100, Average
+  "short"   -> One score + remarks per subject (student takes quizzes)
+  "periodic"-> Arbitrary labels (e.g. Month 1..3, Final) + Average
+============================================================
+"""
+VALID_ASSESSMENT_TYPES = ("knec", "kasneb", "short", "periodic")
+
+# KASNEB stores its CAT 1 / CAT 2 marks in PeriodicMark using these labels
+KASNEB_LABELS = ("CAT 1", "CAT 2")
+
+
 def get_course_assessment_type(course):
+    """Return the lowercased assessment type for a course, defaulting to 'knec'."""
     return (getattr(course, "assessment_type", None) or "knec").strip().lower()
 
 
 def get_periodic_labels(course):
+    """Return the list of periodic labels for a course (or [] if not periodic)."""
     if get_course_assessment_type(course) != "periodic":
         return []
     raw = (getattr(course, "periodic_labels", None) or "").strip()
@@ -80,7 +102,15 @@ def get_periodic_labels(course):
 
 
 def get_student_subject_marks(db, student_id, subject_id, semester_id, course):
-    """Return a dict describing ONE student's mark in ONE subject (or None)."""
+    """
+    Return a dict describing ONE student's mark in ONE subject (or None).
+
+    Shape varies by assessment type:
+      knec    -> {"cat1", "cat2", "final", "total"}
+      kasneb  -> {"cells": {"CAT 1": x, "CAT 2": y}, "labels", "average", "total"}
+      short   -> {"score", "remarks", "total"}
+      periodic-> {"cells": {label: score}, "labels", "average", "total"}
+    """
     atype = get_course_assessment_type(course)
 
     if atype == "knec":
@@ -102,6 +132,46 @@ def get_student_subject_marks(db, student_id, subject_id, semester_id, course):
             return None
         return {"score": m.score, "remarks": m.remarks, "total": m.score or 0}
 
+    if atype == "kasneb":
+        # 1. Try to get manual CAT marks entered by HOD/Admin
+        rows = db.query(PeriodicMark).filter_by(
+            student_id=student_id, subject_id=subject_id, semester_id=semester_id
+        ).all()
+        
+        cells = {r.label: r.score for r in rows}
+        cat1 = cells.get("CAT 1")
+        cat2 = cells.get("CAT 2")
+        
+        # 2. If manual marks exist, use them
+        if cat1 is not None or cat2 is not None:
+            scores = [c for c in (cat1, cat2) if c is not None]
+            avg = round(sum(scores) / len(scores), 2) if scores else None
+            return {
+                "cells": cells,
+                "labels": list(KASNEB_LABELS),
+                "average": avg,
+                "total": avg or 0,
+            }
+            
+        # 3. If NO manual marks, fallback to the student's online exam results for this subject
+        # We grab the highest percentage they scored on any quiz in this subject
+        quiz_results = db.query(Result).join(Quiz).filter(
+            Result.student_id == student_id,
+            Quiz.subject_id == subject_id
+        ).all()
+        
+        if quiz_results:
+            best_score = max([r.percentage for r in quiz_results])
+            return {
+                "cells": {"CAT 1": best_score, "CAT 2": None}, # Show online score in CAT 1 column
+                "labels": list(KASNEB_LABELS),
+                "average": round(best_score, 2),
+                "total": best_score,
+            }
+            
+        # 4. If no manual marks AND no online exams taken
+        return None
+
     # periodic
     labels = get_periodic_labels(course)
     rows = db.query(PeriodicMark).filter_by(
@@ -115,11 +185,14 @@ def get_student_subject_marks(db, student_id, subject_id, semester_id, course):
     return {"cells": cells, "labels": labels, "average": avg, "total": avg or 0}
 
 
-# ============================================================
-# CONTEXT PROCESSORS
-# ============================================================
+"""
+============================================================
+CONTEXT PROCESSORS
+============================================================
+"""
 @app.context_processor
 def inject_hod_context():
+    """Inject department + HOD name into templates when logged in as HOD."""
     if session.get("role") == "hod":
         db = SessionLocal()
         try:
@@ -132,6 +205,7 @@ def inject_hod_context():
 
 @app.context_processor
 def inject_semester_helpers():
+    """Provide semester_time_status() helper to all templates."""
     from datetime import datetime as _dt
 
     MONTH_MAP = {
@@ -187,9 +261,11 @@ def inject_semester_helpers():
     return {"semester_time_status": semester_time_status}
 
 
-# ============================================================
-# UPLOAD FOLDERS
-# ============================================================
+"""
+============================================================
+UPLOAD FOLDERS
+============================================================
+"""
 BASE_UPLOAD = os.path.join(os.getcwd(), "static", "uploads")
 EXAMS_UPLOAD_FOLDER = os.path.join(BASE_UPLOAD, "exams")
 QUESTION_IMAGES_FOLDER = os.path.join("static", "question_images")
@@ -204,16 +280,20 @@ def allowed(filename, allowed_set):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_set
 
 
-# ============================================================
-# SHARED HELPERS
-# ============================================================
+"""
+============================================================
+SHARED HELPERS
+============================================================
+"""
 def _delete_quiz_tree(db, quiz):
+    """Delete a quiz plus all its questions and results."""
     db.query(Result).filter(Result.quiz_id == quiz.id).delete(synchronize_session=False)
     db.query(Question).filter(Question.quiz_id == quiz.id).delete(synchronize_session=False)
     db.delete(quiz)
 
 
 def _delete_quizzes_for(db, course_id=None, subject_id=None):
+    """Delete all quizzes (recursively) matching a course or subject filter."""
     q = db.query(Quiz)
     if course_id is not None:
         q = q.filter(Quiz.course_id == course_id)
@@ -224,6 +304,7 @@ def _delete_quizzes_for(db, course_id=None, subject_id=None):
 
 
 def _delete_student_tree(db, student):
+    """Delete a student profile, its user, and all dependent mark/result rows."""
     db.query(ActivityLog).filter(ActivityLog.student_id == student.id).delete(synchronize_session=False)
     db.query(Result).filter(Result.student_id == student.id).delete(synchronize_session=False)
     db.query(KnecMark).filter(KnecMark.student_id == student.id).delete(synchronize_session=False)
@@ -244,28 +325,63 @@ def is_hod():
 
 
 def require_admin_or_hod():
+    """Allow only admins and HODs; returns a redirect response if not authorized."""
     if session.get("role") not in ("admin", "hod"):
         return redirect(url_for("login"))
     return None
 
 
 def require_admin():
+    """Allow only admins; returns a redirect response if not authorized."""
     if session.get("role") != "admin":
         flash("Only the admin can manage courses and semesters.", "danger")
         return redirect(url_for("login"))
     return None
 
 
-# ============================================================
-# PUBLIC ROUTES
-# ============================================================
+def _save_kasneb_marks(db, student_id, subject_id, semester_id, cat1, cat2):
+    """
+    Upsert CAT 1 / CAT 2 for a KASNEB student using PeriodicMark.
+
+    Returns 1 if a row was written, 0 if both were blank (and any existing
+    rows were deleted), or -1 if validation failed.
+    """
+    for label, value in (("CAT 1", cat1), ("CAT 2", cat2)):
+        existing = db.query(PeriodicMark).filter_by(
+            student_id=student_id, subject_id=subject_id,
+            semester_id=semester_id, label=label,
+        ).first()
+
+        if value is None:
+            if existing:
+                db.delete(existing)
+            continue
+
+        if existing:
+            existing.score = value
+            existing.entered_at = datetime.utcnow()
+        else:
+            db.add(PeriodicMark(
+                student_id=student_id, subject_id=subject_id,
+                semester_id=semester_id, label=label, score=value,
+            ))
+    return 1
+
+
+"""
+============================================================
+PUBLIC ROUTES
+============================================================
+"""
 @app.route("/")
 def home():
+    """Redirect the root URL to the login page."""
     return redirect(url_for("login"))
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    """Handle authentication for admins, HODs, and students."""
     error = False
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -302,12 +418,14 @@ def login():
 
 @app.route("/logout")
 def logout():
+    """Clear the session and return to the login page."""
     session.clear()
     return redirect(url_for("login"))
 
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    """Self-registration for students (profile completion happens separately)."""
     if request.method == "POST":
         username = request.form["username"].strip()
         password = request.form["password"]
@@ -332,11 +450,14 @@ def register():
     return render_template("students/Register.html")
 
 
-# ============================================================
-# ADMIN ROUTES
-# ============================================================
+"""
+============================================================
+ADMIN ROUTES
+============================================================
+"""
 @app.route("/admin_dashboard")
 def admin_dashboard():
+    """Admin landing page with global counters and course list."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -362,6 +483,7 @@ def admin_dashboard():
 
 @app.route("/admin/departments", methods=["GET", "POST"])
 def manage_departments():
+    """List departments and handle new department creation."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -400,6 +522,7 @@ def manage_departments():
 
 @app.route("/admin/departments/delete/<int:dept_id>", methods=["POST"])
 def delete_department(dept_id):
+    """Delete a department (blocked if it still has courses or an HOD)."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -429,6 +552,7 @@ def delete_department(dept_id):
 
 @app.route("/admin/hods", methods=["GET", "POST"])
 def manage_hods():
+    """List HODs and handle new HOD creation (one HOD per department)."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -479,6 +603,7 @@ def manage_hods():
 
 @app.route("/admin/hods/delete/<int:hod_id>", methods=["POST"])
 def delete_hod(hod_id):
+    """Delete an HOD account."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -499,6 +624,7 @@ def delete_hod(hod_id):
 
 @app.route("/manage_courses", methods=["GET"])
 def manage_courses():
+    """List courses (admin sees all; HOD sees only their department)."""
     blocked = require_admin_or_hod()
     if blocked:
         return blocked
@@ -525,6 +651,7 @@ def manage_courses():
 
 @app.route("/add_course", methods=["GET", "POST"])
 def add_course():
+    """Create a new course with its assessment type (knec/kasneb/short/periodic)."""
     blocked = require_admin()
     if blocked:
         return blocked
@@ -537,10 +664,16 @@ def add_course():
             department_id = request.form.get("department_id") or None
             department_id = int(department_id) if department_id else None
 
+<<<<<<< HEAD
             # --- CHECK DEPARTMENT FIRST ---
             dept = None
             if department_id:
                 dept = db.query(Department).filter_by(id=department_id).first()
+=======
+            assessment_type = (request.form.get("assessment_type") or "knec").strip().lower()
+            if assessment_type not in VALID_ASSESSMENT_TYPES:
+                assessment_type = "knec"
+>>>>>>> 4b4b3e9 (updated dashbard to modern styles)
 
             # If it's CPA or KASNEB, force "short" (Single Score) 
             # and ignore whatever was clicked in the form
@@ -592,6 +725,7 @@ def add_course():
 
 @app.route("/edit_course/<int:course_id>", methods=["GET", "POST"])
 def edit_course(course_id):
+    """Edit an existing course (including switching assessment type)."""
     blocked = require_admin()
     if blocked:
         return blocked
@@ -608,10 +742,17 @@ def edit_course(course_id):
             dept = request.form.get("department_id") or None
             course.department_id = int(dept) if dept else None
 
+<<<<<<< HEAD
             # --- CHECK DEPARTMENT HERE TOO ---
             dept_obj = None
             if course.department_id:
                 dept_obj = db.query(Department).filter_by(id=course.department_id).first()
+=======
+            atype = (request.form.get("assessment_type") or course.assessment_type or "knec").strip().lower()
+            if atype not in VALID_ASSESSMENT_TYPES:
+                atype = "knec"
+            course.assessment_type = atype
+>>>>>>> 4b4b3e9 (updated dashbard to modern styles)
 
             if dept_obj and dept_obj.name.strip().upper() in ("CPA", "KASNEB"):
                 course.assessment_type = "short"
@@ -638,13 +779,14 @@ def edit_course(course_id):
 
 @app.route("/delete_course/<int:course_id>", methods=["POST"])
 def delete_course(course_id):
+    """Delete a course and every dependent row (marks, quizzes, subjects, semesters, modules)."""
     blocked = require_admin()
     if blocked:
         return blocked
 
     db = SessionLocal()
     try:
-        course = db.query(Course).filter(Course.id == course_id).first()
+        course = db.query(Course).filter_by(id=course_id).first()
         if not course:
             return "Course not found", 404
 
@@ -653,11 +795,14 @@ def delete_course(course_id):
             flash(f"Cannot delete — {enrolled} student(s) still enrolled.", "danger")
             return redirect(url_for("manage_courses"))
 
+<<<<<<< HEAD
         # ---- 1. Delete dependent rows first (deepest first) ----
         module_ids = [
             m.id for m in db.query(Module).filter_by(course_id=course_id).all()
         ]
 
+=======
+>>>>>>> 4b4b3e9 (updated dashbard to modern styles)
         subject_ids = [
             s.id for s in db.query(Subject).filter_by(course_id=course_id).all()
         ]
@@ -685,7 +830,6 @@ def delete_course(course_id):
         db.query(Semester).filter(Semester.course_id == course_id).delete(synchronize_session=False)
         db.query(Module).filter(Module.course_id == course_id).delete(synchronize_session=False)
 
-        # ---- 2. Finally delete the course itself ----
         db.delete(course)
         db.commit()
         flash("Course deleted successfully.", "success")
@@ -699,8 +843,10 @@ def delete_course(course_id):
 
     return redirect(url_for("manage_courses"))
 
+
 @app.route("/admin/course/<int:course_id>/modules", methods=["GET", "POST"])
 def admin_course_modules(course_id):
+    """Manage the ordered module list belonging to a single course."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -768,6 +914,7 @@ def admin_course_modules(course_id):
 
 @app.route("/add_subject", methods=["GET", "POST"])
 def add_subject():
+    """Create a subject and attach it to a course/semester/module."""
     blocked = require_admin_or_hod()
     if blocked:
         return blocked
@@ -848,6 +995,7 @@ def add_subject():
 
 @app.route("/edit_subject/<int:subject_id>", methods=["GET", "POST"])
 def edit_subject(subject_id):
+    """Edit a subject's name, module, and semester (admin or owning HOD)."""
     blocked = require_admin_or_hod()
     if blocked:
         return blocked
@@ -911,6 +1059,7 @@ def edit_subject(subject_id):
 
 @app.route("/delete_subject/<int:subject_id>", methods=["POST"])
 def delete_subject(subject_id):
+    """Delete a subject and every dependent row (quizzes, marks, messages)."""
     blocked = require_admin_or_hod()
     if blocked:
         return blocked
@@ -948,6 +1097,7 @@ def delete_subject(subject_id):
 
 @app.route("/admin/semesters", methods=["GET"])
 def manage_semesters():
+    """List all semesters with their course info."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -962,6 +1112,7 @@ def manage_semesters():
 
 @app.route("/admin/semesters/add", methods=["POST"])
 def add_semester():
+    """Create a new semester under a course."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -992,6 +1143,7 @@ def add_semester():
 
 @app.route("/admin/semesters/set_current/<int:semester_id>", methods=["POST"])
 def set_current_semester(semester_id):
+    """Mark a semester as the current one for its course (unsets siblings)."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1021,6 +1173,7 @@ def set_current_semester(semester_id):
 
 @app.route("/admin/semesters/delete/<int:semester_id>", methods=["POST"])
 def delete_semester(semester_id):
+    """Delete a semester (blocked if it still contains subjects)."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1049,6 +1202,7 @@ def delete_semester(semester_id):
 
 @app.route("/upload_exam", methods=["GET", "POST"])
 def upload_exam():
+    """Upload a .docx exam file, parse it, and create a Quiz + Questions."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1109,6 +1263,7 @@ def upload_exam():
 
 @app.route("/admin/manage_quizzes", methods=["GET", "POST"])
 def manage_quizzes():
+    """List quizzes and toggle their active/inactive status."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1140,6 +1295,7 @@ def manage_quizzes():
 
 @app.route("/admin/delete_quiz/<int:quiz_id>", methods=["POST"])
 def delete_quiz(quiz_id):
+    """Delete a quiz, its questions, and any results recorded against it."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1163,6 +1319,7 @@ def delete_quiz(quiz_id):
 
 @app.route("/admin/review_quiz/<int:quiz_id>", methods=["GET", "POST"])
 def review_uploaded_quiz(quiz_id):
+    """Preview an uploaded quiz before confirming (or delete it)."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1192,6 +1349,7 @@ def review_uploaded_quiz(quiz_id):
 
 @app.route("/manage_students", methods=["GET", "POST"])
 def manage_students():
+    """List/search all students, plus toggle-block and delete actions."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1241,6 +1399,7 @@ def manage_students():
 
 @app.route("/admin/assign-modules", methods=["GET", "POST"])
 def admin_assign_modules():
+    """Bulk-assign students of a course to modules."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1315,9 +1474,331 @@ def admin_assign_modules():
     finally:
         db.close()
 
+@app.route("/admin/students/upload/template")
+def admin_students_template():
+    """Admin version of the student upload template — all departments."""
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    db = SessionLocal()
+    try:
+        courses = db.query(Course).order_by(Course.name.asc()).all()
+
+        sample = pd.DataFrame([{
+            "full_name": "silas sakwa",
+            "admission_number": "STC/2025/008",
+            "course_name": courses[0].name if courses else "CERTIFICATE IN ICT",
+            "department_name": courses[0].department.name if courses and courses[0].department else "",
+            "exam_type": "knec",
+            "module": "MODULE 1",
+            "semester": "OCT-DEC 2025",
+            "phone_number": "0745361425",
+            "username": "silas",
+            "password": "1234",
+        }])
+
+        ref_rows = []
+        for c in courses:
+            sems = db.query(Semester).filter_by(course_id=c.id).order_by(Semester.created_at.asc()).all()
+            dept_name = c.department.name if c.department else ""
+            if sems:
+                for s in sems:
+                    ref_rows.append({
+                        "department_name": dept_name,
+                        "course_name": c.name,
+                        "level": c.level,
+                        "semester (term)": s.name,
+                    })
+            else:
+                ref_rows.append({
+                    "department_name": dept_name,
+                    "course_name": c.name,
+                    "level": c.level,
+                    "semester (term)": "(no semesters yet)",
+                })
+
+        reference = pd.DataFrame(
+            ref_rows or [{"department_name": "", "course_name": "(no courses yet)", "level": "", "semester (term)": ""}]
+        )
+
+        buf = io.BytesIO()
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+            sample.to_excel(writer, index=False, sheet_name="Students")
+            reference.to_excel(writer, index=False, sheet_name="Valid Courses")
+            for name, df in (("Students", sample), ("Valid Courses", reference)):
+                ws = writer.sheets[name]
+                for idx, col in enumerate(df.columns, start=1):
+                    max_len = max([len(str(col))] + [len(str(v)) for v in df[col].tolist()]) if len(df) else len(str(col))
+                    ws.column_dimensions[ws.cell(row=1, column=idx).column_letter].width = min(max(max_len + 3, 12), 45)
+        buf.seek(0)
+
+        return send_file(
+            buf,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True, download_name="student_upload_template.xlsx",
+        )
+    finally:
+        db.close()
+
+
+@app.route("/admin/students/upload", methods=["GET", "POST"])
+def admin_students_upload():
+    """Admin bulk student upload — choose department, then validate rows."""
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    db = SessionLocal()
+    try:
+        departments = db.query(Department).order_by(Department.name.asc()).all()
+
+        if request.method == "POST":
+            # Admin must pick a department (this scopes the allowed courses)
+            dept_id = request.form.get("department_id", type=int)
+            if not dept_id:
+                flash("❌ Please choose a department first.", "danger")
+                return redirect(url_for("admin_students_upload"))
+
+            department = db.query(Department).filter_by(id=dept_id).first()
+            if not department:
+                flash("Department not found.", "danger")
+                return redirect(url_for("admin_students_upload"))
+
+            file = request.files.get("student_file")
+            if not file or not file.filename.lower().endswith((".xlsx", ".xls")):
+                flash("❌ Please upload a valid .xlsx or .xls file.", "danger")
+                return redirect(url_for("admin_students_upload"))
+
+            try:
+                df = pd.read_excel(file, sheet_name="Students", dtype=str).fillna("")
+            except Exception as e:
+                flash(f"❌ Could not read the Excel file: {e}", "danger")
+                return redirect(url_for("admin_students_upload"))
+
+            df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
+
+            required_cols = {"full_name", "admission_number", "course_name", "exam_type"}
+            missing = required_cols - set(df.columns)
+            if missing:
+                flash(f"❌ Missing required columns: {', '.join(sorted(missing))}", "danger")
+                return redirect(url_for("admin_students_upload"))
+
+            # Only courses in the chosen department are valid
+            allowed_courses = db.query(Course).filter_by(department_id=dept_id).all()
+            course_by_name = {c.name.strip().lower(): c for c in allowed_courses}
+
+            existing_adm = {a[0] for a in db.query(StudentProfile.admission_number).all() if a[0]}
+            seen_in_file = set()
+            valid_rows, error_rows = [], []
+
+            for idx, row in df.iterrows():
+                row_no = idx + 2
+                full_name = str(row.get("full_name", "")).strip()
+                admission = str(row.get("admission_number", "")).strip()
+                course_name = str(row.get("course_name", "")).strip()
+                exam_type = str(row.get("exam_type", "")).strip().lower()
+                module_name = str(row.get("module", "")).strip()
+                semester_name = str(row.get("semester", "")).strip()
+                phone = str(row.get("phone_number", "")).strip()
+                username = str(row.get("username", "")).strip()
+                password = str(row.get("password", "")).strip()
+
+                errors = []
+                semester_id = None
+
+                if not full_name:
+                    errors.append("full_name is empty")
+                if not admission:
+                    errors.append("admission_number is empty")
+                elif admission in existing_adm:
+                    errors.append(f"admission_number '{admission}' already exists")
+                elif admission in seen_in_file:
+                    errors.append(f"admission_number '{admission}' duplicated inside the file")
+                else:
+                    seen_in_file.add(admission)
+
+                matched_course = course_by_name.get(course_name.lower())
+                if not matched_course:
+                    errors.append(f"course '{course_name}' not found in department '{department.name}'")
+                else:
+                    if get_course_assessment_type(matched_course) in ("short", "periodic"):
+                        if exam_type != "internal":
+                            exam_type = "internal"
+
+                    if semester_name:
+                        sem = db.query(Semester).filter(
+                            Semester.course_id == matched_course.id,
+                            Semester.name.ilike(semester_name),
+                        ).first()
+                        if not sem:
+                            errors.append(f"semester '{semester_name}' not found for course '{course_name}'")
+                        else:
+                            semester_id = sem.id
+
+                if exam_type not in ("knec", "internal"):
+                    errors.append("exam_type must be 'knec' or 'internal'")
+
+                if errors:
+                    error_rows.append({
+                        "row": row_no, "full_name": full_name,
+                        "admission_number": admission, "errors": errors,
+                    })
+                else:
+                    valid_rows.append({
+                        "row": row_no,
+                        "full_name": full_name,
+                        "admission_number": admission,
+                        "course_name": course_name,
+                        "course_id": matched_course.id,
+                        "exam_type": exam_type,
+                        "module": module_name or None,
+                        "semester_name": semester_name or None,
+                        "semester_id": semester_id,
+                        "phone_number": phone or None,
+                        "username": username or admission.replace("/", "").replace(" ", "").lower(),
+                        "password": password or admission,
+                    })
+
+            session["admin_upload_valid"] = valid_rows
+            session["admin_upload_dept"] = dept_id
+
+            return render_template(
+                "admin/upload_students_preview.html",
+                department=department,
+                valid_rows=valid_rows, error_rows=error_rows, total_rows=len(df),
+            )
+
+        return render_template("admin/upload_students.html", departments=departments)
+    finally:
+        db.close()
+
+
+@app.route("/admin/students/upload/confirm", methods=["POST"])
+def admin_students_upload_confirm():
+    """Persist validated admin student rows."""
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    rows = session.pop("admin_upload_valid", None)
+    dept_id = session.pop("admin_upload_dept", None)
+    if not rows:
+        flash("No validated rows to import. Please upload again.", "warning")
+        return redirect(url_for("admin_students_upload"))
+
+    db = SessionLocal()
+    imported, skipped = 0, 0
+    try:
+        course_ids = list({r["course_id"] for r in rows})
+        courses = {
+            c.id: c for c in db.query(Course).filter(
+                Course.id.in_(course_ids),
+                Course.department_id == dept_id,
+            ).all()
+        }
+
+        admission_numbers = [r["admission_number"] for r in rows]
+        existing_admissions = {
+            a[0] for a in db.query(StudentProfile.admission_number)
+                           .filter(StudentProfile.admission_number.in_(admission_numbers))
+                           .all()
+            if a[0]
+        }
+
+        base_usernames = [(r["username"] or r["admission_number"]).strip()[:45] for r in rows]
+        existing_usernames = {
+            u[0] for u in db.query(User.username)
+                           .filter(User.username.in_(base_usernames))
+                           .all()
+            if u[0]
+        }
+
+        current_semesters = {
+            s.course_id: s.id
+            for s in db.query(Semester).filter(
+                Semester.course_id.in_(course_ids),
+                Semester.is_current == True,
+            ).all()
+        }
+
+        modules_lookup = {}
+        for m in db.query(Module).filter(Module.course_id.in_(course_ids)).all():
+            modules_lookup[(m.course_id, m.name)] = m
+
+        new_users, pending = [], []
+        username_taken = set(existing_usernames)
+
+        for r in rows:
+            course = courses.get(r["course_id"])
+            if not course:
+                skipped += 1
+                continue
+
+            adm = r["admission_number"]
+            if adm in existing_admissions:
+                skipped += 1
+                continue
+
+            base_username = (r["username"] or adm).strip()[:45] or adm
+            username = base_username
+            counter = 1
+            while username in username_taken:
+                username = f"{base_username}{counter}"
+                counter += 1
+            username_taken.add(username)
+
+            user = User(username=username, password=r["password"] or adm)
+
+            sem_id = r.get("semester_id") or current_semesters.get(course.id)
+
+            module_id = None
+            module_label = r.get("module")
+            if module_label:
+                mod = modules_lookup.get((course.id, module_label))
+                if mod:
+                    module_id = mod.id
+                    module_label = mod.name
+
+            new_users.append(user)
+            pending.append({
+                "course_id": course.id,
+                "full_name": r["full_name"],
+                "admission_number": adm,
+                "exam_type": r["exam_type"],
+                "phone_number": r["phone_number"],
+                "current_semester_id": sem_id,
+                "module": module_label,
+                "module_id": module_id,
+            })
+            existing_admissions.add(adm)
+
+        if new_users:
+            db.add_all(new_users)
+            db.flush()
+            new_students = [StudentProfile(user_id=user.id, **data) for user, data in zip(new_users, pending)]
+            db.add_all(new_students)
+            db.commit()
+            imported = len(new_students)
+        else:
+            db.commit()
+
+        msg = f"✅ Imported {imported} student(s)."
+        if skipped:
+            msg += f" Skipped {skipped} (duplicates or course mismatch)."
+        flash(msg, "success" if imported else "warning")
+
+    except Exception as e:
+        db.rollback()
+        import traceback
+        traceback.print_exc()
+        flash(f"❌ Import failed: {e}", "danger")
+    finally:
+        db.close()
+
+    return redirect(url_for("manage_students"))
+
 
 @app.route("/show_credentials")
 def show_credentials():
+    """Admin-only list of all users with their generated credentials."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1331,6 +1812,7 @@ def show_credentials():
 
 @app.route("/delete_user/<int:user_id>", methods=["POST"])
 def delete_user(user_id):
+    """Delete a user and (if present) their student profile tree."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1358,6 +1840,7 @@ def delete_user(user_id):
 
 @app.route("/admin/view_results", methods=["GET", "POST"])
 def view_results():
+    """View (and optionally export) all quiz results with course/subject filters."""
     if "user_id" not in session or session.get("role") != "admin":
         flash("Admin access required", "danger")
         return redirect(url_for("login"))
@@ -1424,6 +1907,7 @@ def view_results():
 
 @app.route("/admin/messages", methods=["GET", "POST"])
 def admin_messages():
+    """Create broadcast/course/subject messages and list existing ones."""
     if session.get("role") != "admin":
         flash("Please log in as admin.", "error")
         return redirect(url_for("login"))
@@ -1459,6 +1943,7 @@ def admin_messages():
 
 @app.route("/admin/messages/delete/<int:message_id>", methods=["POST"])
 def delete_admin_message(message_id):
+    """Delete a broadcast/course/subject message."""
     if session.get("role") != "admin":
         flash("Admin access required.", "danger")
         return redirect(url_for("login"))
@@ -1480,6 +1965,7 @@ def delete_admin_message(message_id):
 
 @app.route("/admin/student_activity")
 def student_activity():
+    """Show how many students are currently taking an exam."""
     if session.get("role") != "admin":
         flash("Please log in as admin.", "error")
         return redirect(url_for("login"))
@@ -1515,6 +2001,7 @@ def student_activity():
 
 @app.route("/admin/marks", methods=["GET"])
 def admin_marks_picker():
+    """Step 1 of marks entry: pick a department."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1545,6 +2032,7 @@ def admin_marks_picker():
 
 @app.route("/admin/marks/department/<int:dept_id>", methods=["GET"])
 def admin_marks_department(dept_id):
+    """Step 2 of marks entry: pick a course, semester, module, and subject."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1605,6 +2093,15 @@ def admin_marks_department(dept_id):
 
 @app.route("/admin/marks/enter", methods=["GET", "POST"])
 def admin_enter_marks():
+    """
+    Admin marks entry grid for a subject + semester.
+
+    Dispatches on the course's assessment type:
+      knec    -> CAT1 /15, CAT2 /15, Final /70
+      kasneb  -> CAT 1 /100, CAT 2 /100 (stored as PeriodicMark rows)
+      short   -> single score + remarks
+      periodic-> configurable labels
+    """
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1685,6 +2182,23 @@ def admin_enter_marks():
                             semester_id=semester_id, score=sc, remarks=rm,
                         ))
                     saved += 1
+
+            elif atype == "kasneb":
+                max_s = course.max_score or 100
+                for s in students:
+                    c1 = to_float(request.form.get(f"score_{s.id}__CAT 1"))
+                    c2 = to_float(request.form.get(f"score_{s.id}__CAT 2"))
+
+                    if c1 is not None and not (0 <= c1 <= max_s):
+                        flash(f"CAT 1 for {s.full_name} must be 0–{max_s}.", "warning")
+                        continue
+                    if c2 is not None and not (0 <= c2 <= max_s):
+                        flash(f"CAT 2 for {s.full_name} must be 0–{max_s}.", "warning")
+                        continue
+
+                    _save_kasneb_marks(db, s.id, subject_id, semester_id, c1, c2)
+                    if c1 is not None or c2 is not None:
+                        saved += 1
 
             elif atype == "periodic":
                 max_s = course.max_score or 100
@@ -1768,10 +2282,11 @@ def admin_enter_marks():
                 ))
             return redirect(url_for("admin_marks_picker"))
 
+        # Pre-load existing marks for the template
         if atype == "short":
             existing = {m.student_id: m for m in db.query(ShortCourseMark).filter_by(
                 subject_id=subject_id, semester_id=semester_id).all()}
-        elif atype == "periodic":
+        elif atype in ("kasneb", "periodic"):
             existing = {}
             for m in db.query(PeriodicMark).filter_by(
                 subject_id=subject_id, semester_id=semester_id).all():
@@ -1780,12 +2295,15 @@ def admin_enter_marks():
             existing = {m.student_id: m for m in db.query(KnecMark).filter_by(
                 subject_id=subject_id, semester_id=semester_id).all()}
 
+        # KASNEB exposes two fixed label columns
+        labels_for_template = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
+
         return render_template(
             "admin/marks_entry.html",
             subject=subject, semester=semester, course=course,
             department=department, students=students, existing=existing,
             assessment_type=atype,
-            periodic_labels=get_periodic_labels(course),
+            periodic_labels=labels_for_template,
         )
     finally:
         db.close()
@@ -1793,6 +2311,7 @@ def admin_enter_marks():
 
 @app.route("/admin/modules", methods=["GET"])
 def admin_modules_picker():
+    """Show per-course module/subject/student counters."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1817,6 +2336,7 @@ def admin_modules_picker():
 
 @app.route("/admin/marks/class", methods=["GET"])
 def admin_class_marks():
+    """Display the full class marks grid for a semester."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1847,7 +2367,7 @@ def admin_class_marks():
             marks = {}
             for m in db.query(ShortCourseMark).filter_by(semester_id=semester_id).all():
                 marks.setdefault(m.student_id, {})[m.subject_id] = m
-        elif atype == "periodic":
+        elif atype in ("kasneb", "periodic"):
             marks = {}
             for m in db.query(PeriodicMark).filter_by(semester_id=semester_id).all():
                 marks.setdefault(m.student_id, {}).setdefault(m.subject_id, {})[m.label] = m
@@ -1856,11 +2376,13 @@ def admin_class_marks():
             for m in db.query(KnecMark).filter_by(semester_id=semester_id).all():
                 marks.setdefault(m.student_id, {})[m.subject_id] = m
 
+        labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
+
         return render_template(
             "admin/class_marks.html",
             semester=semester, students=students, subjects=subjects, marks=marks,
             assessment_type=atype,
-            periodic_labels=get_periodic_labels(course),
+            periodic_labels=labels,
         )
     finally:
         db.close()
@@ -1868,6 +2390,7 @@ def admin_class_marks():
 
 @app.route("/admin/marks/class/export")
 def admin_class_marks_export():
+    """Export the class marks grid as an .xlsx file."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1940,6 +2463,18 @@ def admin_class_marks_export():
                 row["Average"] = round(grand_total / counted, 2) if counted else ""
                 data.append(row)
 
+        elif atype == "kasneb":
+            marks = {}
+            for m in db.query(PeriodicMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {}).setdefault(m.subject_id, {})[m.label] = m
+            for s in students:
+                row = {"Admission No": s.admission_number, "Student Name": s.full_name}
+                for subj in subjects:
+                    cells = marks.get(s.id, {}).get(subj.id, {})
+                    row[f"{subj.name} CAT1"] = cells["CAT 1"].score if "CAT 1" in cells else ""
+                    row[f"{subj.name} CAT2"] = cells["CAT 2"].score if "CAT 2" in cells else ""
+                data.append(row)
+
         else:  # periodic
             labels = get_periodic_labels(course)
             marks = {}
@@ -1974,6 +2509,7 @@ def admin_class_marks_export():
 
 @app.route("/admin/reports", methods=["GET"])
 def admin_reports_picker():
+    """List courses and semesters available for class/student reports."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -1992,6 +2528,7 @@ def admin_reports_picker():
 
 @app.route("/admin/reports/class", methods=["GET"])
 def admin_reports_class():
+    """Render class-wide report with per-student averages and grades."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -2033,6 +2570,7 @@ def admin_reports_class():
                         total_sum += m.score
                         subjects_count += 1
             else:
+                # kasneb + periodic: average of available labels per subject
                 rows = db.query(PeriodicMark).filter_by(
                     student_id=s.id, semester_id=semester_id
                 ).all()
@@ -2078,6 +2616,7 @@ def admin_reports_class():
 
 @app.route("/admin/reports/class/export")
 def admin_reports_class_export():
+    """Export the class report (avg + grade + result per student) as .xlsx."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -2173,6 +2712,7 @@ def admin_reports_class_export():
 
 @app.route("/admin/reports/student/<int:student_id>/<int:semester_id>")
 def admin_report_student(student_id, semester_id):
+    """Render a printable per-student report for a semester."""
     if session.get("role") != "admin":
         return redirect(url_for("login"))
 
@@ -2207,11 +2747,13 @@ def admin_report_student(student_id, semester_id):
 
         avg = round(grand_total / counted, 2) if counted else None
 
+        labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
+
         return render_template(
             "students/print_report.html",
             student=student, semester=sem, rows=rows,
             assessment_type=atype,
-            periodic_labels=get_periodic_labels(course),
+            periodic_labels=labels,
             grand_total=grand_total, counted=counted, avg=avg,
             current_year=datetime.now().year, admin_mode=True,
         )
@@ -2219,11 +2761,14 @@ def admin_report_student(student_id, semester_id):
         db.close()
 
 
-# ============================================================
-# HOD ROUTES
-# ============================================================
+"""
+============================================================
+HOD ROUTES
+============================================================
+"""
 @app.route("/hod/dashboard")
 def hod_dashboard():
+    """HOD landing page with department-wide stats and course cards."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2283,6 +2828,7 @@ def hod_dashboard():
 
 @app.route("/hod/subjects", methods=["GET"])
 def hod_manage_subjects():
+    """HOD view of subjects across the courses in their department."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2324,6 +2870,7 @@ def hod_manage_subjects():
 
 @app.route("/hod/subjects/add", methods=["POST"])
 def hod_add_subject():
+    """HOD adds a subject to one of their department's courses."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2385,6 +2932,7 @@ def hod_add_subject():
 
 @app.route("/hod/subjects/edit/<int:subject_id>", methods=["GET", "POST"])
 def hod_edit_subject(subject_id):
+    """HOD edits one of their department's subjects."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2453,6 +3001,7 @@ def hod_edit_subject(subject_id):
 
 @app.route("/hod/subjects/delete/<int:subject_id>", methods=["POST"])
 def hod_delete_subject(subject_id):
+    """HOD deletes one of their department's subjects and dependent rows."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2488,6 +3037,7 @@ def hod_delete_subject(subject_id):
 
 @app.route("/hod/students", methods=["GET", "POST"])
 def hod_students_list():
+    """HOD list of students in their department, with block/delete actions."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2557,6 +3107,7 @@ def hod_students_list():
 
 @app.route("/hod/students/upload/template")
 def hod_students_template():
+    """Download the Excel template for bulk student import."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2624,6 +3175,7 @@ def hod_students_template():
 
 @app.route("/hod/students/upload", methods=["GET", "POST"])
 def hod_students_upload():
+    """Upload a student Excel file, validate rows, show a preview page."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2693,7 +3245,6 @@ def hod_students_upload():
                 if not matched_course:
                     errors.append(f"course '{course_name}' not found in your department")
                 else:
-                    # Auto-correct exam_type based on course type
                     if get_course_assessment_type(matched_course) in ("short", "periodic"):
                         if exam_type != "internal":
                             exam_type = "internal"
@@ -2750,6 +3301,7 @@ def hod_students_upload():
 
 @app.route("/hod/students/upload/confirm", methods=["POST"])
 def hod_students_upload_confirm():
+    """Persist the validated student rows from the preview page."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2882,6 +3434,7 @@ def hod_students_upload_confirm():
 
 @app.route("/hod/student/<int:student_id>/set-module", methods=["POST"])
 def hod_set_student_module(student_id):
+    """HOD updates one student's module and/or current semester."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2927,6 +3480,7 @@ def hod_set_student_module(student_id):
 
 @app.route("/hod/students/assign-all-to-current", methods=["POST"])
 def hod_assign_all_to_current():
+    """Assign every unplaced student to their course's current semester."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2967,6 +3521,7 @@ def hod_assign_all_to_current():
 
 @app.route("/hod/student/<int:student_id>/promote", methods=["POST"])
 def hod_promote_student(student_id):
+    """Promote a student to the next semester that has no marks yet."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3024,6 +3579,7 @@ def hod_promote_student(student_id):
 
 @app.route("/hod/course/<int:course_id>")
 def hod_course_detail(course_id):
+    """Show a course with its students, semester groups, and unassigned subjects."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3079,6 +3635,7 @@ def hod_course_detail(course_id):
 
 @app.route("/hod/student/<int:student_id>")
 def hod_student_detail(student_id):
+    """Per-student detail page for an HOD (semester reports + overall avg)."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3133,13 +3690,15 @@ def hod_student_detail(student_id):
 
         overall_avg = round(grand_total / grand_count, 2) if grand_count else None
 
+        labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
+
         return render_template(
             "hod/student_detail.html",
             department=db.query(Department).filter_by(id=department_id).first(),
             student=student, course=course, semester_reports=semester_reports,
             grand_total=grand_total, grand_count=grand_count, overall_avg=overall_avg,
             assessment_type=atype,
-            periodic_labels=get_periodic_labels(course),
+            periodic_labels=labels,
         )
     finally:
         db.close()
@@ -3147,6 +3706,7 @@ def hod_student_detail(student_id):
 
 @app.route("/hod/all-students", methods=["GET"])
 def hod_all_students():
+    """Filterable list of all students in the HOD's department."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3211,6 +3771,7 @@ def hod_all_students():
 
 @app.route("/hod/all-courses", methods=["GET"])
 def hod_all_courses():
+    """Show every course in the department with its semesters and subjects."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3266,6 +3827,7 @@ def hod_all_courses():
 
 @app.route("/hod/courses", methods=["GET"])
 def hod_courses_search():
+    """Searchable list of courses in the HOD's department."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3309,6 +3871,7 @@ def hod_courses_search():
 
 @app.route("/hod/marks")
 def hod_marks_picker():
+    """Shortcut HOD route that jumps straight to their own department's marks page."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
     return redirect(url_for("hod_marks_department", dept_id=session["department_id"]))
@@ -3316,6 +3879,7 @@ def hod_marks_picker():
 
 @app.route("/hod/marks/department/<int:dept_id>", methods=["GET"])
 def hod_marks_department(dept_id):
+    """HOD step 2 of marks entry: pick course, semester, module, subject."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3381,6 +3945,11 @@ def hod_marks_department(dept_id):
 
 @app.route("/hod/marks/enter", methods=["GET", "POST"])
 def hod_enter_marks():
+    """
+    HOD marks entry grid — mirrors admin_enter_marks but scoped to the HOD's department.
+
+    Dispatches on the course's assessment type (knec / kasneb / short / periodic).
+    """
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3462,6 +4031,21 @@ def hod_enter_marks():
                         ))
                     saved += 1
 
+            elif atype == "kasneb":
+                max_s = course.max_score or 100
+                for s in students:
+                    c1 = to_float(request.form.get(f"score_{s.id}__CAT 1"))
+                    c2 = to_float(request.form.get(f"score_{s.id}__CAT 2"))
+                    if c1 is not None and not (0 <= c1 <= max_s):
+                        flash(f"CAT 1 for {s.full_name} must be 0–{max_s}.", "warning")
+                        continue
+                    if c2 is not None and not (0 <= c2 <= max_s):
+                        flash(f"CAT 2 for {s.full_name} must be 0–{max_s}.", "warning")
+                        continue
+                    _save_kasneb_marks(db, s.id, subject_id, semester_id, c1, c2)
+                    if c1 is not None or c2 is not None:
+                        saved += 1
+
             elif atype == "periodic":
                 max_s = course.max_score or 100
                 labels = get_periodic_labels(course)
@@ -3492,7 +4076,7 @@ def hod_enter_marks():
                             ))
                         saved += 1
 
-            else:
+            else:  # KNEC
                 for s in students:
                     c1 = to_int(request.form.get(f"cat1_{s.id}"))
                     c2 = to_int(request.form.get(f"cat2_{s.id}"))
@@ -3536,7 +4120,7 @@ def hod_enter_marks():
         if atype == "short":
             existing = {m.student_id: m for m in db.query(ShortCourseMark).filter_by(
                 subject_id=subject_id, semester_id=semester_id).all()}
-        elif atype == "periodic":
+        elif atype in ("kasneb", "periodic"):
             existing = {}
             for m in db.query(PeriodicMark).filter_by(
                 subject_id=subject_id, semester_id=semester_id).all():
@@ -3545,12 +4129,14 @@ def hod_enter_marks():
             existing = {m.student_id: m for m in db.query(KnecMark).filter_by(
                 subject_id=subject_id, semester_id=semester_id).all()}
 
+        labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
+
         return render_template(
             "admin/marks_entry.html",
             subject=subject, semester=semester, course=course,
             department=course.department, students=students, existing=existing,
             assessment_type=atype,
-            periodic_labels=get_periodic_labels(course),
+            periodic_labels=labels,
             hod_mode=True,
         )
     finally:
@@ -3559,6 +4145,7 @@ def hod_enter_marks():
 
 @app.route("/hod/marks/class")
 def hod_class_marks():
+    """HOD class-marks grid for a semester in their department."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3596,7 +4183,7 @@ def hod_class_marks():
             marks = {}
             for m in db.query(ShortCourseMark).filter_by(semester_id=semester_id).all():
                 marks.setdefault(m.student_id, {})[m.subject_id] = m
-        elif atype == "periodic":
+        elif atype in ("kasneb", "periodic"):
             marks = {}
             for m in db.query(PeriodicMark).filter_by(semester_id=semester_id).all():
                 marks.setdefault(m.student_id, {}).setdefault(m.subject_id, {})[m.label] = m
@@ -3605,22 +4192,35 @@ def hod_class_marks():
             for m in db.query(KnecMark).filter_by(semester_id=semester_id).all():
                 marks.setdefault(m.student_id, {})[m.subject_id] = m
 
+        labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
+
         return render_template(
             "admin/class_marks.html",
             semester=semester, students=students, subjects=subjects, marks=marks,
             assessment_type=atype,
-            periodic_labels=get_periodic_labels(course),
+            periodic_labels=labels,
             hod_mode=True,
         )
     finally:
         db.close()
 
 
-# ============================================================
-# PER-STUDENT MARKS ENTRY (FIXED - NOW 3-WAY)
-# ============================================================
+"""
+============================================================
+PER-STUDENT MARKS ENTRY (3-WAY: KNEC / KASNEB / SHORT / PERIODIC)
+============================================================
+"""
 @app.route("/hod/student/<int:student_id>/marks", methods=["GET", "POST"])
 def hod_student_marks(student_id):
+    """
+    Per-student marks entry for one semester.
+
+    Branches on assessment type:
+      knec    -> cat1 / cat2 / final
+      kasneb  -> CAT 1 / CAT 2 (stored as PeriodicMark rows)
+      short   -> single score + remarks
+      periodic-> configurable labels
+    """
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3662,9 +4262,9 @@ def hod_student_marks(student_id):
                 .order_by(Subject.name.asc()).all()
             )
 
-        # ============================================================
-        # POST — save marks with 3-way branching
-        # ============================================================
+        # ------------------------------------------------------------
+        # POST — save marks
+        # ------------------------------------------------------------
         if request.method == "POST" and semester:
             def to_float(v):
                 v = (v or "").strip()
@@ -3710,6 +4310,23 @@ def hod_student_marks(student_id):
                             semester_id=semester.id, score=sc, remarks=rm,
                         ))
                     saved += 1
+
+            elif atype == "kasneb":
+                max_s = course.max_score or 100
+                for subj in subjects:
+                    c1 = to_float(request.form.get(f"score_{subj.id}__CAT 1"))
+                    c2 = to_float(request.form.get(f"score_{subj.id}__CAT 2"))
+
+                    if c1 is not None and not (0 <= c1 <= max_s):
+                        flash(f"CAT 1 for {subj.name} must be 0–{max_s}.", "warning")
+                        continue
+                    if c2 is not None and not (0 <= c2 <= max_s):
+                        flash(f"CAT 2 for {subj.name} must be 0–{max_s}.", "warning")
+                        continue
+
+                    _save_kasneb_marks(db, student.id, subj.id, semester.id, c1, c2)
+                    if c1 is not None or c2 is not None:
+                        saved += 1
 
             elif atype == "periodic":
                 max_s = course.max_score or 100
@@ -3777,9 +4394,9 @@ def hod_student_marks(student_id):
                 student_id=student.id, semester_id=semester.id,
             ))
 
-        # ============================================================
-        # GET — build rows for the template with 3-way branching
-        # ============================================================
+        # ------------------------------------------------------------
+        # GET — build rows for the template
+        # ------------------------------------------------------------
         rows = []
 
         if atype == "short":
@@ -3798,7 +4415,7 @@ def hod_student_marks(student_id):
                     "remarks": m.remarks if m else None,
                 })
 
-        elif atype == "periodic":
+        elif atype in ("kasneb", "periodic"):
             marks = {}
             for m in db.query(PeriodicMark).filter_by(
                 student_id=student.id,
@@ -3829,12 +4446,14 @@ def hod_student_marks(student_id):
                     "final": m.final if m and m.final is not None else None,
                 })
 
+        labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
+
         return render_template(
             "hod/student_marks.html",
             student=student, course=course, semester=semester,
             semesters=semesters, rows=rows,
             assessment_type=atype,
-            periodic_labels=get_periodic_labels(course),
+            periodic_labels=labels,
         )
     finally:
         db.close()
@@ -3842,6 +4461,7 @@ def hod_student_marks(student_id):
 
 @app.route("/hod/marks/class/export")
 def hod_class_marks_export():
+    """Export the HOD class-marks grid for a semester as .xlsx."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -3919,7 +4539,19 @@ def hod_class_marks_export():
                 row["Average"] = round(grand_total / counted, 2) if counted else ""
                 data.append(row)
 
-        else:
+        elif atype == "kasneb":
+            marks = {}
+            for m in db.query(PeriodicMark).filter_by(semester_id=semester_id).all():
+                marks.setdefault(m.student_id, {}).setdefault(m.subject_id, {})[m.label] = m
+            for s in students:
+                row = {"Admission No": s.admission_number, "Student Name": s.full_name}
+                for subj in subjects:
+                    cells = marks.get(s.id, {}).get(subj.id, {})
+                    row[f"{subj.name} CAT1"] = cells["CAT 1"].score if "CAT 1" in cells else ""
+                    row[f"{subj.name} CAT2"] = cells["CAT 2"].score if "CAT 2" in cells else ""
+                data.append(row)
+
+        else:  # periodic
             labels = get_periodic_labels(course)
             marks = {}
             for m in db.query(PeriodicMark).filter_by(semester_id=semester_id).all():
@@ -3953,6 +4585,7 @@ def hod_class_marks_export():
 
 @app.route("/hod/reports/class", methods=["GET"])
 def hod_reports_class():
+    """HOD class report view (per-student avg + grade + result)."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -4014,12 +4647,14 @@ def hod_reports_class():
                                      else "PASS" if avg >= 50 else "FAIL")
             rows.append(row)
 
+        labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
+
         return render_template(
             "hod/reports_class.html",
             department=db.query(Department).filter_by(id=department_id).first(),
             course=course, semester=semester, subjects=subjects, rows=rows,
             assessment_type=atype,
-            periodic_labels=get_periodic_labels(course),
+            periodic_labels=labels,
             hod_name=session.get("username"),
         )
     finally:
@@ -4028,6 +4663,7 @@ def hod_reports_class():
 
 @app.route("/hod/reports/class/export")
 def hod_reports_class_export():
+    """Export HOD class report (avg + grade + result) as .xlsx."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -4071,6 +4707,7 @@ def hod_reports_class_export():
                         total_sum += m.score
                         subjects_count += 1
             else:
+                # kasneb + periodic
                 rows = db.query(PeriodicMark).filter_by(student_id=s.id, semester_id=semester_id).all()
                 by_subject = {}
                 for r in rows:
@@ -4129,6 +4766,7 @@ def hod_reports_class_export():
 
 @app.route("/hod/reports/student/<int:student_id>/<int:semester_id>")
 def hod_report_student(student_id, semester_id):
+    """Render the printable report card for one student in one semester."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -4165,11 +4803,13 @@ def hod_report_student(student_id, semester_id):
                 counted += 1
         avg = round(grand_total / counted, 2) if counted else None
 
+        labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
+
         return render_template(
             "students/print_report.html",
             student=student, semester=sem, rows=rows,
             assessment_type=atype,
-            periodic_labels=get_periodic_labels(course),
+            periodic_labels=labels,
             grand_total=grand_total, counted=counted, avg=avg,
             current_year=datetime.now().year, admin_mode=True,
         )
@@ -4179,6 +4819,7 @@ def hod_report_student(student_id, semester_id):
 
 @app.route("/hod/students/export")
 def hod_students_export():
+    """Export the HOD's student list (filtered) as .xlsx."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -4264,11 +4905,14 @@ def hod_students_export():
         db.close()
 
 
-# ============================================================
-# STUDENT ROUTES
-# ============================================================
+"""
+============================================================
+STUDENT ROUTES
+============================================================
+"""
 @app.route("/complete_profile", methods=["GET", "POST"])
 def complete_profile():
+    """First-time student profile completion after self-registration."""
     if "user_id" not in session:
         return redirect(url_for("login"))
 
@@ -4319,6 +4963,14 @@ def complete_profile():
 
 @app.route("/student/dashboard")
 def student_dashboard():
+    """
+    Student landing page.
+
+    Passes everything the template needs:
+      assessment_type, semester_groups, results_by_quiz, etc.
+    For 'kasneb' and 'short' the template shows exam cards; the marks
+    table below shows CAT 1 / CAT 2 / Average for KASNEB.
+    """
     if "username" not in session or session.get("role") != "student":
         flash("Please log in as a student first.", "error")
         return redirect(url_for("login"))
@@ -4427,6 +5079,12 @@ def student_dashboard():
 
 @app.route("/take_exam/<int:quiz_id>", methods=["GET", "POST"])
 def take_exam(quiz_id):
+    """
+    Render or submit an online exam.
+
+    GET  -> show the questions
+    POST -> score the answers, persist a Result, and show the score screen
+    """
     if "user_id" not in session:
         flash("Please log in first.", "warning")
         return redirect(url_for("login"))
@@ -4489,6 +5147,14 @@ def take_exam(quiz_id):
 
 @app.route("/student/results")
 def student_results():
+    """
+    Student results page.
+
+    KNEC   -> semester_reports with CAT1/CAT2/Final columns
+    KASNEB -> quiz Result rows (online exams)
+    SHORT  -> quiz Result rows only
+    PERIODIC-> semester_reports with configurable labels
+    """
     if "username" not in session or session.get("role") != "student":
         flash("Please log in as a student first.", "error")
         return redirect(url_for("login"))
@@ -4508,7 +5174,8 @@ def student_results():
         course = student.course
         atype = get_course_assessment_type(course)
 
-        if (student.exam_type or "").strip().lower() != "knec" and atype == "knec":
+        # Show online quiz results for KASNEB and Short courses
+        if atype in ("short", "kasneb"):
             results = (
                 db.query(Result)
                 .options(
@@ -4545,11 +5212,14 @@ def student_results():
                 "semester": sem, "rows": rows, "is_current": bool(sem.is_current),
             })
 
+        labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
+
         return render_template(
             "students/results.html",
-            is_knec=True, student=student, semester_reports=semester_reports,
+            is_knec=(atype == "knec"), student=student,
+            semester_reports=semester_reports,
             assessment_type=atype,
-            periodic_labels=get_periodic_labels(course),
+            periodic_labels=labels,
             current_year=datetime.now().year,
         )
     finally:
@@ -4558,6 +5228,7 @@ def student_results():
 
 @app.route("/student/print_report")
 def student_print_report():
+    """Printable report card for the currently logged-in KNEC student."""
     if "username" not in session or session.get("role") != "student":
         flash("Please log in as a student first.", "error")
         return redirect(url_for("login"))
@@ -4605,11 +5276,13 @@ def student_print_report():
                 counted += 1
         avg = round(grand_total / counted, 2) if counted else None
 
+        labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
+
         return render_template(
             "students/print_report.html",
             student=student, semester=sem, rows=rows,
             assessment_type=atype,
-            periodic_labels=get_periodic_labels(course),
+            periodic_labels=labels,
             grand_total=grand_total, counted=counted, avg=avg,
             current_year=datetime.now().year,
         )
@@ -4617,8 +5290,10 @@ def student_print_report():
         db.close()
 
 
-# ============================================================
-# ENTRY POINT
-# ============================================================
+"""
+============================================================
+ENTRY POINT
+============================================================
+"""
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
