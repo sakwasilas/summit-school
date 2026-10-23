@@ -314,7 +314,6 @@
 <body>
 <div class="page-wrap">
 
-<<<<<<< HEAD
 <div class="container-fluid">
     <div class="row">
         <!-- SIDEBAR -->
@@ -323,22 +322,6 @@
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="max-height: 50px; margin-bottom: 10px;">
                 <h6 class="text-white fw-bold mb-0">{{ department.name }}</h6>
                 <small class="text-white-50">HOD Panel</small>
-=======
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for cat, msg in messages %}
-        <div class="alert alert-{{ cat }}">{{ msg }}</div>
-      {% endfor %}
-    {% endwith %}
-
-    <!-- TOP BAR -->
-    <div class="top-bar">
-        <div>
-            <h1>Welcome, {{ student_profile.full_name }}</h1>
-            <div class="sub">
-                {{ student_profile.course.name if student_profile.course else '' }}
-                · {{ student_profile.admission_number }}
-                {% if current_semester %} · {{ current_semester.name }}{% endif %}
->>>>>>> 4b4b3e9 (updated dashbard to modern styles)
             </div>
         </div>
         <div>

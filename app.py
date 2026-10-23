@@ -664,16 +664,10 @@ def add_course():
             department_id = request.form.get("department_id") or None
             department_id = int(department_id) if department_id else None
 
-<<<<<<< HEAD
             # --- CHECK DEPARTMENT FIRST ---
             dept = None
             if department_id:
                 dept = db.query(Department).filter_by(id=department_id).first()
-=======
-            assessment_type = (request.form.get("assessment_type") or "knec").strip().lower()
-            if assessment_type not in VALID_ASSESSMENT_TYPES:
-                assessment_type = "knec"
->>>>>>> 4b4b3e9 (updated dashbard to modern styles)
 
             # If it's CPA or KASNEB, force "short" (Single Score) 
             # and ignore whatever was clicked in the form
@@ -742,17 +736,10 @@ def edit_course(course_id):
             dept = request.form.get("department_id") or None
             course.department_id = int(dept) if dept else None
 
-<<<<<<< HEAD
             # --- CHECK DEPARTMENT HERE TOO ---
             dept_obj = None
             if course.department_id:
                 dept_obj = db.query(Department).filter_by(id=course.department_id).first()
-=======
-            atype = (request.form.get("assessment_type") or course.assessment_type or "knec").strip().lower()
-            if atype not in VALID_ASSESSMENT_TYPES:
-                atype = "knec"
-            course.assessment_type = atype
->>>>>>> 4b4b3e9 (updated dashbard to modern styles)
 
             if dept_obj and dept_obj.name.strip().upper() in ("CPA", "KASNEB"):
                 course.assessment_type = "short"
@@ -795,14 +782,11 @@ def delete_course(course_id):
             flash(f"Cannot delete — {enrolled} student(s) still enrolled.", "danger")
             return redirect(url_for("manage_courses"))
 
-<<<<<<< HEAD
         # ---- 1. Delete dependent rows first (deepest first) ----
         module_ids = [
             m.id for m in db.query(Module).filter_by(course_id=course_id).all()
         ]
 
-=======
->>>>>>> 4b4b3e9 (updated dashbard to modern styles)
         subject_ids = [
             s.id for s in db.query(Subject).filter_by(course_id=course_id).all()
         ]
