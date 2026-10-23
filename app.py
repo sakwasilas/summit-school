@@ -2826,7 +2826,7 @@ def hod_dashboard():
                 .all()
             )
             for s in all_dept_students:
-                label = (s.module or "Unassigned").strip() or "Unassigned"
+                label = (s.module or "Unassigned").strip().upper() or "Unassigned"
                 students_by_course[s.course_id].append(s)
                 card_students_by_module[s.course_id][label] += 1
                 all_module_labels.add(label)
