@@ -670,7 +670,20 @@ def manage_courses():
                 Course.level.ilike(like)
             ))
 
-        # 3. Pagination (using the custom helper for SQLAlchemy 2.x)
+        # --- NEW: Filter by semester status ---
+        sem_filter = request.args.get("semester_filter", "").strip()
+        if sem_filter == "missing":
+            # Find courses that DO NOT have any semesters
+            # Subquery to find all course_ids that have at least one semester
+            subq = db.query(Semester.course_id).distinct()
+            base_q = base_q.filter(~Course.id.in_(subq))
+        elif sem_filter == "has":
+            # Find courses that DO have semesters
+            subq = db.query(Semester.course_id).distinct()
+            base_q = base_q.filter(Course.id.in_(subq))
+        # ---------------------------------------
+
+        # 3. Pagination
         page = request.args.get("page", 1, type=int)
         per_page = 10
         pagination = paginate_query(base_q.order_by(Course.name.asc()), page, per_page)
@@ -687,6 +700,7 @@ def manage_courses():
             courses=courses,
             pagination=pagination,
             search_query=search_query,
+            sem_filter=sem_filter,  # Pass this to the template
             hod_mode=is_hod(),
         )
     finally:
