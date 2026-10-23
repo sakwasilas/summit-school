@@ -14,7 +14,7 @@ from flask import (
     Flask, render_template, request, redirect, url_for,
     session, flash, send_file,
 )
-from sqlalchemy import or_
+from sqlalchemy import or_, func          # <-- FIX: added func
 from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 
@@ -2847,7 +2847,6 @@ def hod_dashboard():
         course_ids = [c.id for c in courses]
 
         # ---------- ONE query per stat for the whole department ----------
-        # (previously: 3 separate loops re-scanning the student table)
         students_count = subjects_count = semesters_count = 0
         if course_ids:
             students_count = (
@@ -2879,7 +2878,6 @@ def hod_dashboard():
         no_sem_count = 0
 
         if course_ids:
-            # Build the base query once — reuse for pagination and (if we wanted) further
             base_q = db.query(StudentProfile).filter(StudentProfile.course_id.in_(course_ids))
             if student_search:
                 like = f"%{student_search}%"
@@ -2892,7 +2890,6 @@ def hod_dashboard():
             students_pagination = paginate_query(base_q, student_page, STUDENTS_PER_PAGE)
             students = students_pagination.items
 
-            # Count of students with no current semester (whole department, not filtered)
             no_sem_count = (
                 db.query(func.count(StudentProfile.id))
                 .filter(
@@ -2903,7 +2900,6 @@ def hod_dashboard():
             ) or 0
 
         # ---------- ONE grouped aggregate for course cards ----------
-        # Instead of 3 queries per course, do 3 queries total across ALL courses.
         card_students = {}
         card_subjects = {}
         card_current_sem = {}
@@ -2965,6 +2961,7 @@ def hod_dashboard():
         )
     finally:
         db.close()
+
 
 @app.route("/hod/subjects", methods=["GET"])
 def hod_manage_subjects():
@@ -4847,7 +4844,6 @@ def hod_reports_class_export():
                         total_sum += m.score
                         subjects_count += 1
             else:
-                # kasneb + periodic
                 rows = db.query(PeriodicMark).filter_by(student_id=s.id, semester_id=semester_id).all()
                 by_subject = {}
                 for r in rows:
