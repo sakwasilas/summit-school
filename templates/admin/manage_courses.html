@@ -133,117 +133,139 @@
         }
         .quick-link.orange:hover { background: #f59e0b; color: white; border-color: #f59e0b; }
 
-        /* ============ CARD GRID ============ */
-        .course-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 20px;
-        }
-
-        .course-card {
+        /* ============ PREMIUM TABLE ============ */
+        .table-card {
             background: white;
-            border: 1px solid #e2e8f0;
             border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,.04);
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+            overflow: hidden;
+            box-shadow: 0 2px 15px rgba(0,0,0,.06);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
         }
 
-        .course-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(30,58,138,.08);
-            border-color: #bfdbfe;
-        }
-
-        .cc-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 10px;
-        }
-
-        .cc-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: #0f1724;
-            line-height: 1.4;
-            margin: 0;
-        }
-
-        .cc-stats {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding-bottom: 14px;
-            border-bottom: 1px dashed #e2e8f0;
-        }
-
-        /* Stats pills */
-        .stat-pill {
-            display: inline-flex; align-items: center; gap: 5px;
-            font-size: 11.5px; font-weight: 700;
-            padding: 4px 10px; border-radius: 100px;
+        table.courses-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
             white-space: nowrap;
         }
-        .stat-pill.students { background: #dbeafe; color: #1e40af; }
-        .stat-pill.subjects { background: #fef3c7; color: #92400e; }
+
+        /* Table Headers */
+        table.courses-table thead th {
+            background: #1e293b;
+            color: #f8fafc;
+            text-align: left;
+            padding: 16px 20px;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #0f172a;
+        }
+
+        /* Table Rows */
+        table.courses-table tbody td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+            color: #334155;
+        }
+
+        table.courses-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        table.courses-table tbody tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* Specific Columns */
+        .col-idx {
+            width: 50px;
+            color: #94a3b8 !important;
+            font-weight: 600;
+        }
+
+        .course-name {
+            font-weight: 700;
+            color: #0f1724;
+            font-size: 14px;
+            white-space: normal;
+            min-width: 250px;
+        }
 
         .level-tag {
-            font-size: 11px; font-weight: 700;
-            background: #f1f5f9; color: #475569;
-            padding: 4px 9px; border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            background: #f1f5f9;
+            color: #475569;
+            padding: 4px 10px;
+            border-radius: 6px;
             text-transform: uppercase;
-            white-space: nowrap;
+            border: 1px solid #e2e8f0;
+            display: inline-block;
         }
 
-        /* Actions Grid */
-        .cc-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: auto;
+        /* Stat Pills */
+        .stat-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 100px;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+        .stat-pill i { color: #64748b; }
+
+        /* ============ ACTION BUTTONS ============ */
+        .actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
         }
 
         .act-btn {
-            display: inline-flex; align-items: center; justify-content: center; gap: 5px;
-            padding: 9px; border-radius: 7px;
-            font-size: 12px; font-weight: 600;
-            text-decoration: none; border: 1px solid transparent;
-            cursor: pointer; transition: all .15s;
-            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all .15s;
         }
-        .act-btn:hover { transform: translateY(-1px); }
 
         .act-subjects { background: #fef3c7; color: #92400e; }
-        .act-subjects:hover { background: #f59e0b; color: white; }
+        .act-subjects:hover { background: #f59e0b; color: white; border-color: #f59e0b; }
 
         .act-semesters { background: #e0e7ff; color: #3730a3; }
-        .act-semesters:hover { background: #6366f1; color: white; }
+        .act-semesters:hover { background: #6366f1; color: white; border-color: #6366f1; }
 
         .act-students { background: #dbeafe; color: #1e40af; }
-        .act-students:hover { background: #3b82f6; color: white; }
+        .act-students:hover { background: #3b82f6; color: white; border-color: #3b82f6; }
 
         .act-edit { background: #d1fae5; color: #065f46; }
-        .act-edit:hover { background: #10b981; color: white; }
+        .act-edit:hover { background: #10b981; color: white; border-color: #10b981; }
 
-        .act-delete { background: #fee2e2; color: #991b1b; }
-        .act-delete:hover { background: #ef4444; color: white; }
-
-        /* Span utility for grid */
-        .act-full { grid-column: 1 / -1; }
+        .act-delete { background: #fee2e2; color: #991b1b; padding: 7px 9px; }
+        .act-delete:hover { background: #ef4444; color: white; border-color: #ef4444; }
 
         /* Empty State */
         .empty {
-            background: white;
-            border-radius: 12px;
             padding: 60px 20px;
             text-align: center;
             color: #94a3b8;
             font-size: 13.5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.06);
         }
         .empty i { font-size: 44px; display: block; margin-bottom: 12px; color: #cbd5e1; }
         .empty h5 { color: #334155; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
@@ -252,7 +274,10 @@
             .top-header { padding: 12px 20px; }
             .top-header h1 { font-size: 15px; }
             .main { padding: 20px; }
-            .course-grid { grid-template-columns: 1fr; }
+            
+            /* Make action buttons wrap on mobile */
+            .actions { flex-wrap: wrap; }
+            .act-btn { padding: 6px 10px; font-size: 11px; }
         }
     </style>
 </head>
@@ -314,81 +339,95 @@
             </div>
         </div>
 
-        <!-- COURSES CARD GRID -->
-        {% if courses %}
-        <div class="course-grid">
-            {% for c in courses %}
-            <div class="course-card">
-                
-                <!-- Card Header (Title & Level) -->
-                <div class="cc-header">
-                    <h3 class="cc-title">{{ c.name }}</h3>
-                    {% if c.level %}
-                    <span class="level-tag">{{ c.level }}</span>
-                    {% endif %}
-                </div>
-
-                <!-- Card Stats -->
-                <div class="cc-stats">
-                    {% if c.students_count is defined %}
-                    <span class="stat-pill students">
-                        <i class="bi bi-people-fill"></i> {{ c.students_count }} Students
-                    </span>
-                    {% endif %}
-                    
-                    {% if c.subjects_count is defined %}
-                    <span class="stat-pill subjects">
-                        <i class="bi bi-bookmark-fill"></i> {{ c.subjects_count }} Subjects
-                    </span>
-                    {% endif %}
-                </div>
-
-                <!-- Card Actions -->
-                <div class="cc-actions">
-                    <a href="{{ url_for('add_subject') }}?course_id={{ c.id }}"
-                       class="act-btn act-subjects" title="Manage subjects">
-                        <i class="bi bi-bookmark-fill"></i> Subjects
-                    </a>
-
-                    <a href="{{ url_for('manage_semesters') }}?course_id={{ c.id }}"
-                       class="act-btn act-semesters" title="Manage semesters">
-                        <i class="bi bi-calendar3"></i> Semesters
-                    </a>
-
-                    <a href="{{ url_for('hod_course_detail', course_id=c.id, tab='students') }}"
-                       class="act-btn act-students act-full" title="View students">
-                        <i class="bi bi-people-fill"></i> View Students
-                    </a>
-
-                    <a href="{{ url_for('edit_course', course_id=c.id) }}"
-                       class="act-btn act-edit" title="Edit course">
-                        <i class="bi bi-pencil"></i> Edit
-                    </a>
-
-                    <!-- Delete Button -->
-                    <form method="POST"
-                          action="{{ url_for('delete_course', course_id=c.id) }}"
-                          style="display:contents;"
-                          onsubmit="return confirm('Delete course \'{{ c.name }}\'?');">
-                        <button type="submit" class="act-btn act-delete" title="Delete course">
-                            <i class="bi bi-trash"></i> Delete
-                        </button>
-                    </form>
-                </div>
-
+        <!-- PREMIUM COURSES TABLE -->
+        <div class="table-card">
+            {% if courses %}
+            <div class="table-responsive">
+                <table class="courses-table">
+                    <thead>
+                        <tr>
+                            <th class="col-idx">#</th>
+                            <th>Course Name &amp; Level</th>
+                            <th>Enrolment &amp; Subjects</th>
+                            <th style="text-align: right; padding-right: 24px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in courses %}
+                        <tr>
+                            <td class="col-idx">{{ loop.index }}</td>
+                            
+                            <td>
+                                <div class="course-name">{{ c.name }}</div>
+                                <div style="margin-top: 6px;">
+                                    <span class="level-tag">{{ c.level }}</span>
+                                </div>
+                            </td>
+                            
+                            <td>
+                                <div style="display: flex; gap: 8px;">
+                                    {% if c.students_count is defined %}
+                                    <span class="stat-pill">
+                                        <i class="bi bi-people-fill"></i> {{ c.students_count }} Students
+                                    </span>
+                                    {% endif %}
+                                    
+                                    {% if c.subjects_count is defined %}
+                                    <span class="stat-pill">
+                                        <i class="bi bi-bookmark-fill"></i> {{ c.subjects_count }} Subjects
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            
+                            <td style="text-align: right; padding-right: 24px;">
+                                <div class="actions" style="justify-content: flex-end;">
+                                    <a href="{{ url_for('add_subject') }}?course_id={{ c.id }}"
+                                       class="act-btn act-subjects" title="Manage subjects">
+                                        <i class="bi bi-bookmark-fill"></i> Subjects
+                                    </a>
+        
+                                    <a href="{{ url_for('manage_semesters') }}?course_id={{ c.id }}"
+                                       class="act-btn act-semesters" title="Manage semesters">
+                                        <i class="bi bi-calendar3"></i> Semesters
+                                    </a>
+        
+                                    <a href="{{ url_for('hod_course_detail', course_id=c.id, tab='students') }}"
+                                       class="act-btn act-students" title="View students">
+                                        <i class="bi bi-people-fill"></i> Students
+                                    </a>
+        
+                                    <a href="{{ url_for('edit_course', course_id=c.id) }}"
+                                       class="act-btn act-edit" title="Edit course">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
+        
+                                    <form method="POST"
+                                          action="{{ url_for('delete_course', course_id=c.id) }}"
+                                          style="display:inline; margin:0;"
+                                          onsubmit="return confirm('Delete course \'{{ c.name }}\'?');">
+                                        <button type="submit" class="act-btn act-delete" title="Delete course">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            {% endfor %}
+            {% else %}
+            <div class="empty">
+                <i class="bi bi-journal-bookmark"></i>
+                <h5>No courses yet</h5>
+                <p>Start by adding your first course.</p>
+                <a href="{{ url_for('add_course') }}" class="quick-link blue" style="margin-top:12px;display:inline-flex;">
+                    <i class="bi bi-plus-circle-fill"></i> Add Course
+                </a>
+            </div>
+            {% endif %}
         </div>
-        {% else %}
-        <div class="empty">
-            <i class="bi bi-journal-bookmark"></i>
-            <h5>No courses yet</h5>
-            <p>Start by adding your first course.</p>
-            <a href="{{ url_for('add_course') }}" class="quick-link blue" style="margin-top:12px;display:inline-flex;">
-                <i class="bi bi-plus-circle-fill"></i> Add Course
-            </a>
-        </div>
-        {% endif %}
 
     </main>
 </div>
