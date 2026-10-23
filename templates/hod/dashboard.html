@@ -329,13 +329,8 @@
             font-family: inherit;
         }
 
-        .student-search-input::placeholder {
-            color: #9aabb5;
-        }
-
-        .student-search-input::-webkit-search-cancel-button {
-            display: none;
-        }
+        .student-search-input::placeholder { color: #9aabb5; }
+        .student-search-input::-webkit-search-cancel-button { display: none; }
 
         .student-search-clear {
             display: inline-flex;
@@ -373,9 +368,97 @@
             transition: background .15s;
         }
 
-        .student-search-btn:hover {
-            background: #11756e;
+        .student-search-btn:hover { background: #11756e; }
+
+        /* COURSE FILTERS */
+        .course-filters {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-left: auto;
         }
+
+        .cf-search-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 220px;
+            max-width: 100%;
+            padding: 6px 8px 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: white;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+        .cf-search-wrap:focus-within {
+            border-color: var(--teal);
+            box-shadow: 0 0 0 .2rem rgba(22,139,131,.13);
+        }
+
+        .cf-search-icon { color: var(--muted); font-size: 13px; flex-shrink: 0; }
+
+        .cf-search-input {
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 3px 2px;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .cf-search-input::placeholder { color: #9aabb5; }
+        .cf-search-input::-webkit-search-cancel-button { display: none; }
+
+        .cf-search-clear {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            color: var(--muted);
+            font-size: 11px;
+            background: #eef2f4;
+            transition: background .15s, color .15s;
+        }
+        .cf-search-clear:hover { background: #dfe8eb; color: var(--navy); }
+
+        .cf-select {
+            padding: 7px 10px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: white;
+            color: var(--text);
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .cf-select:focus {
+            outline: none;
+            border-color: var(--teal);
+            box-shadow: 0 0 0 .2rem rgba(22,139,131,.13);
+        }
+
+        .cf-submit {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 12px;
+            border: none;
+            border-radius: 6px;
+            background: var(--teal);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .cf-submit:hover { background: #11756e; }
 
         /* STUDENT TABLE */
         .table-responsive { width: 100%; }
@@ -614,6 +697,64 @@
             margin-top: 14px;
         }
 
+        /* CLICKABLE STUDENT COUNT */
+        .student-count-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-underline-offset: 2px;
+            text-decoration-color: var(--teal);
+            transition: color .15s, text-decoration-color .15s;
+        }
+
+        .student-count-btn:hover {
+            color: var(--teal);
+            text-decoration-style: solid;
+        }
+
+        .student-count-btn strong { color: var(--navy); font-weight: 700; }
+        .student-count-btn:hover strong { color: var(--teal); }
+
+        /* MODULE BREAKDOWN PILLS */
+        .cl-modules {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .cl-module-pill {
+            padding: 4px 9px;
+            border-radius: 5px;
+            background: #f0f5f6;
+            color: #506572;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .cl-module-pill strong {
+            color: var(--navy);
+            font-weight: 700;
+            margin-left: 2px;
+        }
+
+        .cl-module-pill-btn {
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background .15s, color .15s;
+        }
+        .cl-module-pill-btn:hover { background: var(--teal-light); color: #116b63; }
+        .cl-module-pill-btn:hover strong { color: #116b63; }
+
         /* MARKS AND REPORTS */
         .dual-grid, .reports-grid {
             display: grid;
@@ -707,7 +848,7 @@
             font-size: 30px;
         }
 
-        /* ASSIGNMENT MODAL */
+        /* MODAL */
         .modal-content {
             border: none;
             border-radius: 10px;
@@ -722,6 +863,26 @@
         .modal-title { font-size: 15px; font-weight: 700; }
         .modal-header .btn-close { filter: invert(1); }
         .modal-body { padding: 22px; }
+
+        /* MODAL STUDENT TABLE */
+        .cm-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 12px 14px;
+            background: #f7fbfa;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 13px;
+        }
+        .cm-summary-modules { display: flex; gap: 6px; flex-wrap: wrap; }
+        .cm-table { font-size: 12px; }
+        .cm-table th { padding: 10px 12px; }
+        .cm-table td { padding: 10px 12px; }
+        .cm-table tbody tr.cm-hidden { display: none; }
 
         .form-label {
             color: var(--text);
@@ -774,10 +935,13 @@
             .wf-head {
                 flex-wrap: wrap;
             }
-            .student-search {
+            .student-search,
+            .course-filters {
                 width: 100%;
                 margin-top: 6px;
+                margin-left: 0;
             }
+            .cf-search-wrap { width: 100%; }
         }
 
         /* MOBILE */
@@ -806,6 +970,11 @@
             }
 
             .wf-footer { padding: 13px 14px; }
+
+            .cm-table th:nth-child(4),
+            .cm-table td:nth-child(4),
+            .cm-table th:nth-child(6),
+            .cm-table td:nth-child(6) { display: none; }
         }
     </style>
 </head>
@@ -907,7 +1076,7 @@
                 <div class="stat-box">
                     <div class="sb-ic"><i class="bi bi-journals"></i></div>
                     <div>
-                        <div class="sb-num">{{ course_cards|length }}</div>
+                        <div class="sb-num">{{ course_pagination.total if course_pagination else course_cards|length }}</div>
                         <div class="sb-lbl">Courses</div>
                     </div>
                 </div>
@@ -1059,7 +1228,6 @@
                     <div class="d-flex align-items-center gap-3 flex-wrap">
                         {% if students_pagination and students_pagination.pages > 1 %}
                             <ul class="mod-pagination" aria-label="Student pagination">
-                                <!-- Previous -->
                                 <li>
                                     <a
                                         class="page-btn {% if not students_pagination.has_prev %}is-disabled{% endif %}"
@@ -1070,7 +1238,6 @@
                                     </a>
                                 </li>
 
-                                <!-- Page numbers -->
                                 {% for p in students_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                                     {% if p %}
                                         <li>
@@ -1088,7 +1255,6 @@
                                     {% endif %}
                                 {% endfor %}
 
-                                <!-- Next -->
                                 <li>
                                     <a
                                         class="page-btn {% if not students_pagination.has_next %}is-disabled{% endif %}"
@@ -1125,16 +1291,62 @@
             {% endif %}
         </section>
 
-        <!-- SECTION 2: COURSES -->
-        <section class="workflow-card">
+        <!-- SECTION 2: COURSES (FILTER + PAGINATED) -->
+        <section class="workflow-card" id="courses-section">
             <div class="wf-head">
                 <div class="wf-num green">2</div>
-                <div>
+                <div class="flex-grow-1">
                     <h2>Courses &amp; Subjects</h2>
                     <div class="wf-hint">
                         Review course enrolment, semesters and subject allocation.
                     </div>
                 </div>
+
+                <form
+                    method="GET"
+                    action="{{ url_for('hod_dashboard') }}#courses-section"
+                    class="course-filters"
+                    role="search"
+                >
+                    <input type="hidden" name="student_search" value="{{ student_search }}">
+                    <input type="hidden" name="student_page"
+                           value="{{ students_pagination.page if students_pagination else 1 }}">
+
+                    <div class="cf-search-wrap">
+                        <i class="bi bi-search cf-search-icon"></i>
+                        <input
+                            type="search"
+                            name="course_search"
+                            value="{{ course_search }}"
+                            class="cf-search-input"
+                            placeholder="Search courses…"
+                            aria-label="Search courses"
+                        >
+                        {% if course_search %}
+                            <a
+                                href="{{ url_for('hod_dashboard', course_module=course_module_filter, student_search=student_search, student_page=(students_pagination.page if students_pagination else 1)) }}#courses-section"
+                                class="cf-search-clear"
+                                aria-label="Clear search"
+                                title="Clear search"
+                            >
+                                <i class="bi bi-x-lg"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    <select name="course_module" class="cf-select" aria-label="Filter by module">
+                        <option value="">All modules</option>
+                        {% for mod in module_options %}
+                            <option value="{{ mod }}" {% if mod == course_module_filter %}selected{% endif %}>
+                                {{ mod }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <button type="submit" class="cf-submit">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                </form>
             </div>
 
             <div class="wf-body">
@@ -1165,7 +1377,19 @@
                                 <div class="cl-stats">
                                     <span>
                                         <i class="bi bi-people"></i>
-                                        <strong>{{ cc.students_count }}</strong> Students
+                                        {% if cc.students_count > 0 %}
+                                            <button
+                                                type="button"
+                                                class="student-count-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#studentsModal{{ cc.course.id }}"
+                                                title="Click to view all {{ cc.students_count }} student(s)"
+                                            >
+                                                <strong>{{ cc.students_count }}</strong> Students
+                                            </button>
+                                        {% else %}
+                                            <strong>0</strong> Students
+                                        {% endif %}
                                     </span>
 
                                     <span>
@@ -1173,6 +1397,23 @@
                                         <strong>{{ cc.subjects_count }}</strong> Subjects
                                     </span>
                                 </div>
+
+                                {% if cc.students_by_module %}
+                                    <div class="cl-modules">
+                                        {% for module_label, count in cc.students_by_module.items() %}
+                                            <button
+                                                type="button"
+                                                class="cl-module-pill cl-module-pill-btn"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#studentsModal{{ cc.course.id }}"
+                                                data-module-filter="{{ module_label }}"
+                                                title="View {{ count }} student(s) in {{ module_label }}"
+                                            >
+                                                {{ module_label }}: <strong>{{ count }}</strong>
+                                            </button>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
 
                                 <div class="cl-actions">
                                     <a
@@ -1194,9 +1435,73 @@
                     </div>
                 {% else %}
                     <div class="empty">
-                        <i class="bi bi-journal-x"></i>
-                        No courses are available in your department.
+                        {% if course_search or course_module_filter %}
+                            <i class="bi bi-search"></i>
+                            No courses match the current filters.
+                            <div class="mt-2">
+                                <a href="{{ url_for('hod_dashboard', student_search=student_search, student_page=(students_pagination.page if students_pagination else 1)) }}#courses-section"
+                                   class="mini-btn ghost">
+                                    <i class="bi bi-x-circle"></i> Clear filters
+                                </a>
+                            </div>
+                        {% else %}
+                            <i class="bi bi-journal-x"></i>
+                            No courses are available in your department.
+                        {% endif %}
                     </div>
+                {% endif %}
+            </div>
+
+            <div class="wf-footer">
+                <span class="note">
+                    {% if course_pagination and course_pagination.total %}
+                        Showing
+                        <strong>{{ course_pagination.first }}</strong>–<strong>{{ course_pagination.last }}</strong>
+                        of <strong>{{ course_pagination.total }}</strong> courses
+                        {% if course_search or course_module_filter %}(filtered){% endif %}
+                    {% else %}
+                        No courses to show
+                    {% endif %}
+                </span>
+
+                {% if course_pagination and course_pagination.pages > 1 %}
+                    <ul class="mod-pagination" aria-label="Course pagination">
+                        <li>
+                            <a
+                                class="page-btn {% if not course_pagination.has_prev %}is-disabled{% endif %}"
+                                href="{{ url_for('hod_dashboard', course_page=course_pagination.prev_num, course_search=course_search, course_module=course_module_filter, student_search=student_search, student_page=(students_pagination.page if students_pagination else 1)) }}#courses-section"
+                                aria-label="Previous page"
+                            >
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        {% for p in range(1, course_pagination.pages + 1) %}
+                            {% if p <= 1 or p > course_pagination.pages - 1
+                                  or (p >= course_pagination.page - 2 and p <= course_pagination.page + 2) %}
+                                <li>
+                                    <a
+                                        class="page-btn {% if p == course_pagination.page %}is-active{% endif %}"
+                                        href="{{ url_for('hod_dashboard', course_page=p, course_search=course_search, course_module=course_module_filter, student_search=student_search, student_page=(students_pagination.page if students_pagination else 1)) }}#courses-section"
+                                    >
+                                        {{ p }}
+                                    </a>
+                                </li>
+                            {% elif p == 2 or p == course_pagination.pages - 1 %}
+                                <li><span class="page-ellipsis">…</span></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        <li>
+                            <a
+                                class="page-btn {% if not course_pagination.has_next %}is-disabled{% endif %}"
+                                href="{{ url_for('hod_dashboard', course_page=course_pagination.next_num, course_search=course_search, course_module=course_module_filter, student_search=student_search, student_page=(students_pagination.page if students_pagination else 1)) }}#courses-section"
+                                aria-label="Next page"
+                            >
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
                 {% endif %}
             </div>
         </section>
@@ -1266,7 +1571,7 @@
     </main>
 </div>
 
-<!-- STUDENT ASSIGNMENT MODALS (render only for the current page's students) -->
+<!-- STUDENT ASSIGNMENT MODALS -->
 {% for s in students %}
 <div
     class="modal fade"
@@ -1359,7 +1664,110 @@
 </div>
 {% endfor %}
 
-<!-- OPTIONAL: Live search (debounced) -->
+<!-- COURSE STUDENT LISTS — one modal per course -->
+{% for cc in course_cards %}
+    {% if cc.students_count > 0 %}
+        <div
+            class="modal fade"
+            id="studentsModal{{ cc.course.id }}"
+            tabindex="-1"
+            aria-labelledby="studentsModalTitle{{ cc.course.id }}"
+            aria-hidden="true"
+        >
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="studentsModalTitle{{ cc.course.id }}">
+                            <i class="bi bi-people"></i>
+                            {{ cc.course.name }}
+                        </h5>
+
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"
+                        ></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="cm-summary">
+                            <span>
+                                <strong>{{ cc.students_count }}</strong> student(s) enrolled
+                            </span>
+                            {% if cc.students_by_module %}
+                                <span class="cm-summary-modules">
+                                    {% for ml, mcount in cc.students_by_module.items() %}
+                                        <span class="cl-module-pill">{{ ml }}: {{ mcount }}</span>
+                                    {% endfor %}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="table-responsive mt-3">
+                            <table class="mod-table cm-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Student Name</th>
+                                        <th>Admission No.</th>
+                                        <th>Module</th>
+                                        <th>Semester</th>
+                                        <th>Phone</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in cc.students_list %}
+                                        <tr data-module="{{ (s.module or 'Unassigned').strip() or 'Unassigned' }}">
+                                            <td>{{ loop.index }}</td>
+                                            <td class="student-name">{{ s.full_name }}</td>
+                                            <td>{{ s.admission_number or '—' }}</td>
+                                            <td>
+                                                {% if s.module %}
+                                                    <span class="badge-pill-mod ok">{{ s.module }}</span>
+                                                {% else %}
+                                                    <span class="badge-pill-mod warn">Unassigned</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if s.current_semester %}
+                                                    <span class="badge-pill-mod ok">{{ s.current_semester.name }}</span>
+                                                {% else %}
+                                                    <span class="badge-pill-mod warn">Not Set</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ s.phone_number or '—' }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <a
+                            href="{{ url_for('hod_course_detail', course_id=cc.course.id) }}"
+                            class="mini-btn primary"
+                        >
+                            <i class="bi bi-eye"></i> View Course Detail
+                        </a>
+                        <button
+                            type="button"
+                            class="btn btn-light"
+                            data-bs-dismiss="modal"
+                        >
+                            Close
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endfor %}
+
+<!-- LIVE SEARCH: STUDENTS -->
 <script>
 (function () {
     var form = document.querySelector('.student-search');
@@ -1369,9 +1777,53 @@
     var t;
     input.addEventListener('input', function () {
         clearTimeout(t);
-        t = setTimeout(function () { form.submit(); }, 400);
+        t = setTimeout(function () { form.submit(); }, 500);
     });
 })();
+</script>
+
+<!-- LIVE SEARCH: COURSES + MODULE FILTER -->
+<script>
+(function () {
+    var form = document.querySelector('.course-filters');
+    if (!form) return;
+    var input = form.querySelector('.cf-search-input');
+    var select = form.querySelector('.cf-select');
+    if (input) {
+        var t;
+        input.addEventListener('input', function () {
+            clearTimeout(t);
+            t = setTimeout(function () { form.submit(); }, 500);
+        });
+    }
+    if (select) {
+        select.addEventListener('change', function () { form.submit(); });
+    }
+})();
+</script>
+
+<!-- MODAL ROW FILTER (for module pills) -->
+<script>
+document.addEventListener('show.bs.modal', function (e) {
+    if (!e.target.id.startsWith('studentsModal')) return;
+    var trigger = e.relatedTarget;
+    if (!trigger) return;
+    var moduleFilter = trigger.getAttribute('data-module-filter') || '';
+    e.target.querySelectorAll('.cm-table tbody tr').forEach(function (row) {
+        if (!moduleFilter || row.getAttribute('data-module') === moduleFilter) {
+            row.classList.remove('cm-hidden');
+        } else {
+            row.classList.add('cm-hidden');
+        }
+    });
+});
+
+document.addEventListener('hide.bs.modal', function (e) {
+    if (!e.target.id.startsWith('studentsModal')) return;
+    e.target.querySelectorAll('.cm-table tbody tr.cm-hidden').forEach(function (row) {
+        row.classList.remove('cm-hidden');
+    });
+});
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
