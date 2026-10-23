@@ -2772,16 +2772,47 @@ def hod_dashboard():
             subjects_count = db.query(Subject).filter(Subject.course_id.in_(course_ids)).count()
             semesters_count = db.query(Semester).filter(Semester.course_id.in_(course_ids)).count()
 
-        students = []
-        if course_ids:
-            students = (
-                student_query(db)
-                .filter(StudentProfile.course_id.in_(course_ids))
-                .order_by(StudentProfile.full_name.asc())
-                .limit(100).all()
-            )
+        # ------------------------------------------------------------
+        # SEARCH + PAGINATION for the students table
+        # ------------------------------------------------------------
+        STUDENTS_PER_PAGE = 8
+        student_page = request.args.get("student_page", 1, type=int)
+        if student_page < 1:
+            student_page = 1
 
-        no_sem_count = sum(1 for s in students if s.current_semester is None)
+        student_search = request.args.get("student_search", "").strip()
+
+        students_pagination = None
+        students = []
+        no_sem_count = 0
+
+        if course_ids:
+            students_q = student_query(db).filter(StudentProfile.course_id.in_(course_ids))
+
+            if student_search:
+                like = f"%{student_search}%"
+                students_q = students_q.filter(or_(
+                    StudentProfile.full_name.ilike(like),
+                    StudentProfile.admission_number.ilike(like),
+                    StudentProfile.phone_number.ilike(like),
+                ))
+
+            students_pagination = (
+                students_q
+                .order_by(StudentProfile.full_name.asc())
+                .paginate(page=student_page, per_page=STUDENTS_PER_PAGE, error_out=False)
+            )
+            students = students_pagination.items
+
+            # "No semester" KPI is department-wide (not filtered)
+            no_sem_count = (
+                db.query(StudentProfile)
+                .filter(
+                    StudentProfile.course_id.in_(course_ids),
+                    StudentProfile.current_semester_id.is_(None),
+                )
+                .count()
+            )
 
         semester_map = {}
         for cid in course_ids:
@@ -2802,13 +2833,14 @@ def hod_dashboard():
             "hod/dashboard.html",
             hod_name=session.get("username"), department=department,
             course_cards=course_cards, students=students,
+            students_pagination=students_pagination,
+            student_search=student_search,
             students_count=students_count, subjects_count=subjects_count,
             semesters_count=semesters_count, no_sem_count=no_sem_count,
             semester_map=semester_map, current_year=datetime.now().year,
         )
     finally:
         db.close()
-
 
 @app.route("/hod/subjects", methods=["GET"])
 def hod_manage_subjects():
