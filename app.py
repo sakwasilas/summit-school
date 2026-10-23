@@ -145,7 +145,6 @@ ASSESSMENT TYPE HELPERS
 ============================================================
 """
 VALID_ASSESSMENT_TYPES = ("knec", "kasneb", "short", "periodic")
-
 KASNEB_LABELS = ("CAT 1", "CAT 2")
 
 
@@ -496,9 +495,23 @@ def admin_dashboard():
         exams_count = db.query(Quiz).count()
         departments_count = db.query(Department).count()
 
+        # Dummy pagination for the template
+        class DummyPagination:
+            page = 1
+            per_page = len(courses) if courses else 1
+            total = len(courses)
+            pages = 1
+            has_prev = False
+            has_next = False
+            prev_num = 1
+            next_num = 1
+            first = 1 if courses else 0
+            last = len(courses)
+
         return render_template(
             "admin/admin_dashboard.html",
             courses=courses,
+            pagination=DummyPagination(),
             username=session.get("username"),
             students_count=students_count,
             exams_count=exams_count,
@@ -648,7 +661,7 @@ def delete_hod(hod_id):
 
 @app.route("/manage_courses", methods=["GET"])
 def manage_courses():
-    """List courses with search and pagination."""
+    """List courses with search, semester filter, and pagination."""
     blocked = require_admin_or_hod()
     if blocked:
         return blocked
@@ -670,27 +683,23 @@ def manage_courses():
                 Course.level.ilike(like)
             ))
 
-        # --- NEW: Filter by semester status ---
+        # 3. Filter by semester status
         sem_filter = request.args.get("semester_filter", "").strip()
         if sem_filter == "missing":
-            # Find courses that DO NOT have any semesters
-            # Subquery to find all course_ids that have at least one semester
             subq = db.query(Semester.course_id).distinct()
             base_q = base_q.filter(~Course.id.in_(subq))
         elif sem_filter == "has":
-            # Find courses that DO have semesters
             subq = db.query(Semester.course_id).distinct()
             base_q = base_q.filter(Course.id.in_(subq))
-        # ---------------------------------------
 
-        # 3. Pagination
+        # 4. Pagination (using the custom helper for SQLAlchemy 2.x)
         page = request.args.get("page", 1, type=int)
         per_page = 10
         pagination = paginate_query(base_q.order_by(Course.name.asc()), page, per_page)
         
         courses = pagination.items
 
-        # 4. Attach stats for the template
+        # 5. Attach stats for the template
         for c in courses:
             c.students_count = db.query(StudentProfile).filter_by(course_id=c.id).count()
             c.subjects_count = db.query(Subject).filter_by(course_id=c.id).count()
@@ -700,7 +709,7 @@ def manage_courses():
             courses=courses,
             pagination=pagination,
             search_query=search_query,
-            sem_filter=sem_filter,  # Pass this to the template
+            sem_filter=sem_filter,
             hod_mode=is_hod(),
         )
     finally:
@@ -2756,11 +2765,7 @@ HOD ROUTES
 """
 @app.route("/hod/dashboard")
 def hod_dashboard():
-    """HOD landing page with department-wide stats and course cards.
-
-    Option 3: search, module filter, and pagination for the courses section,
-    plus per-course student modals.
-    """
+    """HOD landing page with department-wide stats and course cards."""
     if session.get("role") != "hod":
         return redirect(url_for("login"))
 
@@ -2771,7 +2776,6 @@ def hod_dashboard():
             flash("Department not found.", "danger")
             return redirect(url_for("logout"))
 
-        # ---------- ONE query for all courses ----------
         courses = (
             db.query(Course)
             .filter_by(department_id=department.id)
@@ -2780,7 +2784,6 @@ def hod_dashboard():
         )
         course_ids = [c.id for c in courses]
 
-        # ---------- Department-wide stats ----------
         students_count = subjects_count = semesters_count = 0
         if course_ids:
             students_count = (
@@ -2799,7 +2802,6 @@ def hod_dashboard():
                 .scalar()
             ) or 0
 
-        # ---------- Paginated + searched students ----------
         STUDENTS_PER_PAGE = 8
         student_page = request.args.get("student_page", 1, type=int) or 1
         if student_page < 1:
@@ -2833,11 +2835,7 @@ def hod_dashboard():
                 .scalar()
             ) or 0
 
-        # ============================================================
-        # COURSE FILTER + PAGINATION (Option 3)
-        # ============================================================
         COURSES_PER_PAGE = 9
-
         course_page = request.args.get("course_page", 1, type=int) or 1
         if course_page < 1:
             course_page = 1
@@ -2845,7 +2843,6 @@ def hod_dashboard():
         course_search = request.args.get("course_search", "").strip()
         course_module_filter = request.args.get("course_module", "").strip()
 
-        # Aggregates (unfiltered, for the whole department)
         card_subjects = {}
         card_current_sem = {}
         card_students_by_module = defaultdict(lambda: defaultdict(int))
@@ -2853,7 +2850,6 @@ def hod_dashboard():
         all_module_labels = set()
 
         if course_ids:
-            # Load all dept students once — reused for pills, counts, and modals
             all_dept_students = (
                 student_query(db)
                 .filter(StudentProfile.course_id.in_(course_ids))
@@ -2881,7 +2877,6 @@ def hod_dashboard():
             ):
                 card_current_sem[sem.course_id] = sem
 
-        # Sorted module labels for the dropdown
         def _module_sort_key(label):
             import re as _re
             m = _re.match(r"\s*MODULE\s+(\d+)", str(label), _re.IGNORECASE)
@@ -2891,7 +2886,6 @@ def hod_dashboard():
 
         module_options = sorted(all_module_labels, key=_module_sort_key)
 
-        # Apply filters
         filtered_courses = []
         for c in courses:
             if course_module_filter:
@@ -2939,7 +2933,6 @@ def hod_dashboard():
             "last": min(start + COURSES_PER_PAGE, total_filtered),
         }
 
-        # ---------- Semester dropdown data ----------
         semester_map = {cid: [] for cid in course_ids}
         if course_ids:
             sem_rows = (
