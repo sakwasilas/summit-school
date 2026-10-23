@@ -2996,17 +2996,22 @@ def hod_manage_subjects():
 
         subjects = subjects_query.order_by(Subject.name.asc()).all()
 
+        # --- NEW: Format semesters for the JavaScript filter ---
         semesters = []
         if course_ids:
             semesters = (
                 semester_query(db).filter(Semester.course_id.in_(course_ids))
                 .order_by(Semester.name.asc()).all()
             )
+        semesters_json = [
+            {"id": s.id, "name": s.name, "course_id": s.course_id} 
+            for s in semesters
+        ]
 
         return render_template(
             "hod/manage_subjects.html",
             department=department, courses=courses, subjects=subjects,
-            semesters=semesters, selected_course_id=selected_course_id,
+            semesters=semesters_json, selected_course_id=selected_course_id,
             hod_name=session.get("username"),
         )
     finally:
