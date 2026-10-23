@@ -71,6 +71,80 @@ def quiz_query(db):
 
 """
 ============================================================
+MANUAL PAGINATION (SQLAlchemy 2.x compatible)
+============================================================
+The raw SQLAlchemy 2.x Query object has no .paginate() method —
+that only existed in Flask-SQLAlchemy. This shim provides the
+same interface the templates expect (first, last, total, page,
+pages, has_prev, has_next, prev_num, next_num, iter_pages).
+"""
+class ManualPagination:
+    """Drop-in replacement for Flask-SQLAlchemy's Pagination object."""
+
+    def __init__(self, items, page, per_page, total):
+        self.items = items
+        self.page = page
+        self.per_page = per_page
+        self.total = total
+        self.pages = (total + per_page - 1) // per_page if per_page else 0
+
+    @property
+    def has_prev(self):
+        return self.page > 1
+
+    @property
+    def has_next(self):
+        return self.page < self.pages
+
+    @property
+    def prev_num(self):
+        return self.page - 1 if self.has_prev else None
+
+    @property
+    def next_num(self):
+        return self.page + 1 if self.has_next else None
+
+    @property
+    def first(self):
+        if not self.total:
+            return 0
+        return (self.page - 1) * self.per_page + 1
+
+    @property
+    def last(self):
+        if not self.total:
+            return 0
+        return min(self.page * self.per_page, self.total)
+
+    def iter_pages(self, left_edge=1, right_edge=1, left_current=2, right_current=2):
+        """
+        Yield page numbers with None sentinels for gaps.
+        Same algorithm as Flask-SQLAlchemy's iter_pages().
+        """
+        last = 0
+        for num in range(1, self.pages + 1):
+            if (
+                num <= left_edge
+                or (num > self.page - left_current - 1 and num < self.page + right_current)
+                or num > self.pages - right_edge
+            ):
+                if last + 1 != num:
+                    yield None
+                yield num
+                last = num
+
+
+def paginate_query(query, page, per_page):
+    """Paginate a SQLAlchemy 2.x Query object manually."""
+    if page < 1:
+        page = 1
+    total = query.order_by(None).count()
+    items = query.offset((page - 1) * per_page).limit(per_page).all()
+    return ManualPagination(items=items, page=page, per_page=per_page, total=total)
+
+
+"""
+============================================================
 ASSESSMENT TYPE HELPERS
 ============================================================
 Supported types:
@@ -137,11 +211,11 @@ def get_student_subject_marks(db, student_id, subject_id, semester_id, course):
         rows = db.query(PeriodicMark).filter_by(
             student_id=student_id, subject_id=subject_id, semester_id=semester_id
         ).all()
-        
+
         cells = {r.label: r.score for r in rows}
         cat1 = cells.get("CAT 1")
         cat2 = cells.get("CAT 2")
-        
+
         # 2. If manual marks exist, use them
         if cat1 is not None or cat2 is not None:
             scores = [c for c in (cat1, cat2) if c is not None]
@@ -152,14 +226,13 @@ def get_student_subject_marks(db, student_id, subject_id, semester_id, course):
                 "average": avg,
                 "total": avg or 0,
             }
-            
+
         # 3. If NO manual marks, fallback to the student's online exam results for this subject
-        # We grab the highest percentage they scored on any quiz in this subject
         quiz_results = db.query(Result).join(Quiz).filter(
             Result.student_id == student_id,
             Quiz.subject_id == subject_id
         ).all()
-        
+
         if quiz_results:
             best_score = max([r.percentage for r in quiz_results])
             return {
@@ -168,7 +241,7 @@ def get_student_subject_marks(db, student_id, subject_id, semester_id, course):
                 "average": round(best_score, 2),
                 "total": best_score,
             }
-            
+
         # 4. If no manual marks AND no online exams taken
         return None
 
@@ -669,11 +742,11 @@ def add_course():
             if department_id:
                 dept = db.query(Department).filter_by(id=department_id).first()
 
-            # If it's CPA or KASNEB, force "short" (Single Score) 
+            # If it's CPA or KASNEB, force "short" (Single Score)
             # and ignore whatever was clicked in the form
             if dept and dept.name.strip().upper() in ("CPA", "KASNEB"):
                 assessment_type = "short"
-                periodic_labels = None 
+                periodic_labels = None
                 max_score = 100
             else:
                 # Otherwise, use the normal form logic
@@ -1358,15 +1431,15 @@ def manage_students():
 
             return redirect(url_for("manage_students"))
 
-        search_query = request.args.get("search", "").strip()
-        if search_query:
+        search_query_str = request.args.get("search", "").strip()
+        if search_query_str:
             students = (
                 student_query(db)
                 .filter(or_(
-                    StudentProfile.full_name.ilike(f"%{search_query}%"),
-                    StudentProfile.exam_type.ilike(f"%{search_query}%"),
-                    StudentProfile.admission_number.ilike(f"%{search_query}%"),
-                    StudentProfile.phone_number.ilike(f"%{search_query}%"),
+                    StudentProfile.full_name.ilike(f"%{search_query_str}%"),
+                    StudentProfile.exam_type.ilike(f"%{search_query_str}%"),
+                    StudentProfile.admission_number.ilike(f"%{search_query_str}%"),
+                    StudentProfile.phone_number.ilike(f"%{search_query_str}%"),
                 ))
                 .all()
             )
@@ -1375,7 +1448,7 @@ def manage_students():
 
         return render_template(
             "admin/manage_students.html",
-            students=students, search_query=search_query,
+            students=students, search_query=search_query_str,
         )
     finally:
         db.close()
@@ -1457,6 +1530,7 @@ def admin_assign_modules():
         )
     finally:
         db.close()
+
 
 @app.route("/admin/students/upload/template")
 def admin_students_template():
@@ -2774,6 +2848,7 @@ def hod_dashboard():
 
         # ------------------------------------------------------------
         # SEARCH + PAGINATION for the students table
+        # (SQLAlchemy 2.x — Query has no .paginate(), so use our shim)
         # ------------------------------------------------------------
         STUDENTS_PER_PAGE = 8
         student_page = request.args.get("student_page", 1, type=int)
@@ -2797,11 +2872,8 @@ def hod_dashboard():
                     StudentProfile.phone_number.ilike(like),
                 ))
 
-            students_pagination = (
-                students_q
-                .order_by(StudentProfile.full_name.asc())
-                .paginate(page=student_page, per_page=STUDENTS_PER_PAGE, error_out=False)
-            )
+            students_q = students_q.order_by(StudentProfile.full_name.asc())
+            students_pagination = paginate_query(students_q, student_page, STUDENTS_PER_PAGE)
             students = students_pagination.items
 
             # "No semester" KPI is department-wide (not filtered)
@@ -2841,6 +2913,7 @@ def hod_dashboard():
         )
     finally:
         db.close()
+
 
 @app.route("/hod/subjects", methods=["GET"])
 def hod_manage_subjects():
@@ -3093,15 +3166,15 @@ def hod_students_list():
 
             return redirect(url_for("hod_students_list"))
 
-        search_query = request.args.get("search", "").strip()
+        search_query_str = request.args.get("search", "").strip()
 
         if course_ids:
             q = student_query(db).filter(StudentProfile.course_id.in_(course_ids))
-            if search_query:
+            if search_query_str:
                 q = q.filter(or_(
-                    StudentProfile.full_name.ilike(f"%{search_query}%"),
-                    StudentProfile.admission_number.ilike(f"%{search_query}%"),
-                    StudentProfile.phone_number.ilike(f"%{search_query}%"),
+                    StudentProfile.full_name.ilike(f"%{search_query_str}%"),
+                    StudentProfile.admission_number.ilike(f"%{search_query_str}%"),
+                    StudentProfile.phone_number.ilike(f"%{search_query_str}%"),
                 ))
             students = q.order_by(StudentProfile.full_name.asc()).all()
         else:
@@ -3115,7 +3188,7 @@ def hod_students_list():
         return render_template(
             "hod/students_list.html",
             department=department, hod_name=session.get("username"),
-            students=students, search_query=search_query, semester_map=semester_map,
+            students=students, search_query=search_query_str, semester_map=semester_map,
         )
     finally:
         db.close()
@@ -3855,10 +3928,10 @@ def hod_courses_search():
             flash("Department not found.", "danger")
             return redirect(url_for("logout"))
 
-        search_query = request.args.get("search", "").strip()
+        search_query_str = request.args.get("search", "").strip()
         q = db.query(Course).filter_by(department_id=department_id)
-        if search_query:
-            like = f"%{search_query}%"
+        if search_query_str:
+            like = f"%{search_query_str}%"
             q = q.filter(or_(Course.name.ilike(like), Course.level.ilike(like)))
 
         courses = q.order_by(Course.name.asc()).all()
@@ -3879,7 +3952,7 @@ def hod_courses_search():
         return render_template(
             "hod/courses_list.html",
             department=department, hod_name=session.get("username"),
-            course_rows=course_rows, search_query=search_query,
+            course_rows=course_rows, search_query=search_query_str,
         )
     finally:
         db.close()
