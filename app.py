@@ -2837,21 +2837,38 @@ def hod_dashboard():
             flash("Department not found.", "danger")
             return redirect(url_for("logout"))
 
-        courses = db.query(Course).filter_by(department_id=department.id).order_by(Course.name.asc()).all()
+        # ---------- ONE query for all courses ----------
+        courses = (
+            db.query(Course)
+            .filter_by(department_id=department.id)
+            .order_by(Course.name.asc())
+            .all()
+        )
         course_ids = [c.id for c in courses]
 
+        # ---------- ONE query per stat for the whole department ----------
+        # (previously: 3 separate loops re-scanning the student table)
         students_count = subjects_count = semesters_count = 0
         if course_ids:
-            students_count = db.query(StudentProfile).filter(StudentProfile.course_id.in_(course_ids)).count()
-            subjects_count = db.query(Subject).filter(Subject.course_id.in_(course_ids)).count()
-            semesters_count = db.query(Semester).filter(Semester.course_id.in_(course_ids)).count()
+            students_count = (
+                db.query(func.count(StudentProfile.id))
+                .filter(StudentProfile.course_id.in_(course_ids))
+                .scalar()
+            ) or 0
+            subjects_count = (
+                db.query(func.count(Subject.id))
+                .filter(Subject.course_id.in_(course_ids))
+                .scalar()
+            ) or 0
+            semesters_count = (
+                db.query(func.count(Semester.id))
+                .filter(Semester.course_id.in_(course_ids))
+                .scalar()
+            ) or 0
 
-        # ------------------------------------------------------------
-        # SEARCH + PAGINATION for the students table
-        # (SQLAlchemy 2.x — Query has no .paginate(), so use our shim)
-        # ------------------------------------------------------------
+        # ---------- Paginated + searched students (2 queries: count + page) ----------
         STUDENTS_PER_PAGE = 8
-        student_page = request.args.get("student_page", 1, type=int)
+        student_page = request.args.get("student_page", 1, type=int) or 1
         if student_page < 1:
             student_page = 1
 
@@ -2862,44 +2879,79 @@ def hod_dashboard():
         no_sem_count = 0
 
         if course_ids:
-            students_q = student_query(db).filter(StudentProfile.course_id.in_(course_ids))
-
+            # Build the base query once — reuse for pagination and (if we wanted) further
+            base_q = db.query(StudentProfile).filter(StudentProfile.course_id.in_(course_ids))
             if student_search:
                 like = f"%{student_search}%"
-                students_q = students_q.filter(or_(
+                base_q = base_q.filter(or_(
                     StudentProfile.full_name.ilike(like),
                     StudentProfile.admission_number.ilike(like),
                     StudentProfile.phone_number.ilike(like),
                 ))
-
-            students_q = students_q.order_by(StudentProfile.full_name.asc())
-            students_pagination = paginate_query(students_q, student_page, STUDENTS_PER_PAGE)
+            base_q = base_q.order_by(StudentProfile.full_name.asc())
+            students_pagination = paginate_query(base_q, student_page, STUDENTS_PER_PAGE)
             students = students_pagination.items
 
-            # "No semester" KPI is department-wide (not filtered)
+            # Count of students with no current semester (whole department, not filtered)
             no_sem_count = (
-                db.query(StudentProfile)
+                db.query(func.count(StudentProfile.id))
                 .filter(
                     StudentProfile.course_id.in_(course_ids),
                     StudentProfile.current_semester_id.is_(None),
                 )
-                .count()
-            )
+                .scalar()
+            ) or 0
 
-        semester_map = {}
-        for cid in course_ids:
-            sems = db.query(Semester).filter_by(course_id=cid).order_by(Semester.created_at.asc()).all()
-            semester_map[cid] = [{"id": s.id, "name": s.name} for s in sems]
+        # ---------- ONE grouped aggregate for course cards ----------
+        # Instead of 3 queries per course, do 3 queries total across ALL courses.
+        card_students = {}
+        card_subjects = {}
+        card_current_sem = {}
+
+        if course_ids:
+            for cid, cnt in (
+                db.query(StudentProfile.course_id, func.count(StudentProfile.id))
+                .filter(StudentProfile.course_id.in_(course_ids))
+                .group_by(StudentProfile.course_id)
+                .all()
+            ):
+                card_students[cid] = cnt
+
+            for cid, cnt in (
+                db.query(Subject.course_id, func.count(Subject.id))
+                .filter(Subject.course_id.in_(course_ids))
+                .group_by(Subject.course_id)
+                .all()
+            ):
+                card_subjects[cid] = cnt
+
+            for sem in (
+                db.query(Semester)
+                .filter(Semester.course_id.in_(course_ids), Semester.is_current == True)
+                .all()
+            ):
+                card_current_sem[sem.course_id] = sem
 
         course_cards = []
         for c in courses:
-            current_sem = db.query(Semester).filter_by(course_id=c.id, is_current=True).first()
-            c_students = db.query(StudentProfile).filter_by(course_id=c.id).count()
-            c_subjects = db.query(Subject).filter_by(course_id=c.id).count()
             course_cards.append({
-                "course": c, "current_semester": current_sem,
-                "students_count": c_students, "subjects_count": c_subjects,
+                "course": c,
+                "current_semester": card_current_sem.get(c.id),
+                "students_count": card_students.get(c.id, 0),
+                "subjects_count": card_subjects.get(c.id, 0),
             })
+
+        # ---------- ONE query for the semester dropdown data ----------
+        semester_map = {cid: [] for cid in course_ids}
+        if course_ids:
+            sem_rows = (
+                db.query(Semester)
+                .filter(Semester.course_id.in_(course_ids))
+                .order_by(Semester.created_at.asc())
+                .all()
+            )
+            for sem in sem_rows:
+                semester_map[sem.course_id].append({"id": sem.id, "name": sem.name})
 
         return render_template(
             "hod/dashboard.html",
@@ -2913,7 +2965,6 @@ def hod_dashboard():
         )
     finally:
         db.close()
-
 
 @app.route("/hod/subjects", methods=["GET"])
 def hod_manage_subjects():
