@@ -14,7 +14,7 @@ from flask import (
     Flask, render_template, request, redirect, url_for,
     session, flash, send_file,
 )
-from sqlalchemy import or_, func          # <-- FIX: added func
+from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 
@@ -135,7 +135,11 @@ class ManualPagination:
 
 
 def paginate_query(query, page, per_page):
-    """Paginate a SQLAlchemy 2.x Query object manually."""
+    """Paginate a SQLAlchemy 2.x Query object manually.
+
+    Preserves eager-loading (joinedload) options, so returned items can
+    safely be accessed after the session is closed.
+    """
     if page < 1:
         page = 1
     total = query.order_by(None).count()
@@ -2878,7 +2882,13 @@ def hod_dashboard():
         no_sem_count = 0
 
         if course_ids:
-            base_q = db.query(StudentProfile).filter(StudentProfile.course_id.in_(course_ids))
+            # *** FIX: use student_query(db) instead of db.query(StudentProfile)
+            # so that joinedload(course) and joinedload(current_semester) are
+            # applied to the paginated query. Without this, s.course and
+            # s.current_semester trigger lazy loads AFTER db.close() runs,
+            # causing DetachedInstanceError in the template. ***
+            base_q = student_query(db).filter(StudentProfile.course_id.in_(course_ids))
+
             if student_search:
                 like = f"%{student_search}%"
                 base_q = base_q.filter(or_(
@@ -2890,6 +2900,7 @@ def hod_dashboard():
             students_pagination = paginate_query(base_q, student_page, STUDENTS_PER_PAGE)
             students = students_pagination.items
 
+            # Count of students with no current semester (whole department, not filtered)
             no_sem_count = (
                 db.query(func.count(StudentProfile.id))
                 .filter(
