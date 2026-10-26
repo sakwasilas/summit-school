@@ -81,6 +81,23 @@
         .page-head h2 i { color: #1e3a8a; }
         .page-head p { color: #64748b; font-size: 13px; margin: 0; }
 
+        /* Role badge */
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 10px;
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
         /* Flash */
         .flash {
             padding: 12px 16px; border-radius: 10px;
@@ -124,6 +141,8 @@
         .quick-link.purple:hover { background: #8b5cf6; color: white; border-color: #8b5cf6; }
         .quick-link.orange { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
         .quick-link.orange:hover { background: #f59e0b; color: white; border-color: #f59e0b; }
+        .quick-link.green { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .quick-link.green:hover { background: #10b981; color: white; border-color: #10b981; }
 
         /* Filters & Search Bar */
         .search-form {
@@ -267,7 +286,7 @@
         .stat-pill i { color: #64748b; }
 
         /* Actions */
-        .actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+        .actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
         .act-btn {
             display: inline-flex; align-items: center; gap: 5px;
             padding: 7px 12px; border-radius: 6px;
@@ -351,7 +370,10 @@
 
         <div class="page-head">
             <div>
-                <h2><i class="bi bi-journal-bookmark-fill"></i> Manage Courses</h2>
+                <h2>
+                    <i class="bi bi-journal-bookmark-fill"></i> Manage Courses
+                    <span class="role-badge"><i class="bi bi-shield-fill-check"></i> Admin</span>
+                </h2>
                 <p>Add courses, manage their subjects, semesters, and students.</p>
             </div>
             <a href="javascript:history.back()" class="logout-btn">
@@ -379,6 +401,9 @@
                 </a>
                 <a href="{{ url_for('add_subject') }}" class="quick-link orange">
                     <i class="bi bi-bookmark-plus"></i> Add Subject
+                </a>
+                <a href="{{ url_for('admin_add_student') }}" class="quick-link green">
+                    <i class="bi bi-person-plus-fill"></i> Add Student
                 </a>
             </div>
             
@@ -448,26 +473,26 @@
                                        class="act-btn act-subjects" title="Manage subjects">
                                         <i class="bi bi-bookmark-fill"></i> Subjects
                                     </a>
-        
+
                                     <a href="{{ url_for('manage_semesters') }}?course_id={{ c.id }}"
                                        class="act-btn act-semesters" title="Manage semesters">
                                         <i class="bi bi-calendar3"></i> Semesters
                                     </a>
-        
-                                    <a href="{{ url_for('hod_course_detail', course_id=c.id, tab='students') }}"
-                                       class="act-btn act-students" title="View students">
+
+                                    <a href="{{ url_for('admin_assign_modules') }}?course_id={{ c.id }}"
+                                       class="act-btn act-students" title="Manage students">
                                         <i class="bi bi-people-fill"></i> Students
                                     </a>
-        
+
                                     <a href="{{ url_for('edit_course', course_id=c.id) }}"
                                        class="act-btn act-edit" title="Edit course">
                                         <i class="bi bi-pencil"></i> Edit
                                     </a>
-        
+
                                     <form method="POST"
                                           action="{{ url_for('delete_course', course_id=c.id) }}"
                                           style="display:inline; margin:0;"
-                                          onsubmit="return confirm('Delete course \'{{ c.name }}\'?');">
+                                          onsubmit="return confirm('Delete course \'{{ c.name }}\'? This will also remove its subjects and semesters.');">
                                         <button type="submit" class="act-btn act-delete" title="Delete course">
                                             <i class="bi bi-trash"></i>
                                         </button>
