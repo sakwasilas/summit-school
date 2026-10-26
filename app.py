@@ -2307,16 +2307,37 @@ def admin_enter_marks():
         department = course.department if course else None
         atype = get_course_assessment_type(course)
 
-        # Fetch ALL students in this course so we can enter marks for past semesters
+        # Fetch all students in this course
         students_q = student_query(db).filter_by(course_id=subject.course_id)
-        
-        # If the subject belongs to a module, only show students in that module (or unassigned)
+
+        # If the subject belongs to a module, show students in that module
+        # OR students who already have marks for this specific subject+semester
+        # (so we can edit past entries for students who moved modules).
         if getattr(subject, "module_id", None):
+            if atype == "short":
+                existing_ids = [
+                    m.student_id for m in db.query(ShortCourseMark).filter_by(
+                        subject_id=subject_id, semester_id=semester_id).all()
+                ]
+            elif atype in ("kasneb", "periodic"):
+                existing_ids = list({
+                    m.student_id for m in db.query(PeriodicMark).filter_by(
+                        subject_id=subject_id, semester_id=semester_id).all()
+                })
+            else:
+                existing_ids = [
+                    m.student_id for m in db.query(KnecMark).filter_by(
+                        subject_id=subject_id, semester_id=semester_id).all()
+                ]
+
             students_q = students_q.filter(
-                or_(StudentProfile.module_id == subject.module_id,
-                    StudentProfile.module_id.is_(None))
+                or_(
+                    StudentProfile.module_id == subject.module_id,
+                    StudentProfile.module_id.is_(None),
+                    StudentProfile.id.in_(existing_ids) if existing_ids else False,
+                )
             )
-            
+
         students = students_q.order_by(StudentProfile.full_name.asc()).all()
 
         if request.method == "POST":
@@ -4372,16 +4393,36 @@ def hod_enter_marks():
 
         atype = get_course_assessment_type(course)
 
-        # Fetch ALL students in this course so we can enter marks for past semesters
+        # Fetch all students in this course
         students_q = student_query(db).filter_by(course_id=subject.course_id)
-        
-        # If the subject belongs to a module, only show students in that module (or unassigned)
+
+        # If the subject belongs to a module, show students in that module
+        # OR students who already have marks for this specific subject+semester.
         if getattr(subject, "module_id", None):
+            if atype == "short":
+                existing_ids = [
+                    m.student_id for m in db.query(ShortCourseMark).filter_by(
+                        subject_id=subject_id, semester_id=semester_id).all()
+                ]
+            elif atype in ("kasneb", "periodic"):
+                existing_ids = list({
+                    m.student_id for m in db.query(PeriodicMark).filter_by(
+                        subject_id=subject_id, semester_id=semester_id).all()
+                })
+            else:
+                existing_ids = [
+                    m.student_id for m in db.query(KnecMark).filter_by(
+                        subject_id=subject_id, semester_id=semester_id).all()
+                ]
+
             students_q = students_q.filter(
-                or_(StudentProfile.module_id == subject.module_id,
-                    StudentProfile.module_id.is_(None))
+                or_(
+                    StudentProfile.module_id == subject.module_id,
+                    StudentProfile.module_id.is_(None),
+                    StudentProfile.id.in_(existing_ids) if existing_ids else False,
+                )
             )
-            
+
         students = students_q.order_by(StudentProfile.full_name.asc()).all()
 
         if request.method == "POST":
