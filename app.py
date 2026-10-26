@@ -2310,31 +2310,14 @@ def admin_enter_marks():
         # Fetch all students in this course
         students_q = student_query(db).filter_by(course_id=subject.course_id)
 
-        # If the subject belongs to a module, show students in that module
-        # OR students who already have marks for this specific subject+semester
-        # (so we can edit past entries for students who moved modules).
+        # If the subject belongs to a module, ONLY show students in that module.
+        # We do NOT check their current semester here. If they are in Module 2,
+        # they show up for every Module 2 subject.
         if getattr(subject, "module_id", None):
-            if atype == "short":
-                existing_ids = [
-                    m.student_id for m in db.query(ShortCourseMark).filter_by(
-                        subject_id=subject_id, semester_id=semester_id).all()
-                ]
-            elif atype in ("kasneb", "periodic"):
-                existing_ids = list({
-                    m.student_id for m in db.query(PeriodicMark).filter_by(
-                        subject_id=subject_id, semester_id=semester_id).all()
-                })
-            else:
-                existing_ids = [
-                    m.student_id for m in db.query(KnecMark).filter_by(
-                        subject_id=subject_id, semester_id=semester_id).all()
-                ]
-
             students_q = students_q.filter(
                 or_(
                     StudentProfile.module_id == subject.module_id,
                     StudentProfile.module_id.is_(None),
-                    StudentProfile.id.in_(existing_ids) if existing_ids else False,
                 )
             )
 
@@ -4396,30 +4379,14 @@ def hod_enter_marks():
         # Fetch all students in this course
         students_q = student_query(db).filter_by(course_id=subject.course_id)
 
-        # If the subject belongs to a module, show students in that module
-        # OR students who already have marks for this specific subject+semester.
+        # If the subject belongs to a module, ONLY show students in that module.
+        # We do NOT check their current semester here. If they are in Module 2,
+        # they show up for every Module 2 subject.
         if getattr(subject, "module_id", None):
-            if atype == "short":
-                existing_ids = [
-                    m.student_id for m in db.query(ShortCourseMark).filter_by(
-                        subject_id=subject_id, semester_id=semester_id).all()
-                ]
-            elif atype in ("kasneb", "periodic"):
-                existing_ids = list({
-                    m.student_id for m in db.query(PeriodicMark).filter_by(
-                        subject_id=subject_id, semester_id=semester_id).all()
-                })
-            else:
-                existing_ids = [
-                    m.student_id for m in db.query(KnecMark).filter_by(
-                        subject_id=subject_id, semester_id=semester_id).all()
-                ]
-
             students_q = students_q.filter(
                 or_(
                     StudentProfile.module_id == subject.module_id,
                     StudentProfile.module_id.is_(None),
-                    StudentProfile.id.in_(existing_ids) if existing_ids else False,
                 )
             )
 
