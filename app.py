@@ -2309,14 +2309,16 @@ def admin_enter_marks():
         department = course.department if course else None
         atype = get_course_assessment_type(course)
 
-        # Fetch all students in this course
+        # Fetch students based on the Module assigned to the subject
         students_q = student_query(db).filter_by(course_id=subject.course_id)
-
-        # If the subject belongs to a module, ONLY show students in that module.
-        if getattr(subject, "module_id", None):
+        
+        # Force a fresh query to get the subject's module_id directly from the database
+        fresh_module_id = db.query(Subject.module_id).filter(Subject.id == subject_id).scalar()
+        
+        if fresh_module_id:
             students_q = students_q.filter(
                 or_(
-                    StudentProfile.module_id == subject.module_id,
+                    StudentProfile.module_id == fresh_module_id,
                     StudentProfile.module_id.is_(None),
                 )
             )
@@ -4386,12 +4388,16 @@ def hod_enter_marks():
             .all()
         )
 
-        # Fetch students ONLY based on Module, ignoring their current semester
+        # Fetch students based on the Module assigned to the subject
         students_q = student_query(db).filter_by(course_id=subject.course_id)
-        if getattr(subject, "module_id", None):
+        
+        # Force a fresh query to get the subject's module_id directly from the database
+        fresh_module_id = db.query(Subject.module_id).filter(Subject.id == subject_id).scalar()
+        
+        if fresh_module_id:
             students_q = students_q.filter(
                 or_(
-                    StudentProfile.module_id == subject.module_id,
+                    StudentProfile.module_id == fresh_module_id,
                     StudentProfile.module_id.is_(None),
                 )
             )
