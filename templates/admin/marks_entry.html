@@ -79,11 +79,11 @@
 <div class="wrap">
 
     {% if hod_mode %}
-    <a href="{{ url_for('hod_marks_department', dept_id=department.id, course_id=course.id, semester_id=semester.id) }}" class="back-link">
+    <a href="{{ url_for('hod_marks_department', dept_id=department.id, course_id=course.id) }}" class="back-link">
         <i class="bi bi-arrow-left"></i> Back to marks picker
     </a>
     {% else %}
-    <a href="{{ url_for('admin_marks_department', dept_id=department.id, course_id=course.id, semester_id=semester.id) }}" class="back-link">
+    <a href="{{ url_for('admin_marks_department', dept_id=department.id, course_id=course.id) }}" class="back-link">
         <i class="bi bi-arrow-left"></i> Back to marks picker
     </a>
     {% endif %}
@@ -108,7 +108,9 @@
             </h1>
             <div class="meta">
                 <span><i class="bi bi-book-half"></i> {{ course.name }}</span>
+                {% if semester %}
                 <span><i class="bi bi-calendar3"></i> {{ semester.name }}</span>
+                {% endif %}
                 <span class="pill">{{ students|length }} students</span>
             </div>
         </div>
@@ -117,7 +119,7 @@
     <form method="POST"
           action="{% if hod_mode %}{{ url_for('hod_enter_marks') }}{% else %}{{ url_for('admin_enter_marks') }}{% endif %}">
 
-        <input type="hidden" name="semester_id" value="{{ semester.id }}">
+        <input type="hidden" name="semester_id" value="{{ semester.id if semester else '' }}">
         <input type="hidden" name="subject_id" value="{{ subject.id }}">
 
         <div class="card">
@@ -138,9 +140,6 @@
 
             {% if students %}
 
-            {# ============================================================
-               KNEC layout — CAT1 / CAT2 / Final
-               ============================================================ #}
             {% if assessment_type == "knec" %}
             <table>
                 <thead>
@@ -181,9 +180,6 @@
                 </tbody>
             </table>
 
-            {# ============================================================
-               SHORT COURSE layout — Score + Remarks
-               ============================================================ #}
             {% elif assessment_type == "short" %}
             <table>
                 <thead>
@@ -217,9 +213,6 @@
                 </tbody>
             </table>
 
-            {# ============================================================
-               PERIODIC layout — Month 1, Month 2, ..., Final
-               ============================================================ #}
             {% elif assessment_type == "periodic" %}
             <div style="overflow-x: auto;">
                 <table>
@@ -283,7 +276,6 @@
 </div>
 
 <script>
-    // Live-compute total per KNEC row (visual only)
     (function () {
         document.querySelectorAll('tbody tr').forEach(function (row) {
             var cat1 = row.querySelector('input[name^="cat1_"]');

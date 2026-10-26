@@ -6,8 +6,137 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <style>
-        /* ... keep your existing CSS exactly as is ... */
-        /* (The styles you pasted are correct) */
+        * { box-sizing: border-box; }
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            color: #0f1724;
+            margin: 0;
+            padding: 26px 32px;
+        }
+        .wrap { max-width: 1100px; margin: 0 auto; }
+
+        .back-link {
+            font-size: 13px;
+            color: #64748b;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+        .back-link:hover { color: #1abc9c; }
+
+        .flash {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .flash.success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+        .flash.danger  { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+        .flash.warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+
+        .header-card {
+            background: white;
+            border-radius: 14px;
+            padding: 22px 26px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+        .header-card h1 { font-size: 22px; font-weight: 800; margin: 0 0 6px; }
+        .meta { font-size: 13px; color: #64748b; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+        .meta i { color: #1abc9c; }
+        .pill {
+            background: #e7f5f2;
+            color: #126c65;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .info-strip {
+            background: #eff6ff;
+            color: #1e40af;
+            padding: 14px 20px;
+            font-size: 13px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: #f8fafc;
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #64748b;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th.center { text-align: center; }
+        td { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        td.num { text-align: center; }
+        td.total-cell { text-align: center; font-weight: 700; color: #16a085; }
+        .adm { font-family: monospace; font-size: 12px; color: #475569; }
+        .student-name { font-weight: 600; }
+
+        .score-input {
+            width: 60px;
+            padding: 6px;
+            text-align: center;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .score-input:focus { outline: none; border-color: #1abc9c; box-shadow: 0 0 0 2px rgba(26,188,156,0.2); }
+
+        .action-bar {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+        }
+        .stat-note { font-size: 13px; color: #64748b; }
+        .btn-save {
+            background: #1abc9c;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-save:hover { background: #16a085; }
+
+        .empty {
+            padding: 60px 20px;
+            text-align: center;
+            color: #94a3b8;
+        }
+        .empty i { font-size: 40px; margin-bottom: 10px; display: block; }
     </style>
 </head>
 <body>
@@ -15,12 +144,12 @@
 
     <!-- BACK LINK -->
     {% if hod_mode %}
-    <a href="{{ url_for('hod_marks_department', dept_id=department.id, course_id=course.id, semester_id=semester.id) }}"
+    <a href="{{ url_for('hod_marks_department', dept_id=department.id, course_id=course.id) }}"
        class="back-link">
         <i class="bi bi-arrow-left"></i> Back to marks picker
     </a>
     {% else %}
-    <a href="{{ url_for('admin_marks_department', dept_id=department.id, course_id=course.id, semester_id=semester.id) }}"
+    <a href="{{ url_for('admin_marks_department', dept_id=department.id, course_id=course.id) }}"
        class="back-link">
         <i class="bi bi-arrow-left"></i> Back to marks picker
     </a>
@@ -38,45 +167,37 @@
             <h1>{{ subject.name }}</h1>
             <div class="meta">
                 <span><i class="bi bi-book-half"></i> {{ course.name }}</span>
+                {% if semester %}
                 <span><i class="bi bi-calendar3"></i> {{ semester.name }}</span>
+                {% endif %}
                 <span class="pill">{{ students|length }} students</span>
             </div>
         </div>
-
-        <div class="header-actions">
-            {% if hod_mode %}
-            <a href="{{ url_for('hod_marks_upload', subject_id=subject.id, semester_id=semester.id) }}"
-               class="ha-upload">
-                <i class="bi bi-file-earmark-excel"></i> Upload Excel Instead
-            </a>
-            {% endif %}
-        </div>
     </div>
 
-    <!-- ✅ NEW: SEMESTER DROPDOWN (The requested feature) -->
-    <div class="card mb-3" style="padding: 15px 20px; background: #ffffff; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+    <!-- SEMESTER DROPDOWN -->
+    {% if all_semesters %}
+    <div class="card mb-3" style="padding: 15px 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 10px;">
             <label for="semSelect" style="font-weight: 700; font-size: 13px; margin: 0; color: #1e3a8a;">
                 <i class="bi bi-calendar-check"></i> Select Semester:
             </label>
             <select id="semSelect" class="form-select" style="width: auto; font-weight: 600; font-size: 13px;">
                 {% for sem in all_semesters %}
-                    <option value="{{ sem.id }}" {% if sem.id == semester.id %}selected{% endif %}>
+                    <option value="{{ sem.id }}" {% if semester and sem.id == semester.id %}selected{% endif %}>
                         {{ sem.name }}
                     </option>
                 {% endfor %}
             </select>
         </div>
-        <div style="font-size: 12px; color: #64748b;">
-            Changing the semester will reload the page. Marks will be saved against the selected semester.
-        </div>
     </div>
+    {% endif %}
 
     <!-- MARKS FORM -->
     <form method="POST"
-          action="{% if hod_mode %}{{ url_for('hod_enter_marks', subject_id=subject.id, semester_id=semester.id) }}{% else %}{{ url_for('admin_enter_marks', subject_id=subject.id, semester_id=semester.id) }}{% endif %}">
+          action="{% if hod_mode %}{{ url_for('hod_enter_marks', subject_id=subject.id) }}{% else %}{{ url_for('admin_enter_marks', subject_id=subject.id) }}{% endif %}">
 
-        <input type="hidden" name="semester_id" value="{{ semester.id }}">
+        <input type="hidden" name="semester_id" value="{{ semester.id if semester else '' }}">
         <input type="hidden" name="subject_id" value="{{ subject.id }}">
 
         <div class="card">
@@ -86,7 +207,6 @@
                 <div>
                     Enter CAT 1 (0–15), CAT 2 (0–15), and Final (0–70).
                     Leave a student's row blank to skip them.
-                    Totals are calculated on save.
                 </div>
             </div>
 
@@ -152,7 +272,7 @@
                     <i class="bi bi-people"></i>
                     {{ students|length }} student{{ '' if students|length == 1 else 's' }} in this class
                 </span>
-                <button type="submit" class="btn btn-save">
+                <button type="submit" class="btn-save">
                     <i class="bi bi-save"></i> Save All Marks
                 </button>
             </div>
@@ -200,22 +320,22 @@
         });
     })();
 
-    // ✅ NEW: Handle Semester Dropdown Change
-    document.getElementById('semSelect').addEventListener('change', function() {
-        var newSemId = this.value;
-        var currentUrl = window.location.href;
-        
-        // Replace the semester_id in the URL and reload
-        // If the URL doesn't have semester_id, add it.
-        if (currentUrl.includes('semester_id=')) {
-            var newUrl = currentUrl.replace(/semester_id=\d+/, 'semester_id=' + newSemId);
-            window.location.href = newUrl;
-        } else {
-            // Fallback: construct the URL from scratch
-            var baseUrl = currentUrl.split('?')[0];
-            window.location.href = baseUrl + '?subject_id={{ subject.id }}&semester_id=' + newSemId;
-        }
-    });
+    // Handle Semester Dropdown Change
+    var semSelect = document.getElementById('semSelect');
+    if (semSelect) {
+        semSelect.addEventListener('change', function() {
+            var newSemId = this.value;
+            var currentUrl = window.location.href;
+            
+            if (currentUrl.includes('semester_id=')) {
+                var newUrl = currentUrl.replace(/semester_id=\d+/, 'semester_id=' + newSemId);
+                window.location.href = newUrl;
+            } else {
+                var baseUrl = currentUrl.split('?')[0];
+                window.location.href = baseUrl + '?subject_id={{ subject.id }}&semester_id=' + newSemId;
+            }
+        });
+    }
 </script>
 
 </body>
