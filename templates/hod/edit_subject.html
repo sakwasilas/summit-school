@@ -137,7 +137,7 @@
     </a>
 
     <h1>Edit Subject</h1>
-    <div class="subtitle">Update the subject's name, module code, or semester.</div>
+    <div class="subtitle">Update the subject's name, semester, or module.</div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, msg in messages %}
@@ -169,9 +169,9 @@
             </div>
 
             <div class="field">
-                <label>Semester / Module</label>
-                <select name="semester_id">
-                    <option value="">— Unassigned —</option>
+                <label>Semester</label>
+                <select name="semester_id" required>
+                    <option value="">— Select Semester —</option>
                     {% for sem in semesters %}
                     <option value="{{ sem.id }}"
                             {% if subject.semester_id == sem.id %}selected{% endif %}>
@@ -180,17 +180,23 @@
                     {% endfor %}
                 </select>
                 <div class="hint">
-                    Leave as "Unassigned" if the subject has no specific semester yet.
+                    The semester this subject is taught in.
                 </div>
             </div>
 
             <div class="field">
-                <label>Module Code (optional)</label>
-                <input type="text" name="module"
-                       value="{{ subject.module or '' }}"
-                       placeholder="e.g. MOD1">
+                <label>Module (Optional)</label>
+                <select name="module_id">
+                    <option value="">— No Module (e.g. Artisan) —</option>
+                    {% for mod in modules %}
+                    <option value="{{ mod.id }}"
+                            {% if subject.module_id == mod.id %}selected{% endif %}>
+                        {{ mod.name }}
+                    </option>
+                    {% endfor %}
+                </select>
                 <div class="hint">
-                    Short code for the module this subject belongs to. Can be left blank.
+                    Select the module (e.g. Module 1, Level 2). Leave blank if the course has no modules.
                 </div>
             </div>
 

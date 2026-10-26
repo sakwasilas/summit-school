@@ -1046,7 +1046,6 @@ def add_subject():
             subject_name = request.form["subject_name"].strip()
             course_id = int(request.form["course_id"])
             semester_id = request.form.get("semester_id") or None
-            module = request.form.get("module", "").strip() or None
             module_id = request.form.get("module_id", type=int)
 
             if semester_id:
@@ -1074,13 +1073,12 @@ def add_subject():
             module_obj = None
             if module_id:
                 module_obj = db.query(Module).filter_by(id=module_id, course_id=course_id).first()
-                if module_obj:
-                    module = module_obj.name
 
             db.add(Subject(
                 name=subject_name, course_id=course_id,
-                semester_id=semester_id, module=module,
-                module_id=module_id if module_obj else None,
+                semester_id=semester_id,
+                module=module_obj.name if module_obj else None,
+                module_id=module_obj.id if module_obj else None,
             ))
             db.commit()
             flash("Subject added successfully!", "success")
@@ -1129,9 +1127,7 @@ def edit_subject(subject_id):
 
         if request.method == "POST":
             subject.name = request.form["subject_name"].strip()
-            module = request.form.get("module", "").strip() or None
-            subject.module = module
-
+            
             semester_id = request.form.get("semester_id") or None
             if semester_id:
                 semester_id = int(semester_id)
@@ -1149,6 +1145,7 @@ def edit_subject(subject_id):
                     subject.module = module_obj.name
             else:
                 subject.module_id = None
+                subject.module = None
 
             db.commit()
             flash("Subject updated.", "success")
@@ -2289,19 +2286,24 @@ def admin_enter_marks():
         subject_id = src.get("subject_id", type=int)
         semester_id = src.get("semester_id", type=int)
 
-        if not subject_id or not semester_id:
-            flash("Pick a subject and semester first.", "danger")
+        if not subject_id:
+            flash("Pick a subject first.", "danger")
             return redirect(url_for("admin_marks_picker"))
 
         subject = subject_query(db).filter_by(id=subject_id).first()
-        semester = db.query(Semester).filter_by(id=semester_id).first()
-        if not subject or not semester:
-            flash("Subject or semester not found.", "danger")
+        if not subject:
+            flash("Subject not found.", "danger")
             return redirect(url_for("admin_marks_picker"))
 
-        if subject.course_id != semester.course_id:
-            flash("Subject and semester belong to different courses.", "danger")
-            return redirect(url_for("admin_marks_picker"))
+        semester = None
+        if semester_id:
+            semester = db.query(Semester).filter_by(id=semester_id).first()
+            if not semester:
+                flash("Semester not found.", "danger")
+                return redirect(url_for("admin_marks_picker"))
+            if subject.course_id != semester.course_id:
+                flash("Subject and semester belong to different courses.", "danger")
+                return redirect(url_for("admin_marks_picker"))
 
         course = subject.course
         department = course.department if course else None
@@ -2311,8 +2313,6 @@ def admin_enter_marks():
         students_q = student_query(db).filter_by(course_id=subject.course_id)
 
         # If the subject belongs to a module, ONLY show students in that module.
-        # We do NOT check their current semester here. If they are in Module 2,
-        # they show up for every Module 2 subject.
         if getattr(subject, "module_id", None):
             students_q = students_q.filter(
                 or_(
@@ -3195,7 +3195,6 @@ def hod_add_subject():
     subject_name = request.form.get("subject_name", "").strip()
     course_id = request.form.get("course_id", type=int)
     semester_id = request.form.get("semester_id", type=int)
-    module = request.form.get("module", "").strip() or None
     module_id = request.form.get("module_id", type=int)
 
     if not subject_name or not course_id:
@@ -3228,13 +3227,12 @@ def hod_add_subject():
         module_obj = None
         if module_id:
             module_obj = db.query(Module).filter_by(id=module_id, course_id=course_id).first()
-            if module_obj:
-                module = module_obj.name
 
         db.add(Subject(
             name=subject_name, course_id=course_id,
-            semester_id=semester_id, module=module,
-            module_id=module_id if module_obj else None,
+            semester_id=semester_id,
+            module=module_obj.name if module_obj else None,
+            module_id=module_obj.id if module_obj else None,
         ))
         db.commit()
         flash(f"✅ Subject '{subject_name}' added.", "success")
@@ -3267,7 +3265,6 @@ def hod_edit_subject(subject_id):
 
         if request.method == "POST":
             name = request.form.get("subject_name", "").strip()
-            module = request.form.get("module", "").strip() or None
             semester_id = request.form.get("semester_id", type=int)
             module_id = request.form.get("module_id", type=int)
 
@@ -3282,7 +3279,6 @@ def hod_edit_subject(subject_id):
                     return redirect(url_for("hod_edit_subject", subject_id=subject_id))
 
             subject.name = name
-            subject.module = module
             subject.semester_id = semester_id
 
             if module_id:
@@ -3292,6 +3288,7 @@ def hod_edit_subject(subject_id):
                     subject.module = module_obj.name
             else:
                 subject.module_id = None
+                subject.module = None
 
             db.commit()
             flash("✅ Subject updated.", "success")
@@ -4355,14 +4352,13 @@ def hod_enter_marks():
         subject_id = src.get("subject_id", type=int)
         semester_id = src.get("semester_id", type=int)
 
-        if not subject_id or not semester_id:
-            flash("Pick a subject and semester.", "danger")
+        if not subject_id:
+            flash("Pick a subject first.", "danger")
             return redirect(url_for("hod_marks_picker"))
 
         subject = subject_query(db).filter_by(id=subject_id).first()
-        semester = db.query(Semester).filter_by(id=semester_id).first()
-        if not subject or not semester:
-            flash("Subject or semester not found.", "danger")
+        if not subject:
+            flash("Subject not found.", "danger")
             return redirect(url_for("hod_marks_picker"))
 
         course = subject.course
@@ -4370,9 +4366,15 @@ def hod_enter_marks():
             flash("You can only manage marks for your department.", "danger")
             return redirect(url_for("hod_dashboard"))
 
-        if subject.course_id != semester.course_id:
-            flash("Subject and semester belong to different courses.", "danger")
-            return redirect(url_for("hod_marks_picker"))
+        semester = None
+        if semester_id:
+            semester = db.query(Semester).filter_by(id=semester_id).first()
+            if not semester:
+                flash("Semester not found.", "danger")
+                return redirect(url_for("hod_marks_picker"))
+            if subject.course_id != semester.course_id:
+                flash("Subject and semester belong to different courses.", "danger")
+                return redirect(url_for("hod_marks_picker"))
 
         atype = get_course_assessment_type(course)
 

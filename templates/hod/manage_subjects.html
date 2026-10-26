@@ -211,13 +211,13 @@
         <form method="POST" action="{{ url_for('hod_add_subject') }}">
             <div class="row g-3">
                 <!-- Subject Name -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">Subject Name</label>
                     <input type="text" name="subject_name" class="form-control" placeholder="e.g. Mathematics" required>
                 </div>
 
                 <!-- Course -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label">Course</label>
                     <select name="course_id" id="courseSelect" class="form-select" required>
                         <option value="">— Select a Course —</option>
@@ -228,17 +228,25 @@
                 </div>
 
                 <!-- Semester -->
-                <div class="col-md-3">
-                    <label class="form-label">Semester (Optional)</label>
-                    <select name="semester_id" id="semesterSelect" class="form-select" disabled>
+                <div class="col-md-2">
+                    <label class="form-label">Semester</label>
+                    <select name="semester_id" id="semesterSelect" class="form-select" required>
                         <option value="">— Select Course First —</option>
                     </select>
                 </div>
 
+                <!-- Module -->
+                <div class="col-md-2">
+                    <label class="form-label">Module (Optional)</label>
+                    <select name="module_id" id="moduleSelect" class="form-select">
+                        <option value="">— No Module —</option>
+                    </select>
+                </div>
+
                 <!-- Submit -->
-                <div class="col-md-1 d-flex align-items-end">
+                <div class="col-md-2 d-flex align-items-end">
                     <button type="submit" class="btn-add w-100">
-                        <i class="bi bi-plus-lg"></i> Add
+                        <i class="bi bi-plus-lg"></i> Add Subject
                     </button>
                 </div>
             </div>
@@ -246,7 +254,7 @@
             <div class="info-alert">
                 <i class="bi bi-info-circle-fill"></i>
                 <div>
-                    <strong>Note:</strong> Only subjects can be managed here. Courses and semesters are handled by the admin.
+                    <strong>Note:</strong> Select a course first to load its semesters and modules. If the course has no modules (e.g., Artisan), leave the module as "No Module".
                 </div>
             </div>
         </form>
@@ -304,42 +312,53 @@
 </div>
 
 <script>
-    // --- THE FRIENDLY UX FIX ---
-    // This automatically updates the Semester dropdown based on the Course selected
     document.addEventListener('DOMContentLoaded', function() {
         const courseSelect = document.getElementById('courseSelect');
         const semesterSelect = document.getElementById('semesterSelect');
-
-        // We pass all semesters from the backend to JS
-        const semestersData = {{ semesters|tojson }};
+        const moduleSelect = document.getElementById('moduleSelect');
 
         courseSelect.addEventListener('change', function() {
             const courseId = this.value;
             
-            // Clear current options
-            semesterSelect.innerHTML = '<option value="">— None —</option>';
+            // Reset dropdowns
+            semesterSelect.innerHTML = '<option value="">— Loading... —</option>';
+            moduleSelect.innerHTML = '<option value="">— Loading... —</option>';
             
             if (!courseId) {
-                semesterSelect.disabled = true;
                 semesterSelect.innerHTML = '<option value="">— Select Course First —</option>';
+                moduleSelect.innerHTML = '<option value="">— No Module —</option>';
                 return;
             }
 
-            // Filter semesters for this course
-            const filtered = semestersData.filter(s => s.course_id == courseId);
-            
-            if (filtered.length === 0) {
-                semesterSelect.innerHTML = '<option value="">No semesters found</option>';
-                semesterSelect.disabled = true;
-            } else {
-                semesterSelect.disabled = false;
-                filtered.forEach(sem => {
-                    const option = document.createElement('option');
-                    option.value = sem.id;
-                    option.textContent = sem.name;
-                    semesterSelect.appendChild(option);
+            // Fetch Semesters
+            fetch(`/api/semesters_by_course/${courseId}`)
+                .then(res => res.json())
+                .then(data => {
+                    semesterSelect.innerHTML = '<option value="">— Select Semester —</option>';
+                    if (data.length === 0) {
+                        semesterSelect.innerHTML += '<option value="">No semesters found</option>';
+                    } else {
+                        data.forEach(sem => {
+                            const option = document.createElement('option');
+                            option.value = sem.id;
+                            option.textContent = sem.name;
+                            semesterSelect.appendChild(option);
+                        });
+                    }
                 });
-            }
+
+            // Fetch Modules
+            fetch(`/api/modules_by_course/${courseId}`)
+                .then(res => res.json())
+                .then(data => {
+                    moduleSelect.innerHTML = '<option value="">— No Module (e.g. Artisan) —</option>';
+                    data.forEach(mod => {
+                        const option = document.createElement('option');
+                        option.value = mod.id;
+                        option.textContent = mod.name;
+                        moduleSelect.appendChild(option);
+                    });
+                });
         });
     });
 </script>
