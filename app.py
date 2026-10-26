@@ -4376,12 +4376,16 @@ def hod_enter_marks():
 
         atype = get_course_assessment_type(course)
 
-        # Fetch all students in this course
-        students_q = student_query(db).filter_by(course_id=subject.course_id)
+        # ✅ NEW: Fetch all semesters for the dropdown
+        all_semesters = (
+            db.query(Semester)
+            .filter_by(course_id=course.id)
+            .order_by(Semester.created_at.desc())
+            .all()
+        )
 
-        # If the subject belongs to a module, ONLY show students in that module.
-        # We do NOT check their current semester here. If they are in Module 2,
-        # they show up for every Module 2 subject.
+        # Fetch students ONLY based on Module, ignoring their current semester
+        students_q = student_query(db).filter_by(course_id=subject.course_id)
         if getattr(subject, "module_id", None):
             students_q = students_q.filter(
                 or_(
@@ -4541,6 +4545,7 @@ def hod_enter_marks():
             assessment_type=atype,
             periodic_labels=labels,
             hod_mode=True,
+            all_semesters=all_semesters,  # ✅ PASS THE SEMESTER LIST HERE
         )
     finally:
         db.close()
