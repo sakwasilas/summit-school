@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add Student — HOD</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body { background:#f4f6f9; }
+  .app-header { background:#0f4c81; color:#fff; padding:14px 24px; display:flex; justify-content:space-between; align-items:center; }
+  .app-header a { color:#cbd5e1; text-decoration:none; margin-left:16px; }
+  .app-header a:hover { color:#fff; }
+  .card { border:none; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div><strong>HOD</strong> — {{ hod_name }} · {{ department.name }}</div>
+  <div>
+    <a href="{{ url_for('hod_dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('hod_students_list') }}">Students</a>
+    <a href="{{ url_for('logout') }}">Logout</a>
+  </div>
+</div>
+
+<div class="container py-4" style="max-width:960px;">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0">Add Single Student</h3>
+    <div>
+      <a href="{{ url_for('hod_students_upload') }}" class="btn btn-outline-secondary btn-sm">Bulk Upload</a>
+      <a href="{{ url_for('hod_students_list') }}" class="btn btn-outline-primary btn-sm">Back to Students</a>
+    </div>
+  </div>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, m in msgs %}
+      <div class="alert alert-{{ 'danger' if cat=='danger' or cat=='error' else cat }} alert-dismissible fade show">
+        {{ m }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="POST" class="card">
+    <div class="card-body p-4">
+
+      <h6 class="text-uppercase text-muted small fw-bold mb-3">Course Placement</h6>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Course *</label>
+          <select id="course" name="course_id" class="form-select" required>
+            <option value="">-- Select Course --</option>
+            {% for c in courses %}
+              <option value="{{ c.id }}"
+                data-atype="{{ c.assessment_type or 'knec' }}"
+                {% if form.course_id == c.id|string %}selected{% endif %}>
+                {{ c.name }}{% if c.level %} — {{ c.level }}{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Semester</label>
+          <select id="semester" name="semester_id" class="form-select">
+            <option value="">-- (defaults to current) --</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Module</label>
+          <select id="module" name="module" class="form-select">
+            <option value="">-- None --</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Exam Type *</label>
+          <select id="exam_type" name="exam_type" class="form-select" required>
+            <option value="knec" {% if form.exam_type == 'knec' %}selected{% endif %}>KNEC</option>
+            <option value="internal" {% if form.exam_type == 'internal' %}selected{% endif %}>Internal</option>
+          </select>
+        </div>
+      </div>
+
+      <hr>
+
+      <h6 class="text-uppercase text-muted small fw-bold mb-3">Student Details</h6>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Full Name *</label>
+          <input type="text" name="full_name" class="form-control" value="{{ form.full_name or '' }}" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Admission Number *</label>
+          <input type="text" name="admission_number" class="form-control" value="{{ form.admission_number or '' }}" required>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Phone Number</label>
+          <input type="text" name="phone_number" class="form-control" value="{{ form.phone_number or '' }}">
+        </div>
+      </div>
+
+      <hr>
+
+      <h6 class="text-uppercase text-muted small fw-bold mb-3">Login Credentials</h6>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Username</label>
+          <input type="text" name="username" class="form-control" value="{{ form.username or '' }}" placeholder="(auto from admission no.)">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Password</label>
+          <input type="text" name="password" class="form-control" value="{{ form.password or '' }}" placeholder="(defaults to admission no.)">
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end pt-3">
+        <button class="btn btn-primary px-4" type="submit">Save Student</button>
+      </div>
+
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const courseSel = document.getElementById('course');
+  const semSel = document.getElementById('semester');
+  const modSel = document.getElementById('module');
+  const examSel = document.getElementById('exam_type');
+
+  function refreshExamTypeDefault() {
+    const opt = courseSel.options[courseSel.selectedIndex];
+    const atype = opt ? (opt.dataset.atype || 'knec') : 'knec';
+    if (atype === 'short' || atype === 'periodic') {
+      examSel.value = 'internal';
+    }
+  }
+
+  courseSel.addEventListener('change', () => {
+    const cId = courseSel.value;
+    semSel.innerHTML = '<option value="">-- (defaults to current) --</option>';
+    modSel.innerHTML = '<option value="">-- None --</option>';
+    refreshExamTypeDefault();
+    if (!cId) return;
+
+    Promise.all([
+      fetch(`/api/semesters_by_course/${cId}`).then(r => r.json()),
+      fetch(`/api/modules_by_course/${cId}`).then(r => r.json()),
+    ]).then(([sems, mods]) => {
+      sems.forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.id; o.textContent = s.name;
+        semSel.appendChild(o);
+      });
+      mods.forEach(m => {
+        const o = document.createElement('option');
+        o.value = m.name; o.textContent = m.name;
+        modSel.appendChild(o);
+      });
+    });
+  });
+
+  if (courseSel.value) {
+    courseSel.dispatchEvent(new Event('change'));
+  }
+</script>
+</body>
+</html>
