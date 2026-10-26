@@ -403,18 +403,13 @@ def _save_kasneb_marks(db, student_id, subject_id, semester_id, cat1, cat2):
 def _create_single_student(db, *, full_name, admission, course, exam_type,
                            semester_id, module_obj, phone, username, password,
                            strict_department_id=None):
-    """Shared logic for single-student creation (admin & HOD).
-
-    Returns (ok: bool, message: str, username: str).
-    Raises nothing — caller handles commit/rollback.
-    """
+    """Shared logic for single-student creation (admin & HOD)."""
     if db.query(StudentProfile).filter_by(admission_number=admission).first():
         return False, f"Admission number '{admission}' already exists.", None
 
     if strict_department_id is not None and course.department_id != strict_department_id:
         return False, "Course not in your department.", None
 
-    # Auto-flip exam type for short/periodic courses
     if get_course_assessment_type(course) in ("short", "periodic"):
         exam_type = "internal"
 
@@ -431,7 +426,6 @@ def _create_single_student(db, *, full_name, admission, course, exam_type,
     if module_obj is not None and module_obj.course_id != course.id:
         return False, "Selected module does not belong to the chosen course.", None
 
-    # Deduplicate username
     base_username = (username or admission.replace("/", "").replace(" ", "").lower())[:45]
     if not base_username:
         base_username = admission.replace("/", "").replace(" ", "").lower()[:45]
@@ -2313,12 +2307,16 @@ def admin_enter_marks():
         department = course.department if course else None
         atype = get_course_assessment_type(course)
 
+        # Fetch ALL students in this course so we can enter marks for past semesters
         students_q = student_query(db).filter_by(course_id=subject.course_id)
+        
+        # If the subject belongs to a module, only show students in that module (or unassigned)
         if getattr(subject, "module_id", None):
             students_q = students_q.filter(
                 or_(StudentProfile.module_id == subject.module_id,
                     StudentProfile.module_id.is_(None))
             )
+            
         students = students_q.order_by(StudentProfile.full_name.asc()).all()
 
         if request.method == "POST":
@@ -4374,12 +4372,16 @@ def hod_enter_marks():
 
         atype = get_course_assessment_type(course)
 
+        # Fetch ALL students in this course so we can enter marks for past semesters
         students_q = student_query(db).filter_by(course_id=subject.course_id)
+        
+        # If the subject belongs to a module, only show students in that module (or unassigned)
         if getattr(subject, "module_id", None):
             students_q = students_q.filter(
                 or_(StudentProfile.module_id == subject.module_id,
                     StudentProfile.module_id.is_(None))
             )
+            
         students = students_q.order_by(StudentProfile.full_name.asc()).all()
 
         if request.method == "POST":
