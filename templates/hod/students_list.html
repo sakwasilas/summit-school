@@ -331,7 +331,7 @@
                 <col style="width: 130px;">
                 <col style="width: 190px;">
                 <col style="width: 130px;">
-                <col style="width: 200px;">
+                <col style="width: 240px;"> <!-- Increased width for Course -->
                 <col style="width: 180px;">
                 <col style="width: 100px;">
                 <col style="width: 300px;">
@@ -342,7 +342,7 @@
                     <th>Adm No</th>
                     <th>Full Name</th>
                     <th>Phone</th>
-                    <th>Course</th>
+                    <th>Course / Move</th> <!-- Renamed -->
                     <th>Current Module</th>
                     <th class="center">Status</th>
                     <th class="center">Actions</th>
@@ -368,7 +368,24 @@
                     </td>
 
                     <td class="cell-course">
-                        {{ s.course.name if s.course else '—' }}
+                        <div style="font-weight: 600; margin-bottom: 6px; color: #0f1724;">
+                            {{ s.course.name if s.course else '—' }}
+                        </div>
+                        
+                        <!-- ═══ NEW: Move Course Form ═══ -->
+                        <form method="POST" action="{{ url_for('hod_change_student_course', student_id=s.id) }}"
+                              onsubmit="return confirm('Move {{ s.full_name }} to a different course?');"
+                              style="display: flex; gap: 4px;">
+                            <select name="course_id" class="form-select form-select-sm" required style="font-size: 11.5px; padding: 2px 6px; height: auto;">
+                                <option value="">— Move to —</option>
+                                {% for c in courses %}
+                                    {% if c.id != s.course_id %}
+                                        <option value="{{ c.id }}">{{ c.name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-warning" style="font-size: 11px; padding: 2px 8px; font-weight: 700;">Go</button>
+                        </form>
                     </td>
 
                     <!-- READ-ONLY module badge -->

@@ -16,6 +16,7 @@ from flask import (
 )
 from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import IntegrityError  # ═══ FIX: for friendly DB errors
 from werkzeug.utils import secure_filename
 
 from connections import SessionLocal
@@ -127,11 +128,7 @@ class ManualPagination:
 
 
 def paginate_query(query, page, per_page):
-    """Paginate a SQLAlchemy 2.x Query object manually.
-
-    Preserves eager-loading (joinedload) options, so returned items can
-    safely be accessed after the session is closed.
-    """
+    """Paginate a SQLAlchemy 2.x Query object manually."""
     if page < 1:
         page = 1
     total = query.order_by(None).count()
@@ -144,7 +141,7 @@ def paginate_query(query, page, per_page):
 ASSESSMENT TYPE HELPERS
 ============================================================
 """
-VALID_ASSESSMENT_TYPES = ("knec", "kasneb", "short", "periodic")
+VALID_ASSESSMENT_TYPES = ("kneb", "knec", "kasneb", "short", "periodic")
 KASNEB_LABELS = ("CAT 1", "CAT 2")
 
 
@@ -452,6 +449,137 @@ def _create_single_student(db, *, full_name, admission, course, exam_type,
     ))
 
     return True, f"Student '{full_name}' added (username: {final_username}).", final_username
+
+
+# ═══ FIX: shared form validator + DB error translator ═══
+
+def _validate_new_student_form(db, form, *, department_id=None):
+    """Validate a single-student form. Returns (data_dict, errors_list).
+
+    Never touches the DB session; caller is responsible for commit/rollback.
+    """
+    errors = []
+
+    full_name = (form.get("full_name") or "").strip()
+    admission = (form.get("admission_number") or "").strip()
+    course_id = form.get("course_id", type=int)
+    exam_type = (form.get("exam_type") or "").strip().lower()
+    module_name = (form.get("module") or "").strip()
+    semester_id = form.get("semester_id", type=int)
+    phone = (form.get("phone_number") or "").strip()
+    username = (form.get("username") or "").strip()
+    password = (form.get("password") or "").strip()
+
+    if not full_name:
+        errors.append("Full name is required.")
+    elif len(full_name) < 3:
+        errors.append("Full name must be at least 3 characters.")
+
+    if not admission:
+        errors.append("Admission number is required.")
+    else:
+        existing = db.query(StudentProfile).filter_by(admission_number=admission).first()
+        if existing:
+            course_label = existing.course.name if existing.course else "another course"
+            errors.append(
+                f"Admission number '{admission}' is already used by "
+                f"{existing.full_name} ({course_label})."
+            )
+
+    course = None
+    if not course_id:
+        errors.append("Course is required.")
+    else:
+        course = db.query(Course).filter_by(id=course_id).first()
+        if not course:
+            errors.append(f"Course #{course_id} does not exist.")
+        elif department_id is not None and course.department_id != department_id:
+            errors.append(f"'{course.name}' is not in your department.")
+
+    if exam_type not in ("knec", "internal"):
+        errors.append("Exam type must be KNEC or Internal.")
+
+    module_obj = None
+    if module_name and course:
+        module_obj = db.query(Module).filter_by(
+            course_id=course.id, name=module_name
+        ).first()
+        if not module_obj:
+            errors.append(
+                f"Module '{module_name}' not found for course '{course.name}'."
+            )
+
+    if semester_id:
+        sem = db.query(Semester).filter_by(id=semester_id).first()
+        if not sem:
+            errors.append(f"Semester #{semester_id} does not exist.")
+        elif course and sem.course_id != course.id:
+            errors.append(
+                f"Semester '{sem.name}' does not belong to course '{course.name}'."
+            )
+
+    if phone and not re.fullmatch(r"\+?\d{7,15}", phone):
+        errors.append("Phone number must be 7–15 digits (digits only, optional leading +).")
+
+    if username and db.query(User).filter_by(username=username).first():
+        errors.append(f"Username '{username}' is already taken.")
+
+    if password and len(password) < 4:
+        errors.append("Password must be at least 4 characters.")
+
+    return {
+        "full_name": full_name,
+        "admission": admission,
+        "course": course,
+        "exam_type": exam_type,
+        "module_obj": module_obj,
+        "module_name": module_name,
+        "semester_id": semester_id,
+        "phone": phone or None,
+        "username": username,
+        "password": password,
+    }, errors
+
+
+def _error_fields_from(errors):
+    """Map validator error strings → template field names for highlighting."""
+    fields = set()
+    for e in errors:
+        e_low = e.lower()
+        if "full name" in e_low:
+            fields.add("full_name")
+        elif "admission" in e_low:
+            fields.add("admission_number")
+        elif "course" in e_low:
+            fields.add("course_id")
+        elif "exam type" in e_low:
+            fields.add("exam_type")
+        elif "module" in e_low:
+            fields.add("module")
+        elif "semester" in e_low:
+            fields.add("semester_id")
+        elif "phone" in e_low:
+            fields.add("phone_number")
+        elif "username" in e_low:
+            fields.add("username")
+        elif "password" in e_low:
+            fields.add("password")
+    return fields
+
+
+def _translate_db_error(exc):
+    """Turn a raw IntegrityError into a friendly message."""
+    err = str(getattr(exc, "orig", exc)).lower()
+    if "unique" in err and "admission_number" in err:
+        return "That admission number is already in use."
+    if "unique" in err and "username" in err:
+        return "That username is already taken. Try a different one."
+    if "not null" in err:
+        missing = err.split("failed:")[-1].strip() if "failed:" in err else "a required field"
+        return f"Required field is missing: {missing}"
+    if "foreign key" in err:
+        return "One of the selected values (course / semester / module) no longer exists."
+    return "Could not save the record. Please check the form and try again."
 
 
 """
@@ -1127,7 +1255,7 @@ def edit_subject(subject_id):
 
         if request.method == "POST":
             subject.name = request.form["subject_name"].strip()
-            
+
             semester_id = request.form.get("semester_id") or None
             if semester_id:
                 semester_id = int(semester_id)
@@ -1465,7 +1593,7 @@ def manage_students():
         if request.method == "POST":
             student_id = request.form.get("student_id")
             action = request.form.get("action")
-            student = db.query(StudentProfile).get(student_id)
+            student = db.query(StudentProfile).filter_by(id=student_id).first()
 
             if action == "toggle_block" and student:
                 student.blocked = not student.blocked
@@ -1496,15 +1624,20 @@ def manage_students():
         else:
             students = student_query(db).all()
 
+        # ═══ FIX: pass courses to template so the "Move to course" dropdown works
+        courses = db.query(Course).order_by(Course.name.asc()).all()
+
         return render_template(
             "admin/manage_students.html",
-            students=students, search_query=search_query_str,
+            students=students,
+            courses=courses,          # ═══ FIX
+            search_query=search_query_str,
         )
     finally:
         db.close()
 
 
-# ── NEW: Admin single-student add ────────────────────────────
+# ═══ FIX: Admin single-student add — uses shared validator ═══
 @app.route("/admin/students/add", methods=["GET", "POST"])
 def admin_add_student():
     if session.get("role") != "admin":
@@ -1516,38 +1649,7 @@ def admin_add_student():
         courses = db.query(Course).order_by(Course.name.asc()).all()
 
         if request.method == "POST":
-            full_name = request.form.get("full_name", "").strip()
-            admission = request.form.get("admission_number", "").strip()
-            course_id = request.form.get("course_id", type=int)
-            exam_type = request.form.get("exam_type", "").strip().lower()
-            module_name = request.form.get("module", "").strip() or None
-            semester_id = request.form.get("semester_id", type=int)
-            phone = request.form.get("phone_number", "").strip() or None
-            username = request.form.get("username", "").strip()
-            password = request.form.get("password", "").strip()
-
-            errors = []
-            if not full_name:
-                errors.append("Full name is required.")
-            if not admission:
-                errors.append("Admission number is required.")
-            if not course_id:
-                errors.append("Course is required.")
-            if exam_type not in ("knec", "internal"):
-                errors.append("Exam type must be KNEC or Internal.")
-
-            course = db.query(Course).filter_by(id=course_id).first() if course_id else None
-            if course_id and not course:
-                errors.append("Course not found.")
-
-            module_obj = None
-            if module_name and course:
-                module_obj = db.query(Module).filter_by(
-                    course_id=course.id, name=module_name
-                ).first()
-                if not module_obj:
-                    errors.append(f"Module '{module_name}' not found for this course.")
-
+            data, errors = _validate_new_student_form(db, request.form)
             if errors:
                 for e in errors:
                     flash(f"❌ {e}", "danger")
@@ -1555,15 +1657,17 @@ def admin_add_student():
                     "admin/add_student.html",
                     departments=departments, courses=courses,
                     semesters=[], modules=[], form=request.form,
+                    errors=errors, error_fields=_error_fields_from(errors),
                     username=session.get("username"),
                 )
 
             ok, msg, _ = _create_single_student(
                 db,
-                full_name=full_name, admission=admission, course=course,
-                exam_type=exam_type, semester_id=semester_id,
-                module_obj=module_obj, phone=phone,
-                username=username, password=password,
+                full_name=data["full_name"], admission=data["admission"],
+                course=data["course"], exam_type=data["exam_type"],
+                semester_id=data["semester_id"], module_obj=data["module_obj"],
+                phone=data["phone"], username=data["username"],
+                password=data["password"],
             )
             if not ok:
                 db.rollback()
@@ -1572,6 +1676,7 @@ def admin_add_student():
                     "admin/add_student.html",
                     departments=departments, courses=courses,
                     semesters=[], modules=[], form=request.form,
+                    errors=[msg], error_fields=set(),
                     username=session.get("username"),
                 )
 
@@ -1583,15 +1688,84 @@ def admin_add_student():
             "admin/add_student.html",
             departments=departments, courses=courses,
             semesters=[], modules=[], form={},
+            errors=[], error_fields=set(),
             username=session.get("username"),
         )
+    except IntegrityError as e:  # ═══ FIX: translate DB errors
+        db.rollback()
+        import traceback; traceback.print_exc()
+        flash(f"❌ {_translate_db_error(e)}", "danger")
+        return redirect(url_for("admin_add_student"))
     except Exception as e:
         db.rollback()
         import traceback; traceback.print_exc()
-        flash(f"❌ Error adding student: {e}", "danger")
+        flash("❌ An unexpected error occurred. Please try again.", "danger")
         return redirect(url_for("admin_add_student"))
     finally:
         db.close()
+
+
+# ═══ FIX: Admin change student's course ═══
+@app.route("/admin/student/<int:student_id>/change-course", methods=["POST"])
+def admin_change_student_course(student_id):
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    new_course_id = request.form.get("course_id", type=int)
+    if not new_course_id:
+        flash("❌ Please select a course.", "danger")
+        return redirect(url_for("manage_students"))
+
+    db = SessionLocal()
+    try:
+        student = db.query(StudentProfile).filter_by(id=student_id).first()
+        if not student:
+            flash("❌ Student not found.", "danger")
+            return redirect(url_for("manage_students"))
+
+        new_course = db.query(Course).filter_by(id=new_course_id).first()
+        if not new_course:
+            flash("❌ Course not found.", "danger")
+            return redirect(url_for("manage_students"))
+
+        if new_course_id == student.course_id:
+            flash("ℹ️ Student is already in that course.", "info")
+            return redirect(url_for("manage_students"))
+
+        clash = db.query(StudentProfile).filter(
+            StudentProfile.admission_number == student.admission_number,
+            StudentProfile.course_id == new_course_id,
+            StudentProfile.id != student.id,
+        ).first()
+        if clash:
+            flash(
+                f"❌ Admission number '{student.admission_number}' already "
+                f"exists in {new_course.name}.",
+                "danger",
+            )
+            return redirect(url_for("manage_students"))
+
+        old_name = student.course.name if student.course else "unknown"
+        student.course_id = new_course.id
+        student.current_semester_id = None
+        student.module_id = None
+        student.module = None
+
+        current_sem = db.query(Semester).filter_by(
+            course_id=new_course.id, is_current=True
+        ).first()
+        if current_sem:
+            student.current_semester_id = current_sem.id
+
+        db.commit()
+        flash(f"✅ {student.full_name} moved from '{old_name}' to '{new_course.name}'.", "success")
+    except Exception as e:
+        db.rollback()
+        flash(f"❌ Error changing course: {e}", "danger")
+    finally:
+        db.close()
+
+    return redirect(url_for("manage_students"))
 
 
 @app.route("/admin/assign-modules", methods=["GET", "POST"])
@@ -1977,6 +2151,10 @@ def admin_students_upload_confirm():
             msg += f" Skipped {skipped} (duplicates or course mismatch)."
         flash(msg, "success" if imported else "warning")
 
+    except IntegrityError as e:  # ═══ FIX
+        db.rollback()
+        import traceback; traceback.print_exc()
+        flash(f"❌ Import failed: {_translate_db_error(e)}", "danger")
     except Exception as e:
         db.rollback()
         import traceback
@@ -2309,12 +2487,9 @@ def admin_enter_marks():
         department = course.department if course else None
         atype = get_course_assessment_type(course)
 
-        # Fetch students based on the Module assigned to the subject
         students_q = student_query(db).filter_by(course_id=subject.course_id)
-        
-        # Force a fresh query to get the subject's module_id directly from the database
         fresh_module_id = db.query(Subject.module_id).filter(Subject.id == subject_id).scalar()
-        
+
         if fresh_module_id:
             students_q = students_q.filter(
                 or_(
@@ -3412,13 +3587,15 @@ def hod_students_list():
         return render_template(
             "hod/students_list.html",
             department=department, hod_name=session.get("username"),
-            students=students, search_query=search_query_str, semester_map=semester_map,
+            students=students, search_query=search_query_str,
+            semester_map=semester_map,
+            courses=courses,        # ═══ FIX: pass courses for "Move to course" dropdown
         )
     finally:
         db.close()
 
 
-# ── NEW: HOD single-student add ──────────────────────────────
+# ═══ FIX: HOD add student — uses shared validator + DB error translation ═══
 @app.route("/hod/students/add", methods=["GET", "POST"])
 def hod_add_student():
     if session.get("role") != "hod":
@@ -3437,42 +3614,9 @@ def hod_add_student():
         ).order_by(Course.name.asc()).all()
 
         if request.method == "POST":
-            full_name = request.form.get("full_name", "").strip()
-            admission = request.form.get("admission_number", "").strip()
-            course_id = request.form.get("course_id", type=int)
-            exam_type = request.form.get("exam_type", "").strip().lower()
-            module_name = request.form.get("module", "").strip() or None
-            semester_id = request.form.get("semester_id", type=int)
-            phone = request.form.get("phone_number", "").strip() or None
-            username = request.form.get("username", "").strip()
-            password = request.form.get("password", "").strip()
-
-            errors = []
-            if not full_name:
-                errors.append("Full name is required.")
-            if not admission:
-                errors.append("Admission number is required.")
-            if not course_id:
-                errors.append("Course is required.")
-            if exam_type not in ("knec", "internal"):
-                errors.append("Exam type must be KNEC or Internal.")
-
-            course = None
-            if course_id:
-                course = db.query(Course).filter_by(
-                    id=course_id, department_id=department_id
-                ).first()
-                if not course:
-                    errors.append("Course not in your department.")
-
-            module_obj = None
-            if module_name and course:
-                module_obj = db.query(Module).filter_by(
-                    course_id=course.id, name=module_name
-                ).first()
-                if not module_obj:
-                    errors.append(f"Module '{module_name}' not found.")
-
+            data, errors = _validate_new_student_form(
+                db, request.form, department_id=department_id
+            )
             if errors:
                 for e in errors:
                     flash(f"❌ {e}", "danger")
@@ -3480,14 +3624,16 @@ def hod_add_student():
                     "hod/add_student.html",
                     department=department, hod_name=session.get("username"),
                     courses=courses, semesters=[], modules=[], form=request.form,
+                    errors=errors, error_fields=_error_fields_from(errors),
                 )
 
             ok, msg, _ = _create_single_student(
                 db,
-                full_name=full_name, admission=admission, course=course,
-                exam_type=exam_type, semester_id=semester_id,
-                module_obj=module_obj, phone=phone,
-                username=username, password=password,
+                full_name=data["full_name"], admission=data["admission"],
+                course=data["course"], exam_type=data["exam_type"],
+                semester_id=data["semester_id"], module_obj=data["module_obj"],
+                phone=data["phone"], username=data["username"],
+                password=data["password"],
                 strict_department_id=department_id,
             )
             if not ok:
@@ -3497,6 +3643,7 @@ def hod_add_student():
                     "hod/add_student.html",
                     department=department, hod_name=session.get("username"),
                     courses=courses, semesters=[], modules=[], form=request.form,
+                    errors=[msg], error_fields=set(),
                 )
 
             db.commit()
@@ -3507,14 +3654,92 @@ def hod_add_student():
             "hod/add_student.html",
             department=department, hod_name=session.get("username"),
             courses=courses, semesters=[], modules=[], form={},
+            errors=[], error_fields=set(),
         )
+    except IntegrityError as e:  # ═══ FIX
+        db.rollback()
+        import traceback; traceback.print_exc()
+        flash(f"❌ {_translate_db_error(e)}", "danger")
+        return redirect(url_for("hod_add_student"))
     except Exception as e:
         db.rollback()
         import traceback; traceback.print_exc()
-        flash(f"❌ Error adding student: {e}", "danger")
+        flash("❌ An unexpected error occurred. Please try again.", "danger")
         return redirect(url_for("hod_add_student"))
     finally:
         db.close()
+
+
+# ═══ FIX: HOD change student's course ═══
+@app.route("/hod/student/<int:student_id>/change-course", methods=["POST"])
+def hod_change_student_course(student_id):
+    if session.get("role") != "hod":
+        return redirect(url_for("login"))
+
+    department_id = session["department_id"]
+    new_course_id = request.form.get("course_id", type=int)
+
+    if not new_course_id:
+        flash("❌ Please select a course.", "danger")
+        return redirect(url_for("hod_students_list"))
+
+    db = SessionLocal()
+    try:
+        student = db.query(StudentProfile).filter_by(id=student_id).first()
+        if not student:
+            flash("❌ Student not found.", "danger")
+            return redirect(url_for("hod_students_list"))
+
+        # Target must be in HOD's department (source doesn't have to be)
+        new_course = db.query(Course).filter_by(
+            id=new_course_id, department_id=department_id
+        ).first()
+        if not new_course:
+            flash("❌ Target course is not in your department.", "danger")
+            return redirect(url_for("hod_students_list"))
+
+        if new_course_id == student.course_id:
+            flash("ℹ️ Student is already in that course.", "info")
+            return redirect(url_for("hod_students_list"))
+
+        clash = db.query(StudentProfile).filter(
+            StudentProfile.admission_number == student.admission_number,
+            StudentProfile.course_id == new_course_id,
+            StudentProfile.id != student.id,
+        ).first()
+        if clash:
+            flash(
+                f"❌ Admission number '{student.admission_number}' already "
+                f"exists in {new_course.name}.",
+                "danger",
+            )
+            return redirect(url_for("hod_students_list"))
+
+        old_name = student.course.name if student.course else "unknown"
+
+        student.course_id = new_course.id
+        student.current_semester_id = None
+        student.module_id = None
+        student.module = None
+
+        current_sem = db.query(Semester).filter_by(
+            course_id=new_course.id, is_current=True
+        ).first()
+        if current_sem:
+            student.current_semester_id = current_sem.id
+
+        db.commit()
+        flash(
+            f"✅ {student.full_name} moved from '{old_name}' to '{new_course.name}'.",
+            "success",
+        )
+    except Exception as e:
+        db.rollback()
+        flash(f"❌ Error changing course: {e}", "danger")
+    finally:
+        db.close()
+
+    return redirect(url_for("hod_students_list"))
 
 
 @app.route("/hod/students/upload/template")
@@ -3830,6 +4055,10 @@ def hod_students_upload_confirm():
             msg += f" Skipped {skipped} (duplicates or course mismatch)."
         flash(msg, "success" if imported else "warning")
 
+    except IntegrityError as e:  # ═══ FIX
+        db.rollback()
+        import traceback; traceback.print_exc()
+        flash(f"❌ Import failed: {_translate_db_error(e)}", "danger")
     except Exception as e:
         db.rollback()
         import traceback
@@ -4380,7 +4609,6 @@ def hod_enter_marks():
 
         atype = get_course_assessment_type(course)
 
-        # ✅ NEW: Fetch all semesters for the dropdown
         all_semesters = (
             db.query(Semester)
             .filter_by(course_id=course.id)
@@ -4388,12 +4616,9 @@ def hod_enter_marks():
             .all()
         )
 
-        # Fetch students based on the Module assigned to the subject
         students_q = student_query(db).filter_by(course_id=subject.course_id)
-        
-        # Force a fresh query to get the subject's module_id directly from the database
         fresh_module_id = db.query(Subject.module_id).filter(Subject.id == subject_id).scalar()
-        
+
         if fresh_module_id:
             students_q = students_q.filter(
                 or_(
@@ -4553,7 +4778,7 @@ def hod_enter_marks():
             assessment_type=atype,
             periodic_labels=labels,
             hod_mode=True,
-            all_semesters=all_semesters,  # ✅ PASS THE SEMESTER LIST HERE
+            all_semesters=all_semesters,
         )
     finally:
         db.close()
