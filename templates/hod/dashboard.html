@@ -1,1862 +1,558 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HOD Dashboard - {{ department.name }}</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
+    <title>Manage Courses — Summit Technical College</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <style>
-        :root {
-            --navy: #18354b;
-            --navy-dark: #112a3d;
-            --teal: #168b83;
-            --teal-light: #e7f5f2;
-            --page: #f4f7f8;
-            --text: #293b48;
-            --muted: #6b7c87;
-            --border: #e1e8ec;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            color: #0f1724;
+            -webkit-font-smoothing: antialiased;
+            background: #f0f2f5;
         }
 
-        * { box-sizing: border-box; }
+        .page { display: flex; flex-direction: column; min-height: 100vh; }
 
-        body {
-            margin: 0;
-            padding: 22px;
-            background: var(--page);
-            color: var(--text);
-            font-family: "Segoe UI", Arial, sans-serif;
-            font-size: 14px;
-        }
-
-        a { text-decoration: none; }
-
-        .layout {
-            max-width: 1500px;
-            margin: auto;
-            display: grid;
-            grid-template-columns: 245px minmax(0, 1fr);
-            gap: 22px;
-            align-items: start;
-        }
-
-        /* LEFT NAVIGATION */
-        .sidebar {
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
+        /* ============ HEADER ============ */
+        .top-header {
+            background: #ffffff;
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
             position: sticky;
-            top: 20px;
-        }
-
-        .sb-top {
-            padding: 22px 15px;
-            text-align: center;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .sb-logo {
-            display: block;
-            max-width: 110px;
-            max-height: 75px;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            margin: 0 auto 13px;
-        }
-
-        .sb-dept-name {
-            color: var(--navy);
-            font-size: 12px;
-            font-weight: 800;
-            line-height: 1.5;
-            text-transform: uppercase;
-        }
-
-        .sb-role-tag {
-            display: inline-block;
-            margin-top: 8px;
-            padding: 5px 12px;
-            border-radius: 5px;
-            background: var(--teal-light);
-            color: #126c65;
-            font-size: 10px;
-            font-weight: 700;
-        }
-
-        .sb-bottom {
-            background: var(--navy);
-            padding: 12px 10px 16px;
-        }
-
-        .sb-section-title {
-            padding: 13px 10px 6px;
-            color: #a9c1ce;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .sb-link {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            margin-bottom: 3px;
-            border-radius: 6px;
-            color: #e4edf2;
-            font-size: 12px;
-            font-weight: 500;
-            transition: background .2s;
-        }
-
-        .sb-link i {
-            width: 18px;
-            text-align: center;
-            color: #a6c6d1;
-            font-size: 15px;
-        }
-
-        .sb-link:hover {
-            background: rgba(255,255,255,.10);
-            color: white;
-        }
-
-        .sb-link.active {
-            background: var(--teal);
-            color: white;
-        }
-
-        .sb-link.active i { color: white; }
-
-        .sb-divider {
-            height: 1px;
-            margin: 12px 5px;
-            background: rgba(255,255,255,.15);
-        }
-
-        .sb-link.sb-logout { color: #ffd6d6; }
-
-        /* MAIN CONTENT */
-        .main { min-width: 0; }
-
-        .hero {
-            padding: 25px;
-            margin-bottom: 20px;
-            background: var(--navy);
-            border-radius: 12px;
-            color: white;
-        }
-
-        .hero h1 {
-            margin: 0 0 7px;
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .hero h1 span { color: #76d2c4; }
-
-        .hero .sub {
-            color: #d3e0e7;
-            font-size: 13px;
-        }
-
-        .hero-stats {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 12px;
-            margin-top: 23px;
-        }
-
-        .stat-box {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            min-width: 0;
-            padding: 15px 12px;
-            border: 1px solid rgba(255,255,255,.15);
-            border-radius: 8px;
-            background: rgba(255,255,255,.06);
-        }
-
-        .sb-ic {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            width: 38px;
-            height: 38px;
-            border-radius: 7px;
-            background: rgba(22,139,131,.25);
-            color: #9be2d6;
-            font-size: 18px;
-        }
-
-        .sb-num {
-            color: white;
-            font-size: 23px;
-            font-weight: 700;
-            line-height: 1.2;
-        }
-
-        .sb-lbl {
-            margin-top: 4px;
-            color: #d6e1e7;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-        }
-
-        .stat-box.warn { border-color: #a87839; }
-        .stat-box.warn .sb-num { color: #ffd58c; }
-        .stat-box.warn .sb-ic { color: #ffd58c; }
-
-        /* NOTIFICATIONS */
-        .flash {
-            padding: 13px 16px;
-            margin-bottom: 14px;
-            border-radius: 7px;
-            font-size: 13px;
-        }
-
-        .flash.success {
-            background: #e4f5ec;
-            color: #17623e;
-            border-left: 4px solid #279b66;
-        }
-
-        .flash.danger {
-            background: #fff0ef;
-            color: #a32d2d;
-            border-left: 4px solid #d64b4b;
-        }
-
-        .flash.warning {
-            background: #fff5df;
-            color: #875a11;
-            border-left: 4px solid #d7a03d;
-        }
-
-        /* CONTENT SECTIONS */
-        .workflow-card {
-            margin-bottom: 20px;
-            overflow: hidden;
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-        }
-
-        .wf-head {
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            padding: 18px 20px;
-            border-bottom: 1px solid var(--border);
+            top: 0;
+            z-index: 50;
             flex-wrap: wrap;
         }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .top-header img {
+            width: 56px; height: 56px;
+            object-fit: contain; flex-shrink: 0;
+        }
+        .top-header .header-text {
+            display: flex; flex-direction: column; line-height: 1.05;
+        }
+        .top-header h1 {
+            font-size: 20px; font-weight: 900;
+            color: #1e3a8a; letter-spacing: -0.5px;
+            text-transform: uppercase; margin: 0;
+        }
+        .top-header .sub {
+            font-size: 10px; font-weight: 600;
+            color: #64748b; letter-spacing: 2.5px;
+            text-transform: uppercase; margin-top: 5px;
+        }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .logout-btn {
+            padding: 9px 16px; background: #f1f5f9; color: #475569;
+            border-radius: 9px; text-decoration: none;
+            font-size: 13px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 6px;
+            transition: all .15s;
+        }
+        .logout-btn:hover { background: #fee2e2; color: #b91c1c; }
 
-        .wf-num {
+        /* ============ MAIN ============ */
+        .main { padding: 28px 32px 60px; max-width: 1450px; margin: 0 auto; width: 100%; }
+
+        .page-head {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            width: 34px;
-            height: 34px;
-            border-radius: 7px;
-            background: var(--navy);
-            color: white;
-            font-weight: 700;
-        }
-
-        .wf-num.green { background: var(--teal); }
-        .wf-num.amber { background: #b98127; }
-        .wf-num.red { background: #647c8b; }
-
-        .wf-head h2 {
-            margin: 0;
-            color: var(--navy);
-            font-size: 15px;
-            font-weight: 700;
-        }
-
-        .wf-hint {
-            margin-top: 5px;
-            color: var(--muted);
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .wf-body { padding: 20px; }
-
-        /* STUDENT SEARCH */
-        .student-search {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-shrink: 0;
-            width: 300px;
-            max-width: 100%;
-            padding: 6px 8px 6px 10px;
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            background: white;
-            transition: border-color .15s, box-shadow .15s;
-        }
-
-        .student-search:focus-within {
-            border-color: var(--teal);
-            box-shadow: 0 0 0 .2rem rgba(22,139,131,.13);
-        }
-
-        .student-search-icon {
-            color: var(--muted);
-            font-size: 14px;
-            flex-shrink: 0;
-        }
-
-        .student-search-input {
-            flex: 1 1 auto;
-            min-width: 0;
-            padding: 3px 2px;
-            border: none;
-            outline: none;
-            background: transparent;
-            color: var(--text);
-            font-size: 13px;
-            font-family: inherit;
-        }
-
-        .student-search-input::placeholder { color: #9aabb5; }
-        .student-search-input::-webkit-search-cancel-button { display: none; }
-
-        .student-search-clear {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            color: var(--muted);
-            font-size: 11px;
-            background: #eef2f4;
-            transition: background .15s, color .15s;
-        }
-
-        .student-search-clear:hover {
-            background: #dfe8eb;
-            color: var(--navy);
-        }
-
-        .student-search-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            width: 26px;
-            height: 26px;
-            padding: 0;
-            border: none;
-            border-radius: 5px;
-            background: var(--teal);
-            color: white;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background .15s;
-        }
-
-        .student-search-btn:hover { background: #11756e; }
-
-        /* COURSE FILTERS */
-        .course-filters {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-left: auto;
-        }
-
-        .cf-search-wrap {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            width: 220px;
-            max-width: 100%;
-            padding: 6px 8px 6px 10px;
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            background: white;
-            transition: border-color .15s, box-shadow .15s;
-        }
-
-        .cf-search-wrap:focus-within {
-            border-color: var(--teal);
-            box-shadow: 0 0 0 .2rem rgba(22,139,131,.13);
-        }
-
-        .cf-search-icon { color: var(--muted); font-size: 13px; flex-shrink: 0; }
-
-        .cf-search-input {
-            flex: 1 1 auto;
-            min-width: 0;
-            padding: 3px 2px;
-            border: none;
-            outline: none;
-            background: transparent;
-            color: var(--text);
-            font-size: 13px;
-            font-family: inherit;
-        }
-        .cf-search-input::placeholder { color: #9aabb5; }
-        .cf-search-input::-webkit-search-cancel-button { display: none; }
-
-        .cf-search-clear {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            width: 20px; height: 20px;
-            border-radius: 50%;
-            color: var(--muted);
-            font-size: 11px;
-            background: #eef2f4;
-            transition: background .15s, color .15s;
-        }
-        .cf-search-clear:hover { background: #dfe8eb; color: var(--navy); }
-
-        .cf-select {
-            padding: 7px 10px;
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            background: white;
-            color: var(--text);
-            font-size: 12px;
-            font-family: inherit;
-            cursor: pointer;
-            transition: border-color .15s, box-shadow .15s;
-        }
-        .cf-select:focus {
-            outline: none;
-            border-color: var(--teal);
-            box-shadow: 0 0 0 .2rem rgba(22,139,131,.13);
-        }
-
-        .cf-submit {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 7px 12px;
-            border: none;
-            border-radius: 6px;
-            background: var(--teal);
-            color: white;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background .15s;
-        }
-        .cf-submit:hover { background: #11756e; }
-
-        /* STUDENT TABLE */
-        .table-responsive { width: 100%; }
-
-        .mod-table {
-            width: 100%;
-            margin: 0;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        .mod-table th {
-            padding: 13px;
-            background: #f0f5f6;
-            color: #506572;
-            border-bottom: 1px solid var(--border);
-            font-size: 10px;
-            font-weight: 700;
-            text-align: left;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
-
-        .mod-table td {
-            padding: 13px;
-            border-bottom: 1px solid #edf1f3;
-            vertical-align: middle;
-        }
-
-        .mod-table tbody tr:hover { background: #f7fbfa; }
-
-        .student-name {
-            color: var(--navy);
-            font-weight: 650;
-        }
-
-        .badge-pill-mod {
-            display: inline-block;
-            padding: 5px 9px;
-            border-radius: 5px;
-            font-size: 10px;
-            font-weight: 700;
-        }
-
-        .badge-pill-mod.ok {
-            background: #e2f4ed;
-            color: #176c55;
-        }
-
-        .badge-pill-mod.warn {
-            background: #fff0df;
-            color: #985b13;
-        }
-
-        .badge-pill-mod.muted {
-            background: #edf1f3;
-            color: #596c77;
-        }
-
-        .mini-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            padding: 7px 11px;
-            border: none;
-            border-radius: 5px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background .2s;
-        }
-
-        .mini-btn.primary {
-            background: var(--teal-light);
-            color: #116b63;
-        }
-
-        .mini-btn.primary:hover {
-            background: var(--teal);
-            color: white;
-        }
-
-        .mini-btn.ghost {
-            background: #eef2f4;
-            color: #435866;
-        }
-
-        .mini-btn.ghost:hover {
-            background: #dfe8eb;
-            color: var(--navy);
-        }
-
-        /* ← NEW: solid teal pill for "Add Student" CTA */
-        .mini-btn.solid {
-            background: var(--teal);
-            color: white;
-            font-weight: 700;
-        }
-
-        .mini-btn.solid:hover {
-            background: #11756e;
-            color: white;
-        }
-
-        .wf-footer {
-            display: flex;
-            align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-            padding: 14px 20px;
-            background: #fafcfc;
-            border-top: 1px solid var(--border);
-        }
-
-        .note { color: var(--muted); font-size: 12px; }
-
-        /* PAGINATION */
-        .mod-pagination {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
-
-        .mod-pagination li { display: inline-block; }
-
-        .mod-pagination .page-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 30px;
-            height: 30px;
-            padding: 0 8px;
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            background: white;
-            color: var(--navy);
-            font-size: 12px;
-            font-weight: 600;
-            line-height: 1;
-            transition: background .15s, border-color .15s, color .15s;
-        }
-
-        .mod-pagination .page-btn:hover {
-            background: var(--teal-light);
-            border-color: #9bd2ca;
-            color: #116b63;
-        }
-
-        .mod-pagination .page-btn.is-active {
-            background: var(--teal);
-            border-color: var(--teal);
-            color: white;
-        }
-
-        .mod-pagination .page-btn.is-disabled {
-            background: #fafcfc;
-            color: #b8c5cc;
-            border-color: var(--border);
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-
-        .mod-pagination .page-ellipsis {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 30px;
-            height: 30px;
-            color: var(--muted);
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        /* COURSE CARDS */
-        .course-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 14px;
-        }
-
-        .cl-card {
-            padding: 17px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: white;
-            transition: border-color .2s, box-shadow .2s;
-        }
-
-        .cl-card:hover {
-            border-color: #8dcac1;
-            box-shadow: 0 4px 12px rgba(24,53,75,.06);
-        }
-
-        .cl-head {
-            display: flex;
             align-items: flex-start;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        .cl-head h4 {
-            margin: 0;
-            color: var(--navy);
-            font-size: 14px;
-            font-weight: 700;
-            line-height: 1.5;
-        }
-
-        .cl-level {
-            padding: 4px 7px;
-            border-radius: 4px;
-            background: var(--teal-light);
-            color: #126c65;
-            font-size: 10px;
-            font-weight: 700;
-        }
-
-        .cl-current {
-            margin-top: 11px;
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .cl-current i { color: var(--teal); }
-
-        .cl-stats {
-            display: flex;
+            margin-bottom: 22px;
             flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 14px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border);
-            color: #536773;
-            font-size: 12px;
+            gap: 12px;
         }
-
-        .cl-stats strong { color: var(--navy); }
-
-        .cl-actions {
-            display: flex;
-            gap: 7px;
-            flex-wrap: wrap;
-            margin-top: 14px;
+        .page-head h2 {
+            font-size: 22px; font-weight: 800;
+            color: #0f1724; margin: 0 0 4px;
+            display: flex; align-items: center; gap: 10px;
         }
+        .page-head h2 i { color: #1e3a8a; }
+        .page-head p { color: #64748b; font-size: 13px; margin: 0; }
 
-        /* CLICKABLE STUDENT COUNT */
-        .student-count-btn {
-            background: none;
-            border: none;
-            padding: 0;
-            color: inherit;
-            font: inherit;
-            cursor: pointer;
-            text-decoration: underline;
-            text-decoration-style: dotted;
-            text-underline-offset: 2px;
-            text-decoration-color: var(--teal);
-            transition: color .15s, text-decoration-color .15s;
-        }
-
-        .student-count-btn:hover {
-            color: var(--teal);
-            text-decoration-style: solid;
-        }
-
-        .student-count-btn strong { color: var(--navy); font-weight: 700; }
-        .student-count-btn:hover strong { color: var(--teal); }
-
-        /* MODULE BREAKDOWN PILLS */
-        .cl-modules {
-            display: flex;
-            flex-wrap: wrap;
+        /* Role badge */
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
             gap: 6px;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px dashed var(--border);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 10px;
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
         }
 
-        .cl-module-pill {
-            padding: 4px 9px;
-            border-radius: 5px;
-            background: #f0f5f6;
-            color: #506572;
-            font-size: 11px;
-            font-weight: 500;
+        /* Flash */
+        .flash {
+            padding: 12px 16px; border-radius: 10px;
+            font-size: 13px; font-weight: 500;
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 18px; border: 1px solid transparent;
+        }
+        .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
+        .flash.danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+        .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+        .flash.info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+
+        /* Quick links bar */
+        .action-bar {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 22px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .action-bar .quick-links { display: flex; gap: 10px; flex-wrap: wrap; }
+        .quick-link {
+            padding: 9px 16px;
+            border-radius: 9px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all .15s;
+        }
+        .quick-link.blue { background: #1e3a8a; color: white; }
+        .quick-link.blue:hover { background: #172f6e; color: white; }
+        .quick-link.purple { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+        .quick-link.purple:hover { background: #8b5cf6; color: white; border-color: #8b5cf6; }
+        .quick-link.orange { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+        .quick-link.orange:hover { background: #f59e0b; color: white; border-color: #f59e0b; }
+        .quick-link.green { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+        .quick-link.green:hover { background: #10b981; color: white; border-color: #10b981; }
+
+        /* Filters & Search Bar */
+        .search-form {
+            display: flex;
+            gap: 8px;
+            flex-grow: 1;
+            max-width: 600px;
+            margin-left: auto;
+            flex-wrap: wrap;
+        }
+        .search-input {
+            flex-grow: 1;
+            padding: 9px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s;
+            background: white;
+        }
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .search-select {
+            padding: 9px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px;
+            font-size: 13px;
+            outline: none;
+            background: white;
+            cursor: pointer;
+            color: #475569;
+            font-weight: 600;
+        }
+        .search-select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .search-btn {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            padding: 9px 16px;
+            border-radius: 9px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+        .search-btn:hover { background: #e2e8f0; }
+        .search-clear {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            color: #ef4444;
+            background: #fee2e2;
+            border-radius: 9px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.15s;
+        }
+        .search-clear:hover { background: #fecaca; }
+
+        /* ============ PREMIUM TABLE ============ */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 15px rgba(0,0,0,.06);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+        
+        .table-responsive { overflow-x: auto; }
+
+        table.courses-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
             white-space: nowrap;
         }
 
-        .cl-module-pill strong {
-            color: var(--navy);
+        table.courses-table thead th {
+            background: #1e293b;
+            color: #f8fafc;
+            text-align: left;
+            padding: 16px 20px;
+            font-size: 11.5px;
             font-weight: 700;
-            margin-left: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #0f172a;
         }
 
-        .cl-module-pill-btn {
-            border: none;
-            cursor: pointer;
-            font-family: inherit;
-            transition: background .15s, color .15s;
-        }
-        .cl-module-pill-btn:hover { background: var(--teal-light); color: #116b63; }
-        .cl-module-pill-btn:hover strong { color: #116b63; }
-
-        /* MARKS AND REPORTS */
-        .dual-grid, .reports-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px;
+        table.courses-table tbody td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+            color: #334155;
         }
 
-        .dual {
-            position: relative;
-            min-height: 115px;
-            padding: 20px;
-            overflow: hidden;
-            border-radius: 8px;
-            background: var(--navy);
-            color: white;
-            transition: transform .2s;
-        }
+        table.courses-table tbody tr:last-child td { border-bottom: none; }
+        table.courses-table tbody tr:hover td { background: #f8fafc; }
 
-        .dual.past { background: var(--teal); }
+        .col-idx { width: 50px; color: #94a3b8 !important; font-weight: 600; }
 
-        .dual:hover {
-            transform: translateY(-2px);
-            color: white;
-        }
-
-        .dual h3 {
-            margin: 0 0 7px;
-            font-size: 15px;
+        .course-name {
             font-weight: 700;
+            color: #0f1724;
+            font-size: 14px;
+            white-space: normal;
+            min-width: 250px;
         }
 
-        .dual p {
-            max-width: 85%;
-            margin: 0;
-            color: #e0e9ed;
-            font-size: 12px;
-            line-height: 1.6;
-        }
-
-        .dual-ic {
-            position: absolute;
-            right: 15px;
-            bottom: 12px;
-            color: white;
-            opacity: .22;
-            font-size: 28px;
-        }
-
-        .report-btn {
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            padding: 17px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: white;
-            color: var(--navy);
-            font-size: 13px;
-            font-weight: 650;
-        }
-
-        .report-btn:hover {
-            background: #f0f8f7;
-            border-color: #9bd2ca;
-            color: var(--navy);
-        }
-
-        .report-btn > i {
-            color: var(--teal);
-            font-size: 22px;
-        }
-
-        .report-btn small {
-            display: block;
-            margin-top: 5px;
-            color: var(--muted);
+        .level-tag {
             font-size: 11px;
-            font-weight: 400;
+            font-weight: 700;
+            background: #f1f5f9;
+            color: #475569;
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            border: 1px solid #e2e8f0;
+            display: inline-block;
         }
 
-        .empty {
-            padding: 35px 20px;
-            color: var(--muted);
-            text-align: center;
-        }
-
-        .empty i {
-            display: block;
-            margin-bottom: 10px;
-            color: #9aabb5;
-            font-size: 30px;
-        }
-
-        /* MODAL */
-        .modal-content {
-            border: none;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .modal-header {
-            background: var(--navy);
-            color: white;
-        }
-
-        .modal-title { font-size: 15px; font-weight: 700; }
-        .modal-header .btn-close { filter: invert(1); }
-        .modal-body { padding: 22px; }
-
-        /* MODAL STUDENT TABLE */
-        .cm-summary {
-            display: flex;
+        .stat-pill {
+            display: inline-flex;
             align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 100px;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+        .stat-pill i { color: #64748b; }
+
+        /* Actions */
+        .actions { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+        .act-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 7px 12px; border-radius: 6px;
+            font-size: 12px; font-weight: 600;
+            text-decoration: none; border: 1px solid transparent;
+            cursor: pointer; transition: all .15s;
+        }
+        .act-subjects { background: #fef3c7; color: #92400e; }
+        .act-subjects:hover { background: #f59e0b; color: white; border-color: #f59e0b; }
+        .act-semesters { background: #e0e7ff; color: #3730a3; }
+        .act-semesters:hover { background: #6366f1; color: white; border-color: #6366f1; }
+        .act-students { background: #dbeafe; color: #1e40af; }
+        .act-students:hover { background: #3b82f6; color: white; border-color: #3b82f6; }
+        .act-edit { background: #d1fae5; color: #065f46; }
+        .act-edit:hover { background: #10b981; color: white; border-color: #10b981; }
+        .act-delete { background: #fee2e2; color: #991b1b; padding: 7px 9px; }
+        .act-delete:hover { background: #ef4444; color: white; border-color: #ef4444; }
+
+        /* Pagination */
+        .pagination-bar {
+            display: flex;
             justify-content: space-between;
-            gap: 12px;
+            align-items: center;
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
             flex-wrap: wrap;
-            padding: 12px 14px;
-            background: #f7fbfa;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text);
-            font-size: 13px;
+            gap: 10px;
         }
-        .cm-summary-modules { display: flex; gap: 6px; flex-wrap: wrap; }
-        .cm-table { font-size: 12px; }
-        .cm-table th { padding: 10px 12px; }
-        .cm-table td { padding: 10px 12px; }
-        .cm-table tbody tr.cm-hidden { display: none; }
-
-        .form-label {
-            color: var(--text);
-            font-size: 13px;
+        .page-info { color: #64748b; font-size: 13px; }
+        .page-links { display: flex; gap: 4px; }
+        .page-link {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 32px; height: 32px;
+            border-radius: 6px; border: 1px solid #e2e8f0;
+            background: white; color: #475569;
+            text-decoration: none; font-size: 13px; font-weight: 600;
+            transition: all 0.15s;
         }
+        .page-link:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .page-link.active { background: #1e3a8a; color: white; border-color: #1e3a8a; }
+        .page-link.disabled { opacity: 0.5; pointer-events: none; background: #f8fafc; }
 
-        .form-control:focus, .form-select:focus {
-            border-color: var(--teal);
-            box-shadow: 0 0 0 .2rem rgba(22,139,131,.13);
-        }
+        /* Empty */
+        .empty { padding: 60px 20px; text-align: center; color: #94a3b8; font-size: 13.5px; }
+        .empty i { font-size: 44px; display: block; margin-bottom: 12px; color: #cbd5e1; }
+        .empty h5 { color: #334155; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
 
-        .btn-primary {
-            background: var(--teal);
-            border-color: var(--teal);
-        }
-
-        .btn-primary:hover {
-            background: #11756e;
-            border-color: #11756e;
-        }
-
-        /* TABLET */
-        @media (max-width: 1100px) {
-            body { padding: 14px; }
-
-            .layout {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-
-            .sidebar { position: static; }
-
-            .sb-bottom {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 3px 8px;
-            }
-
-            .sb-section-title, .sb-divider {
-                grid-column: 1 / -1;
-            }
-
-            .hero-stats {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-
-        /* HEADER WRAP FOR SEARCH */
         @media (max-width: 900px) {
-            .wf-head {
-                flex-wrap: wrap;
-            }
-            .student-search,
-            .course-filters {
-                width: 100%;
-                margin-top: 6px;
-                margin-left: 0;
-            }
-            .cf-search-wrap { width: 100%; }
-        }
-
-        /* MOBILE */
-        @media (max-width: 600px) {
-            body { padding: 9px; }
-
-            .hero { padding: 19px 15px; }
-            .hero h1 { font-size: 21px; }
-            .hero-stats { gap: 8px; }
-
-            .stat-box {
-                gap: 8px;
-                padding: 10px;
-            }
-
-            .sb-num { font-size: 20px; }
-            .sb-ic { width: 32px; height: 32px; }
-
-            .sb-bottom { grid-template-columns: 1fr; }
-
-            .wf-head { padding: 15px; }
-            .wf-body { padding: 14px; }
-
-            .dual-grid, .reports-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .wf-footer { padding: 13px 14px; }
-
-            .cm-table th:nth-child(4),
-            .cm-table td:nth-child(4),
-            .cm-table th:nth-child(6),
-            .cm-table td:nth-child(6) { display: none; }
+            .top-header { padding: 12px 20px; }
+            .top-header h1 { font-size: 15px; }
+            .main { padding: 20px; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+            .search-form { max-width: 100%; margin-left: 0; }
+            .actions { flex-wrap: wrap; justify-content: flex-start; }
         }
     </style>
 </head>
-
 <body>
-<div class="layout">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-        <div class="sb-top">
-            
-                <img src="{{ url_for('static', filename='images/LOGO.jpg') }}" alt="{{ department.name }} logo" class="sb-logo">
-        
-            <div class="sb-dept-name">{{ department.name }}</div>
-            <span class="sb-role-tag">HOD PANEL</span>
+<div class="page">
+
+    <!-- HEADER -->
+    <header class="top-header">
+        <div class="header-left">
+           <img src="{{ url_for('static', filename='images/LOGO.jpg') }}" alt="Summit Technical College Logo" class="sb-logo">
+            <div class="header-text">
+                <h1>SUMMIT TECHNICAL COLLEGE</h1>
+                <div class="sub">Manage Courses</div>
+            </div>
         </div>
-
-        <nav class="sb-bottom">
-            <div class="sb-section-title">Main menu</div>
-
-            <a href="{{ url_for('hod_dashboard') }}" class="sb-link active">
-                <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
-
-            <div class="sb-section-title">Marks</div>
-
-            <a href="{{ url_for('hod_marks_picker') }}" class="sb-link">
-                <i class="bi bi-pencil-square"></i> Enter Marks
-            </a>
-
-            <a href="{{ url_for('hod_marks_picker') }}" class="sb-link">
-                <i class="bi bi-clock-history"></i> Past Semester Marks
-            </a>
-
-            <div class="sb-section-title">Courses</div>
-
-            <a href="{{ url_for('hod_courses_search') }}" class="sb-link">
-                <i class="bi bi-search"></i> Search Courses
-            </a>
-
-            <a href="{{ url_for('hod_all_courses') }}" class="sb-link">
-                <i class="bi bi-journals"></i> All Courses &amp; Subjects
-            </a>
-
-            <div class="sb-section-title">Students</div>
-
-            <a href="{{ url_for('hod_students_list') }}" class="sb-link">
-                <i class="bi bi-people"></i> Manage Students
-            </a>
-
-            <!-- ← NEW: single-student add link -->
-            <a href="{{ url_for('hod_add_student') }}" class="sb-link">
-                <i class="bi bi-person-plus"></i> Add Student
-            </a>
-
-            <a href="{{ url_for('hod_all_students') }}" class="sb-link">
-                <i class="bi bi-person-lines-fill"></i> All Students
-            </a>
-
-            <a href="{{ url_for('hod_students_upload') }}" class="sb-link">
-                <i class="bi bi-cloud-upload"></i> Bulk Upload
-            </a>
-
-            <a href="{{ url_for('hod_students_export') }}" class="sb-link">
-                <i class="bi bi-file-earmark-excel"></i> Export Roster
-            </a>
-
-            <div class="sb-section-title">Subjects</div>
-
-            <a href="{{ url_for('hod_manage_subjects') }}" class="sb-link">
-                <i class="bi bi-journal-plus"></i> Manage Subjects
-            </a>
-
-            <div class="sb-divider"></div>
-
-            <a href="{{ url_for('logout') }}" class="sb-link sb-logout">
+        <div class="header-right">
+            <a href="{{ url_for('logout') }}" class="logout-btn">
                 <i class="bi bi-box-arrow-right"></i> Logout
             </a>
-        </nav>
-    </aside>
+        </div>
+    </header>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN -->
     <main class="main">
 
-        <section class="hero">
-            <h1>Welcome back, <span>{{ hod_name }}</span></h1>
-
-            <div class="sub">
-                {{ department.name }} Department
-                &nbsp; | &nbsp; Academic Year {{ current_year }}
+        <div class="page-head">
+            <div>
+                <h2>
+                    <i class="bi bi-journal-bookmark-fill"></i> Manage Courses
+                    <span class="role-badge"><i class="bi bi-shield-fill-check"></i> Admin</span>
+                </h2>
+                <p>Add courses, manage their subjects, semesters, and students.</p>
             </div>
+            <a href="javascript:history.back()" class="logout-btn">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
 
-            <div class="hero-stats">
-                <div class="stat-box">
-                    <div class="sb-ic"><i class="bi bi-people"></i></div>
-                    <div>
-                        <div class="sb-num">{{ students_count }}</div>
-                        <div class="sb-lbl">Students</div>
-                    </div>
-                </div>
-
-                <div class="stat-box">
-                    <div class="sb-ic"><i class="bi bi-journals"></i></div>
-                    <div>
-                        <div class="sb-num">{{ course_pagination.total if course_pagination else course_cards|length }}</div>
-                        <div class="sb-lbl">Courses</div>
-                    </div>
-                </div>
-
-                <div class="stat-box">
-                    <div class="sb-ic"><i class="bi bi-book"></i></div>
-                    <div>
-                        <div class="sb-num">{{ subjects_count }}</div>
-                        <div class="sb-lbl">Subjects</div>
-                    </div>
-                </div>
-
-                <div class="stat-box {% if no_sem_count > 0 %}warn{% endif %}">
-                    <div class="sb-ic">
-                        <i class="bi bi-exclamation-triangle"></i>
-                    </div>
-                    <div>
-                        <div class="sb-num">{{ no_sem_count }}</div>
-                        <div class="sb-lbl">No Semester</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- FLASH MESSAGES -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% for category, msg in messages %}
-                <div class="flash {{ category }}">{{ msg }}</div>
+            <div class="flash {{ category if category in ['success','danger','warning','info'] else 'info' }}">
+                <i class="bi bi-info-circle-fill"></i>
+                {{ msg }}
+            </div>
             {% endfor %}
         {% endwith %}
 
-        <!-- SECTION 1: STUDENTS (SEARCH + PAGINATED) -->
-        <section class="workflow-card" id="students-section">
-            <div class="wf-head">
-                <div class="wf-num">1</div>
-                <div class="flex-grow-1">
-                    <h2>Students &amp; Module Assignments</h2>
-                    <div class="wf-hint">
-                        Check student semester and module assignments before entering marks.
-                    </div>
-                </div>
-
-                <!-- ← NEW: Add Student CTA (visible without opening sidebar) -->
-                <a href="{{ url_for('hod_add_student') }}"
-                   class="mini-btn solid"
-                   style="white-space:nowrap;">
-                    <i class="bi bi-person-plus"></i> Add Student
+        <!-- QUICK LINKS & SEARCH -->
+        <div class="action-bar">
+            <div class="quick-links">
+                <a href="{{ url_for('add_course') }}" class="quick-link blue">
+                    <i class="bi bi-plus-circle-fill"></i> Add New Course
                 </a>
-
-                <form
-                    method="GET"
-                    action="{{ url_for('hod_dashboard') }}#students-section"
-                    class="student-search"
-                    role="search"
-                >
-                    <i class="bi bi-search student-search-icon"></i>
-                    <input
-                        type="search"
-                        name="student_search"
-                        value="{{ student_search }}"
-                        class="student-search-input"
-                        placeholder="Search name, adm. no. or phone…"
-                        aria-label="Search students"
-                    >
-                    {% if student_search %}
-                        <a
-                            href="{{ url_for('hod_dashboard') }}#students-section"
-                            class="student-search-clear"
-                            aria-label="Clear search"
-                            title="Clear search"
-                        >
-                            <i class="bi bi-x-lg"></i>
-                        </a>
-                    {% endif %}
-                    <button type="submit" class="student-search-btn" aria-label="Submit search">
-                        <i class="bi bi-arrow-right"></i>
-                    </button>
-                </form>
+                <a href="{{ url_for('manage_semesters') }}" class="quick-link purple">
+                    <i class="bi bi-calendar-plus"></i> Manage Semesters
+                </a>
+                <a href="{{ url_for('add_subject') }}" class="quick-link orange">
+                    <i class="bi bi-bookmark-plus"></i> Add Subject
+                </a>
+                <a href="{{ url_for('admin_add_student') }}" class="quick-link green">
+                    <i class="bi bi-person-plus-fill"></i> Add Student
+                </a>
             </div>
+            
+            <form method="GET" action="{{ url_for('manage_courses') }}" class="search-form">
+                <!-- Semester Filter Dropdown -->
+                <select name="semester_filter" class="search-select" onchange="this.form.submit()">
+                    <option value="">All Semesters</option>
+                    <option value="has" {% if sem_filter == 'has' %}selected{% endif %}>Has Semesters</option>
+                    <option value="missing" {% if sem_filter == 'missing' %}selected{% endif %}>Missing Semesters</option>
+                </select>
 
-            {% if students %}
-                <div class="table-responsive">
-                    <table class="mod-table">
-                        <thead>
-                            <tr>
-                                <th>Student Name</th>
-                                <th>Admission No.</th>
-                                <th>Course</th>
-                                <th>Semester</th>
-                                <th>Module</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
+                <input type="text" name="search" value="{{ search_query }}" class="search-input" placeholder="Search courses...">
+                <button type="submit" class="search-btn"><i class="bi bi-search"></i> Search</button>
+                
+                {% if search_query or sem_filter %}
+                <a href="{{ url_for('manage_courses') }}" class="search-clear" title="Clear filters">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+                {% endif %}
+            </form>
+        </div>
 
-                        <tbody>
-                            {% for s in students %}
-                                <tr>
-                                    <td class="student-name">{{ s.full_name }}</td>
+        <!-- PREMIUM COURSES TABLE -->
+        <div class="table-card">
+            {% if courses %}
+            <div class="table-responsive">
+                <table class="courses-table">
+                    <thead>
+                        <tr>
+                            <th class="col-idx">#</th>
+                            <th>Course Name &amp; Level</th>
+                            <th>Enrolment &amp; Subjects</th>
+                            <th style="text-align: right; padding-right: 24px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in courses %}
+                        <tr>
+                            <td class="col-idx">{{ ((pagination.page - 1) * pagination.per_page) + loop.index }}</td>
+                            
+                            <td>
+                                <div class="course-name">{{ c.name }}</div>
+                                <div style="margin-top: 6px;">
+                                    <span class="level-tag">{{ c.level }}</span>
+                                </div>
+                            </td>
+                            
+                            <td>
+                                <div style="display: flex; gap: 8px;">
+                                    {% if c.students_count is defined %}
+                                    <span class="stat-pill">
+                                        <i class="bi bi-people-fill"></i> {{ c.students_count }} Students
+                                    </span>
+                                    {% endif %}
+                                    
+                                    {% if c.subjects_count is defined %}
+                                    <span class="stat-pill">
+                                        <i class="bi bi-bookmark-fill"></i> {{ c.subjects_count }} Subjects
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            
+                            <td style="text-align: right; padding-right: 24px;">
+                                <div class="actions">
+                                    <a href="{{ url_for('add_subject') }}?course_id={{ c.id }}"
+                                       class="act-btn act-subjects" title="Manage subjects">
+                                        <i class="bi bi-bookmark-fill"></i> Subjects
+                                    </a>
 
-                                    <td>{{ s.admission_number or '—' }}</td>
+                                    <a href="{{ url_for('manage_semesters') }}?course_id={{ c.id }}"
+                                       class="act-btn act-semesters" title="Manage semesters">
+                                        <i class="bi bi-calendar3"></i> Semesters
+                                    </a>
 
-                                    <td>{{ s.course.name if s.course else '—' }}</td>
+                                    <a href="{{ url_for('admin_assign_modules') }}?course_id={{ c.id }}"
+                                       class="act-btn act-students" title="Manage students">
+                                        <i class="bi bi-people-fill"></i> Students
+                                    </a>
 
-                                    <td>
-                                        {% if s.current_semester %}
-                                            <span class="badge-pill-mod ok">
-                                                {{ s.current_semester.name }}
-                                            </span>
-                                        {% else %}
-                                            <span class="badge-pill-mod warn">
-                                                Not Set
-                                            </span>
-                                        {% endif %}
-                                    </td>
+                                    <a href="{{ url_for('edit_course', course_id=c.id) }}"
+                                       class="act-btn act-edit" title="Edit course">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
 
-                                    <td>
-                                        {% if s.module %}
-                                            <span class="badge-pill-mod ok">
-                                                {{ s.module }}
-                                            </span>
-                                        {% else %}
-                                            <span class="badge-pill-mod warn">
-                                                Missing
-                                            </span>
-                                        {% endif %}
-                                    </td>
-
-                                    <td>
-                                        <button
-                                            type="button"
-                                            class="mini-btn primary"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#assignModal{{ s.id }}"
-                                        >
-                                            <i class="bi bi-pencil"></i> Assign
+                                    <form method="POST"
+                                          action="{{ url_for('delete_course', course_id=c.id) }}"
+                                          style="display:inline; margin:0;"
+                                          onsubmit="return confirm('Delete course \'{{ c.name }}\'? This will also remove its subjects and semesters.');">
+                                        <button type="submit" class="act-btn act-delete" title="Delete course">
+                                            <i class="bi bi-trash"></i>
                                         </button>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="wf-footer">
-                    <span class="note">
-                        {% if students_pagination %}
-                            Showing
-                            <strong>{{ students_pagination.first or 0 }}</strong>–<strong>{{ students_pagination.last or 0 }}</strong>
-                            of <strong>{{ students_pagination.total }}</strong>
-                            {% if student_search %}matching{% else %}total{% endif %} students
-                        {% else %}
-                            Showing {{ students|length }} of {{ students_count }} students
-                        {% endif %}
-                    </span>
-
-                    <div class="d-flex align-items-center gap-3 flex-wrap">
-                        {% if students_pagination and students_pagination.pages > 1 %}
-                            <ul class="mod-pagination" aria-label="Student pagination">
-                                <li>
-                                    <a
-                                        class="page-btn {% if not students_pagination.has_prev %}is-disabled{% endif %}"
-                                        href="{{ url_for('hod_dashboard', student_page=students_pagination.prev_num, student_search=student_search) }}#students-section"
-                                        aria-label="Previous page"
-                                    >
-                                        <i class="bi bi-chevron-left"></i>
-                                    </a>
-                                </li>
-
-                                {% for p in students_pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                                    {% if p %}
-                                        <li>
-                                            <a
-                                                class="page-btn {% if p == students_pagination.page %}is-active{% endif %}"
-                                                href="{{ url_for('hod_dashboard', student_page=p, student_search=student_search) }}#students-section"
-                                            >
-                                                {{ p }}
-                                            </a>
-                                        </li>
-                                    {% else %}
-                                        <li>
-                                            <span class="page-ellipsis">…</span>
-                                        </li>
-                                    {% endif %}
-                                {% endfor %}
-
-                                <li>
-                                    <a
-                                        class="page-btn {% if not students_pagination.has_next %}is-disabled{% endif %}"
-                                        href="{{ url_for('hod_dashboard', student_page=students_pagination.next_num, student_search=student_search) }}#students-section"
-                                        aria-label="Next page"
-                                    >
-                                        <i class="bi bi-chevron-right"></i>
-                                    </a>
-                                </li>
-                            </ul>
-                        {% endif %}
-
-                        <a href="{{ url_for('hod_students_list') }}" class="mini-btn primary">
-                            View All Students <i class="bi bi-arrow-right"></i>
-                        </a>
-                    </div>
-                </div>
-            {% else %}
-                <div class="empty">
-                    {% if student_search %}
-                        <i class="bi bi-search"></i>
-                        No students match "<strong>{{ student_search }}</strong>".
-                        <div class="mt-3">
-                            <a href="{{ url_for('hod_dashboard') }}#students-section" class="mini-btn ghost">
-                                <i class="bi bi-x-circle"></i> Clear search
-                            </a>
-                        </div>
-                    {% else %}
-                        <!-- ← NEW: dual CTA for first-time HODs -->
-                        <i class="bi bi-person-x"></i>
-                        No students in your department yet.
-                        <div class="mt-3 d-flex gap-2 justify-content-center flex-wrap">
-                            <a href="{{ url_for('hod_add_student') }}" class="mini-btn solid">
-                                <i class="bi bi-person-plus"></i> Add First Student
-                            </a>
-                            <a href="{{ url_for('hod_students_upload') }}" class="mini-btn ghost">
-                                <i class="bi bi-cloud-upload"></i> Bulk Upload
-                            </a>
-                        </div>
-                    {% endif %}
-                </div>
-            {% endif %}
-        </section>
-
-        <!-- SECTION 2: COURSES (FILTER + PAGINATED) -->
-        <section class="workflow-card" id="courses-section">
-            <div class="wf-head">
-                <div class="wf-num green">2</div>
-                <div class="flex-grow-1">
-                    <h2>Courses &amp; Subjects</h2>
-                    <div class="wf-hint">
-                        Review course enrolment, semesters and subject allocation.
-                    </div>
-                </div>
-
-                <form
-                    method="GET"
-                    action="{{ url_for('hod_dashboard') }}#courses-section"
-                    class="course-filters"
-                    role="search"
-                >
-                    <input type="hidden" name="student_search" value="{{ student_search }}">
-                    <input type="hidden" name="student_page"
-                           value="{{ students_pagination.page if students_pagination else 1 }}">
-
-                    <div class="cf-search-wrap">
-                        <i class="bi bi-search cf-search-icon"></i>
-                        <input
-                            type="search"
-                            name="course_search"
-                            value="{{ course_search }}"
-                            class="cf-search-input"
-                            placeholder="Search courses…"
-                            aria-label="Search courses"
-                        >
-                        {% if course_search %}
-                            <a
-                                href="{{ url_for('hod_dashboard', course_module=course_module_filter, student_search=student_search, student_page=(students_pagination.page if students_pagination else 1)) }}#courses-section"
-                                class="cf-search-clear"
-                                aria-label="Clear search"
-                                title="Clear search"
-                            >
-                                <i class="bi bi-x-lg"></i>
-                            </a>
-                        {% endif %}
-                    </div>
-
-                    <select name="course_module" class="cf-select" aria-label="Filter by module">
-                        <option value="">All modules</option>
-                        {% for mod in module_options %}
-                            <option value="{{ mod }}" {% if mod == course_module_filter %}selected{% endif %}>
-                                {{ mod }}
-                            </option>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
                         {% endfor %}
-                    </select>
-
-                    <button type="submit" class="cf-submit">
-                        <i class="bi bi-funnel"></i> Filter
-                    </button>
-                </form>
+                    </tbody>
+                </table>
             </div>
-
-            <div class="wf-body">
-                {% if course_cards %}
-                    <div class="course-list">
-                        {% for cc in course_cards %}
-                            <article class="cl-card">
-                                <div class="cl-head">
-                                    <h4>{{ cc.course.name }}</h4>
-
-                                    {% if cc.course.level %}
-                                        <span class="cl-level">
-                                            {{ cc.course.level }}
-                                        </span>
-                                    {% endif %}
-                                </div>
-
-                                <div class="cl-current">
-                                    <i class="bi bi-calendar3"></i>
-
-                                    {% if cc.current_semester %}
-                                        Current: <strong>{{ cc.current_semester.name }}</strong>
-                                    {% else %}
-                                        No current semester set
-                                    {% endif %}
-                                </div>
-
-                                <div class="cl-stats">
-                                    <span>
-                                        <i class="bi bi-people"></i>
-                                        {% if cc.students_count > 0 %}
-                                            <button
-                                                type="button"
-                                                class="student-count-btn"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#studentsModal{{ cc.course.id }}"
-                                                title="Click to view all {{ cc.students_count }} student(s)"
-                                            >
-                                                <strong>{{ cc.students_count }}</strong> Students
-                                            </button>
-                                        {% else %}
-                                            <strong>0</strong> Students
-                                        {% endif %}
-                                    </span>
-
-                                    <span>
-                                        <i class="bi bi-book"></i>
-                                        <strong>{{ cc.subjects_count }}</strong> Subjects
-                                    </span>
-                                </div>
-
-                                {% if cc.students_by_module %}
-                                    <div class="cl-modules">
-                                        {% for module_label, count in cc.students_by_module.items() %}
-                                            <button
-                                                type="button"
-                                                class="cl-module-pill cl-module-pill-btn"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#studentsModal{{ cc.course.id }}"
-                                                data-module-filter="{{ module_label }}"
-                                                title="View {{ count }} student(s) in {{ module_label }}"
-                                            >
-                                                {{ module_label }}: <strong>{{ count }}</strong>
-                                            </button>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-
-                                <div class="cl-actions">
-                                    <a
-                                        href="{{ url_for('hod_manage_subjects', course_id=cc.course.id) }}"
-                                        class="mini-btn primary"
-                                    >
-                                        <i class="bi bi-journal-plus"></i> Subjects
-                                    </a>
-
-                                    <a
-                                        href="{{ url_for('hod_course_detail', course_id=cc.course.id) }}"
-                                        class="mini-btn ghost"
-                                    >
-                                        <i class="bi bi-eye"></i> View Course
-                                    </a>
-                                </div>
-                            </article>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty">
-                        {% if course_search or course_module_filter %}
-                            <i class="bi bi-search"></i>
-                            No courses match the current filters.
-                            <div class="mt-2">
-                                <a href="{{ url_for('hod_dashboard', student_search=student_search, student_page=(students_pagination.page if students_pagination else 1)) }}#courses-section"
-                                   class="mini-btn ghost">
-                                    <i class="bi bi-x-circle"></i> Clear filters
-                                </a>
-                            </div>
-                        {% else %}
-                            <i class="bi bi-journal-x"></i>
-                            No courses are available in your department.
-                        {% endif %}
-                    </div>
-                {% endif %}
-            </div>
-
-            <div class="wf-footer">
-                <span class="note">
-                    {% if course_pagination and course_pagination.total %}
-                        Showing
-                        <strong>{{ course_pagination.first }}</strong>–<strong>{{ course_pagination.last }}</strong>
-                        of <strong>{{ course_pagination.total }}</strong> courses
-                        {% if course_search or course_module_filter %}(filtered){% endif %}
-                    {% else %}
-                        No courses to show
-                    {% endif %}
+            
+            <!-- PAGINATION FOOTER -->
+            {% if pagination.pages > 1 %}
+            <div class="pagination-bar">
+                <span class="page-info">
+                    Showing <strong>{{ pagination.first }}</strong>–<strong>{{ pagination.last }}</strong> of <strong>{{ pagination.total }}</strong> courses
                 </span>
-
-                {% if course_pagination and course_pagination.pages > 1 %}
-                    <ul class="mod-pagination" aria-label="Course pagination">
-                        <li>
-                            <a
-                                class="page-btn {% if not course_pagination.has_prev %}is-disabled{% endif %}"
-                                href="{{ url_for('hod_dashboard', course_page=course_pagination.prev_num, course_search=course_search, course_module=course_module_filter, student_search=student_search, student_page=(students_pagination.page if students_pagination else 1)) }}#courses-section"
-                                aria-label="Previous page"
-                            >
-                                <i class="bi bi-chevron-left"></i>
+                <div class="page-links">
+                    <a href="{{ url_for('manage_courses', page=pagination.prev_num, search=search_query, semester_filter=sem_filter) }}" 
+                       class="page-link {% if not pagination.has_prev %}disabled{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                    
+                    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if p %}
+                            <a href="{{ url_for('manage_courses', page=p, search=search_query, semester_filter=sem_filter) }}" 
+                               class="page-link {% if p == pagination.page %}active{% endif %}">
+                                {{ p }}
                             </a>
-                        </li>
-
-                        {% for p in range(1, course_pagination.pages + 1) %}
-                            {% if p <= 1 or p > course_pagination.pages - 1
-                                  or (p >= course_pagination.page - 2 and p <= course_pagination.page + 2) %}
-                                <li>
-                                    <a
-                                        class="page-btn {% if p == course_pagination.page %}is-active{% endif %}"
-                                        href="{{ url_for('hod_dashboard', course_page=p, course_search=course_search, course_module=course_module_filter, student_search=student_search, student_page=(students_pagination.page if students_pagination else 1)) }}#courses-section"
-                                    >
-                                        {{ p }}
-                                    </a>
-                                </li>
-                            {% elif p == 2 or p == course_pagination.pages - 1 %}
-                                <li><span class="page-ellipsis">…</span></li>
-                            {% endif %}
-                        {% endfor %}
-
-                        <li>
-                            <a
-                                class="page-btn {% if not course_pagination.has_next %}is-disabled{% endif %}"
-                                href="{{ url_for('hod_dashboard', course_page=course_pagination.next_num, course_search=course_search, course_module=course_module_filter, student_search=student_search, student_page=(students_pagination.page if students_pagination else 1)) }}#courses-section"
-                                aria-label="Next page"
-                            >
-                                <i class="bi bi-chevron-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                {% endif %}
-            </div>
-        </section>
-
-        <!-- SECTION 3: MARKS -->
-        <section class="workflow-card">
-            <div class="wf-head">
-                <div class="wf-num amber">3</div>
-                <div>
-                    <h2>Examination Marks</h2>
-                    <div class="wf-hint">
-                        Open the marks section for the current semester or previous terms.
-                    </div>
-                </div>
-            </div>
-
-            <div class="wf-body">
-                <div class="dual-grid">
-                    <a href="{{ url_for('hod_marks_picker') }}" class="dual current">
-                        <h3>Current Semester</h3>
-                        <p>Enter and manage marks for the ongoing semester.</p>
-                        <i class="bi bi-pencil-square dual-ic"></i>
-                    </a>
-
-                    <a href="{{ url_for('hod_marks_picker') }}" class="dual past">
-                        <h3>Past / Missing Marks</h3>
-                        <p>Access the marks section for previous terms.</p>
-                        <i class="bi bi-clock-history dual-ic"></i>
+                        {% else %}
+                            <span class="page-link" style="border:none;background:none;">…</span>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <a href="{{ url_for('manage_courses', page=pagination.next_num, search=search_query, semester_filter=sem_filter) }}" 
+                       class="page-link {% if not pagination.has_next %}disabled{% endif %}">
+                        <i class="bi bi-chevron-right"></i>
                     </a>
                 </div>
             </div>
-        </section>
-
-        <!-- SECTION 4: REPORTS -->
-        <section class="workflow-card">
-            <div class="wf-head">
-                <div class="wf-num red">4</div>
-                <div>
-                    <h2>Reports</h2>
-                    <div class="wf-hint">
-                        Access student records and examination information.
-                    </div>
-                </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="empty">
+                <i class="bi bi-journal-bookmark"></i>
+                <h5>{% if search_query or sem_filter %}No matching courses{% else %}No courses yet{% endif %}</h5>
+                <p>{% if search_query or sem_filter %}Try adjusting your filters.{% else %}Start by adding your first course.{% endif %}</p>
+                <a href="{{ url_for('manage_courses') if (search_query or sem_filter) else url_for('add_course') }}" class="quick-link blue" style="margin-top:12px;display:inline-flex;">
+                    <i class="bi bi-{% if search_query or sem_filter %}arrow-counterclockwise{% else %}plus-circle-fill{% endif %}"></i> 
+                    {% if search_query or sem_filter %}Clear Filters{% else %}Add Course{% endif %}
+                </a>
             </div>
-
-            <div class="wf-body">
-                <div class="reports-grid">
-                    <a href="{{ url_for('hod_marks_picker') }}" class="report-btn">
-                        <i class="bi bi-file-earmark-bar-graph"></i>
-                        <div>
-                            Class Report
-                            <small>Open the marks section for class results.</small>
-                        </div>
-                    </a>
-
-                    <a href="{{ url_for('hod_all_students') }}" class="report-btn">
-                        <i class="bi bi-person-lines-fill"></i>
-                        <div>
-                            Student Records
-                            <small>View student records and information.</small>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </section>
+            {% endif %}
+        </div>
 
     </main>
 </div>
 
-<!-- STUDENT ASSIGNMENT MODALS -->
-{% for s in students %}
-<div
-    class="modal fade"
-    id="assignModal{{ s.id }}"
-    tabindex="-1"
-    aria-labelledby="assignTitle{{ s.id }}"
-    aria-hidden="true"
->
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-
-            <form
-                action="{{ url_for('hod_set_student_module', student_id=s.id) }}"
-                method="POST"
-            >
-                <div class="modal-header">
-                    <h5 class="modal-title" id="assignTitle{{ s.id }}">
-                        <i class="bi bi-person-badge"></i>
-                        Assign Student
-                    </h5>
-
-                    <button
-                        type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="Close"
-                    ></button>
-                </div>
-
-                <div class="modal-body">
-                    <p class="mb-3">
-                        <strong>{{ s.full_name }}</strong>
-                    </p>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Current Semester</label>
-
-                        <select name="semester_id" class="form-select">
-                            <option value="">— Unassigned —</option>
-
-                            {% for sem in semester_map.get(s.course_id, []) %}
-                                <option
-                                    value="{{ sem.id }}"
-                                    {% if s.current_semester_id == sem.id %}selected{% endif %}
-                                >
-                                    {{ sem.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-
-                        <div class="form-text">
-                            Course: {{ s.course.name if s.course else '—' }}
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Module</label>
-
-                        <input
-                            type="text"
-                            name="module"
-                            class="form-control"
-                            value="{{ s.module or '' }}"
-                            placeholder="e.g. MODULE 1"
-                        >
-
-                        <div class="form-text">
-                            Enter the module assigned to this student.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button
-                        type="button"
-                        class="btn btn-light"
-                        data-bs-dismiss="modal"
-                    >
-                        Cancel
-                    </button>
-
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check2"></i> Save Assignment
-                    </button>
-                </div>
-            </form>
-
-        </div>
-    </div>
-</div>
-{% endfor %}
-
-<!-- COURSE STUDENT LISTS — one modal per course -->
-{% for cc in course_cards %}
-    {% if cc.students_count > 0 %}
-        <div
-            class="modal fade"
-            id="studentsModal{{ cc.course.id }}"
-            tabindex="-1"
-            aria-labelledby="studentsModalTitle{{ cc.course.id }}"
-            aria-hidden="true"
-        >
-            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content">
-
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="studentsModalTitle{{ cc.course.id }}">
-                            <i class="bi bi-people"></i>
-                            {{ cc.course.name }}
-                        </h5>
-
-                        <button
-                            type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                            aria-label="Close"
-                        ></button>
-                    </div>
-
-                    <div class="modal-body">
-                        <div class="cm-summary">
-                            <span>
-                                <strong>{{ cc.students_count }}</strong> student(s) enrolled
-                            </span>
-                            {% if cc.students_by_module %}
-                                <span class="cm-summary-modules">
-                                    {% for ml, mcount in cc.students_by_module.items() %}
-                                        <span class="cl-module-pill">{{ ml }}: {{ mcount }}</span>
-                                    {% endfor %}
-                                </span>
-                            {% endif %}
-                        </div>
-
-                        <div class="table-responsive mt-3">
-                            <table class="mod-table cm-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Student Name</th>
-                                        <th>Admission No.</th>
-                                        <th>Module</th>
-                                        <th>Semester</th>
-                                        <th>Phone</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for s in cc.students_list %}
-                                        <tr data-module="{{ (s.module or 'Unassigned').strip() or 'Unassigned' }}">
-                                            <td>{{ loop.index }}</td>
-                                            <td class="student-name">{{ s.full_name }}</td>
-                                            <td>{{ s.admission_number or '—' }}</td>
-                                            <td>
-                                                {% if s.module %}
-                                                    <span class="badge-pill-mod ok">{{ s.module }}</span>
-                                                {% else %}
-                                                    <span class="badge-pill-mod warn">Unassigned</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if s.current_semester %}
-                                                    <span class="badge-pill-mod ok">{{ s.current_semester.name }}</span>
-                                                {% else %}
-                                                    <span class="badge-pill-mod warn">Not Set</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>{{ s.phone_number or '—' }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <a
-                            href="{{ url_for('hod_course_detail', course_id=cc.course.id) }}"
-                            class="mini-btn primary"
-                        >
-                            <i class="bi bi-eye"></i> View Course Detail
-                        </a>
-                        <button
-                            type="button"
-                            class="btn btn-light"
-                            data-bs-dismiss="modal"
-                        >
-                            Close
-                        </button>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    {% endif %}
-{% endfor %}
-
-<!-- LIVE SEARCH: STUDENTS -->
-<script>
-(function () {
-    var form = document.querySelector('.student-search');
-    if (!form) return;
-    var input = form.querySelector('.student-search-input');
-    if (!input) return;
-    var t;
-    input.addEventListener('input', function () {
-        clearTimeout(t);
-        t = setTimeout(function () { form.submit(); }, 500);
-    });
-})();
-</script>
-
-<!-- LIVE SEARCH: COURSES + MODULE FILTER -->
-<script>
-(function () {
-    var form = document.querySelector('.course-filters');
-    if (!form) return;
-    var input = form.querySelector('.cf-search-input');
-    var select = form.querySelector('.cf-select');
-    if (input) {
-        var t;
-        input.addEventListener('input', function () {
-            clearTimeout(t);
-            t = setTimeout(function () { form.submit(); }, 500);
-        });
-    }
-    if (select) {
-        select.addEventListener('change', function () { form.submit(); });
-    }
-})();
-</script>
-
-<!-- MODAL ROW FILTER (for module pills) -->
-<script>
-document.addEventListener('show.bs.modal', function (e) {
-    if (!e.target.id.startsWith('studentsModal')) return;
-    var trigger = e.relatedTarget;
-    if (!trigger) return;
-    var moduleFilter = trigger.getAttribute('data-module-filter') || '';
-    e.target.querySelectorAll('.cm-table tbody tr').forEach(function (row) {
-        if (!moduleFilter || row.getAttribute('data-module') === moduleFilter) {
-            row.classList.remove('cm-hidden');
-        } else {
-            row.classList.add('cm-hidden');
-        }
-    });
-});
-
-document.addEventListener('hide.bs.modal', function (e) {
-    if (!e.target.id.startsWith('studentsModal')) return;
-    e.target.querySelectorAll('.cm-table tbody tr.cm-hidden').forEach(function (row) {
-        row.classList.remove('cm-hidden');
-    });
-});
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
+<!------>
 </html>
