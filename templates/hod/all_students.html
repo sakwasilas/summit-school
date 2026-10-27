@@ -523,7 +523,7 @@
             </div>
 
             <!-- ================================================== -->
-            <!-- FILTER BAR                                        -->
+            <!-- FILTER BAR (AUTO SUBMIT)                           -->
             <!-- ================================================== -->
             <form method="GET" action="{{ url_for('hod_all_students') }}" class="filter-bar">
 
@@ -536,7 +536,8 @@
 
                 <div class="fb-field">
                     <label>Course</label>
-                    <select name="course_id">
+                    <!-- Added onchange="this.form.submit()" -->
+                    <select name="course_id" onchange="this.form.submit()">
                         <option value="">All courses</option>
                         {% for c in courses %}
                         <option value="{{ c.id }}"
@@ -549,7 +550,8 @@
 
                 <div class="fb-field">
                     <label>Level</label>
-                    <select name="level">
+                    <!-- Added onchange="this.form.submit()" -->
+                    <select name="level" onchange="this.form.submit()">
                         <option value="">All levels</option>
                         {% for lv in levels_present %}
                         <option value="{{ lv }}"
@@ -562,7 +564,8 @@
 
                 <div class="fb-field">
                     <label>Exam Type</label>
-                    <select name="exam_type">
+                    <!-- Added onchange="this.form.submit()" -->
+                    <select name="exam_type" onchange="this.form.submit()">
                         <option value="">All</option>
                         <option value="knec" {% if exam_type == 'knec' %}selected{% endif %}>KNEC</option>
                         <option value="internal" {% if exam_type == 'internal' %}selected{% endif %}>Internal</option>
@@ -601,12 +604,10 @@
                                 <th>Full Name</th>
                                 <th>Course</th>
                                 <th style="width:100px;">Level</th>
-                                <th style="width:110px;">Module</th>
                                 <th style="width:140px;">Semester</th>
-                                <th style="width:80px;">Exam</th>
                                 <th style="width:130px;">Phone</th>
                                 <th style="width:90px;">Status</th>
-                                <th style="width:80px;"></th>
+                                <th style="width:160px; text-align:right;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -614,7 +615,11 @@
                             <tr>
                                 <td><span class="row-num">{{ loop.index }}</span></td>
                                 <td><strong>{{ s.admission_number }}</strong></td>
-                                <td>{{ s.full_name }}</td>
+                                <td>
+                                    <a href="{{ url_for('hod_student_detail', student_id=s.id) }}" class="text-decoration-none fw-bold text-dark">
+                                        {{ s.full_name }}
+                                    </a>
+                                </td>
                                 <td>{{ s.course.name if s.course else '—' }}</td>
 
                                 <td>
@@ -626,26 +631,11 @@
                                 </td>
 
                                 <td>
-                                    {% if s.module %}
-                                    <span class="module-pill">{{ s.module }}</span>
-                                    {% else %}
-                                    <span class="module-pill empty">—</span>
-                                    {% endif %}
-                                </td>
-
-                                <td>
                                     {% if s.current_semester %}
                                     <span class="semester-pill">{{ s.current_semester.name }}</span>
                                     {% else %}
                                     <span class="semester-pill empty">No semester</span>
                                     {% endif %}
-                                </td>
-
-                                <td>
-                                    {% set et = (s.exam_type or '').lower() %}
-                                    <span class="exam-pill exam-{{ et if et in ['knec','internal'] else 'knec' }}">
-                                        {{ (s.exam_type or '')|upper }}
-                                    </span>
                                 </td>
 
                                 <td>{{ s.phone_number or '—' }}</td>
@@ -658,21 +648,26 @@
                                     {% endif %}
                                 </td>
 
+                                <!-- ═══ UPGRADED ACTIONS COLUMN ═══ -->
                                 <td>
-                                    <div class="row-actions">
+                                    <div class="row-actions" style="justify-content: flex-end; gap: 6px;">
                                         {% if s.current_semester %}
-                                        <a href="{{ url_for('hod_report_student',
-                                                            student_id=s.id,
-                                                            semester_id=s.current_semester.id) }}"
+                                        <a href="{{ url_for('hod_report_student', student_id=s.id, semester_id=s.current_semester.id) }}"
                                            target="_blank"
-                                           class="row-link print"
-                                           title="Print report">
-                                            <i class="bi bi-printer-fill"></i>
+                                           class="btn btn-sm btn-success fw-bold d-flex align-items-center gap-1 shadow-sm"
+                                           style="font-size: 11px; padding: 4px 10px; border-radius: 6px;"
+                                           title="Print Report Card">
+                                            <i class="bi bi-printer-fill"></i> Print
                                         </a>
+                                        {% else %}
+                                        <span class="text-muted" style="font-size: 11px; font-style: italic;">No sem</span>
                                         {% endif %}
+
                                         <a href="{{ url_for('hod_student_detail', student_id=s.id) }}"
-                                           class="row-link" title="Open student">
-                                            <i class="bi bi-arrow-right"></i>
+                                           class="btn btn-sm btn-light border fw-bold d-flex align-items-center gap-1 shadow-sm"
+                                           style="font-size: 11px; padding: 4px 10px; border-radius: 6px;"
+                                           title="View Profile">
+                                            <i class="bi bi-person-fill"></i> View
                                         </a>
                                     </div>
                                 </td>
