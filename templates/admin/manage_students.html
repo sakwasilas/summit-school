@@ -139,7 +139,10 @@
 <body>
 
   <div class="header">
-    <img src="{{ url_for('static', filename='images/LOGO.jpg') }}" alt="{{ department.name }} logo" class="sb-logo">
+    <!-- FIX: Replaced department.name with safe conditional -->
+    <img src="{{ url_for('static', filename='images/LOGO.jpg') }}" 
+         alt="{% if department %}{{ department.name }} logo{% else %}Summit Technical College Logo{% endif %}" 
+         class="sb-logo">
     <h1>SUMMIT TECHNICAL COLLEGE</h1>
   </div>
 
@@ -186,8 +189,6 @@
                 {{ 'Unblock' if student.blocked else 'Block' }}
               </button>
             </form>
-
-            
 
             <form method="POST" action="{{ url_for('manage_students') }}" onsubmit="return confirm('Are you sure you want to delete this student?');" style="display:inline;">
               <input type="hidden" name="student_id" value="{{ student.id }}">
