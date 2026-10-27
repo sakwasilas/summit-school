@@ -513,8 +513,8 @@ def _validate_new_student_form(db, form, *, department_id=None):
                 f"Semester '{sem.name}' does not belong to course '{course.name}'."
             )
 
-    if phone and not re.fullmatch(r"\+?\d{7,15}", phone):
-        errors.append("Phone number must be 7–15 digits (digits only, optional leading +).")
+    # if phone and not re.fullmatch(r"\+?\d{0,12}", phone):
+    #     errors.append("Phone number must be 7–15 digits (digits only, optional leading +).")
 
     if username and db.query(User).filter_by(username=username).first():
         errors.append(f"Username '{username}' is already taken.")
