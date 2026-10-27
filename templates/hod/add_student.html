@@ -50,12 +50,12 @@
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Course *</label>
-          <select id="course" name="course_id" class="form-select" required>
+          <select id="course" name="course_id" class="form-select {% if 'course_id' in error_fields %}is-invalid{% endif %}" required>
             <option value="">-- Select Course --</option>
             {% for c in courses %}
               <option value="{{ c.id }}"
                 data-atype="{{ c.assessment_type or 'knec' }}"
-                {% if form.course_id == c.id|string %}selected{% endif %}>
+                {% if form.get('course_id') == c.id|string %}selected{% endif %}>
                 {{ c.name }}{% if c.level %} — {{ c.level }}{% endif %}
               </option>
             {% endfor %}
@@ -63,8 +63,13 @@
         </div>
         <div class="col-md-6">
           <label class="form-label">Semester</label>
-          <select id="semester" name="semester_id" class="form-select">
+          <select id="semester" name="semester_id" class="form-select {% if 'semester_id' in error_fields %}is-invalid{% endif %}">
             <option value="">-- (defaults to current) --</option>
+            <!-- Populated via JS -->
+            {% if form.get('semester_id') %}
+               <!-- We need a placeholder to keep the value if validation fails -->
+               <option value="{{ form.get('semester_id') }}" selected>Loading...</option>
+            {% endif %}
           </select>
         </div>
       </div>
@@ -72,15 +77,19 @@
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Module</label>
-          <select id="module" name="module" class="form-select">
+          <select id="module" name="module" class="form-select {% if 'module' in error_fields %}is-invalid{% endif %}">
             <option value="">-- None --</option>
+            <!-- Populated via JS -->
+            {% if form.get('module') %}
+               <option value="{{ form.get('module') }}" selected>{{ form.get('module') }}</option>
+            {% endif %}
           </select>
         </div>
         <div class="col-md-6">
           <label class="form-label">Exam Type *</label>
-          <select id="exam_type" name="exam_type" class="form-select" required>
-            <option value="knec" {% if form.exam_type == 'knec' %}selected{% endif %}>KNEC</option>
-            <option value="internal" {% if form.exam_type == 'internal' %}selected{% endif %}>Internal</option>
+          <select id="exam_type" name="exam_type" class="form-select {% if 'exam_type' in error_fields %}is-invalid{% endif %}" required>
+            <option value="knec" {% if form.get('exam_type') == 'knec' %}selected{% endif %}>KNEC</option>
+            <option value="internal" {% if form.get('exam_type') == 'internal' %}selected{% endif %}>Internal</option>
           </select>
         </div>
       </div>
@@ -92,18 +101,21 @@
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Full Name *</label>
-          <input type="text" name="full_name" class="form-control" value="{{ form.full_name or '' }}" required>
+          <input type="text" name="full_name" class="form-control {% if 'full_name' in error_fields %}is-invalid{% endif %}" value="{{ form.get('full_name', '') }}" required>
+          {% if 'full_name' in error_fields %}<div class="invalid-feedback">Full name is required.</div>{% endif %}
         </div>
         <div class="col-md-6">
           <label class="form-label">Admission Number *</label>
-          <input type="text" name="admission_number" class="form-control" value="{{ form.admission_number or '' }}" required>
+          <input type="text" name="admission_number" class="form-control {% if 'admission_number' in error_fields %}is-invalid{% endif %}" value="{{ form.get('admission_number', '') }}" required>
+          {% if 'admission_number' in error_fields %}<div class="invalid-feedback">Admission number is required or already exists.</div>{% endif %}
         </div>
       </div>
 
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Phone Number</label>
-          <input type="text" name="phone_number" class="form-control" value="{{ form.phone_number or '' }}">
+          <!-- Note: Removed type="number" so it accepts + and spaces -->
+          <input type="text" name="phone_number" class="form-control {% if 'phone_number' in error_fields %}is-invalid{% endif %}" value="{{ form.get('phone_number', '') }}">
         </div>
       </div>
 
@@ -114,11 +126,13 @@
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Username</label>
-          <input type="text" name="username" class="form-control" value="{{ form.username or '' }}" placeholder="(auto from admission no.)">
+          <input type="text" name="username" class="form-control {% if 'username' in error_fields %}is-invalid{% endif %}" value="{{ form.get('username', '') }}" placeholder="(auto from admission no.)">
+          {% if 'username' in error_fields %}<div class="invalid-feedback">Username already taken.</div>{% endif %}
         </div>
         <div class="col-md-6">
           <label class="form-label">Password</label>
-          <input type="text" name="password" class="form-control" value="{{ form.password or '' }}" placeholder="(defaults to admission no.)">
+          <input type="text" name="password" class="form-control {% if 'password' in error_fields %}is-invalid{% endif %}" value="{{ form.get('password', '') }}" placeholder="(defaults to admission no.)">
+          {% if 'password' in error_fields %}<div class="invalid-feedback">Password must be at least 4 characters.</div>{% endif %}
         </div>
       </div>
 
@@ -147,9 +161,13 @@
 
   courseSel.addEventListener('change', () => {
     const cId = courseSel.value;
+    
+    // Clear previous options
     semSel.innerHTML = '<option value="">-- (defaults to current) --</option>';
     modSel.innerHTML = '<option value="">-- None --</option>';
+    
     refreshExamTypeDefault();
+    
     if (!cId) return;
 
     Promise.all([
@@ -169,6 +187,7 @@
     });
   });
 
+  // Trigger on page load if a course was already selected (e.g., after an error)
   if (courseSel.value) {
     courseSel.dispatchEvent(new Event('change'));
   }
