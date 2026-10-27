@@ -513,9 +513,6 @@ def _validate_new_student_form(db, form, *, department_id=None):
                 f"Semester '{sem.name}' does not belong to course '{course.name}'."
             )
 
-    # if phone and not re.fullmatch(r"\+?\d{0,12}", phone):
-    #     errors.append("Phone number must be 7–15 digits (digits only, optional leading +).")
-
     if username and db.query(User).filter_by(username=username).first():
         errors.append(f"Username '{username}' is already taken.")
 
@@ -1622,6 +1619,77 @@ def manage_students():
         return render_template(
             "admin/manage_students.html",
             students=students, search_query=search_query_str,
+        )
+    finally:
+        db.close()
+
+
+# ═══ FIXED: New Admin All Students Filter View ═══
+@app.route("/admin/students", methods=["GET", "POST"])
+def admin_all_students():
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    db = SessionLocal()
+    try:
+        # 1. Get filter values
+        dept_id = request.args.get("dept_id", type=int)
+        course_id = request.args.get("course_id", type=int)
+        search = request.args.get("search", "").strip()
+
+        # 2. Fetch departments for the first dropdown
+        departments = db.query(Department).order_by(Department.name.asc()).all()
+        
+        courses = []
+        students = []
+
+        # 3. Logic for cascading dropdowns
+        if dept_id:
+            courses = db.query(Course).filter_by(department_id=dept_id).order_by(Course.name.asc()).all()
+            
+            # 4. Fetch students based on filters
+            q = student_query(db)
+            
+            if course_id:
+                # Filter by specific course
+                q = q.filter(StudentProfile.course_id == course_id)
+            else:
+                # Filter by all courses in the department
+                course_ids = [c.id for c in courses]
+                q = q.filter(StudentProfile.course_id.in_(course_ids))
+
+            if search:
+                like = f"%{search}%"
+                q = q.filter(or_(
+                    StudentProfile.full_name.ilike(like),
+                    StudentProfile.admission_number.ilike(like),
+                    StudentProfile.phone_number.ilike(like),
+                ))
+
+            students = q.order_by(StudentProfile.full_name.asc()).all()
+
+        # 5. Handle POST actions (Block/Delete) from this view
+        if request.method == "POST":
+            student_id = request.form.get("student_id")
+            action = request.form.get("action")
+            student = db.query(StudentProfile).filter_by(id=student_id).first()
+            
+            if action == "toggle_block" and student:
+                student.blocked = not student.blocked
+                db.commit()
+                flash("Student status updated.", "success")
+            elif action == "delete" and student:
+                _delete_student_tree(db, student)
+                db.commit()
+                flash("Student deleted.", "success")
+            
+            # Redirect back to the same filtered view
+            return redirect(url_for("admin_all_students", dept_id=dept_id, course_id=course_id, search=search))
+
+        return render_template(
+            "admin/all_students.html",
+            departments=departments, courses=courses, 
+            students=students, dept_id=dept_id, course_id=course_id, search=search
         )
     finally:
         db.close()
