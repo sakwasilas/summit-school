@@ -19,7 +19,7 @@
         position: fixed;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%);
-        width: 550px; height: 550px;      /* ENLARGED */
+        width: 550px; height: 550px;
         opacity: 0.05;
         pointer-events: none;
         z-index: 0;
@@ -43,18 +43,18 @@
     /* ============ HEADER ============ */
     .logo-top {
         text-align: center;
-        margin-bottom: 10px;              /* was 6px */
+        margin-bottom: 10px;
     }
     .logo-top img {
-        width: 130px;                     /* ENLARGED, was 58px */
-        height: 130px;                    /* ENLARGED, was 58px */
+        width: 130px;
+        height: 130px;
         object-fit: contain;
         background: transparent;
         border: none;
         padding: 0;
         margin: 0 auto;
         display: block;
-        mix-blend-mode: multiply;         /* fades the pale background away */
+        mix-blend-mode: multiply;
     }
 
     .college-name {
@@ -273,7 +273,9 @@
 <body>
 
 <div class="watermark">
-    <img src="{{ url_for('static', filename='images/LOGO.jpg') }}" alt="{{ department.name }} logo" class="sb-logo">
+    <img src="{{ url_for('static', filename='images/LOGO.jpg') }}"
+         alt="{% if department %}{{ department.name }} logo{% else %}Summit Technical College Logo{% endif %}"
+         class="sb-logo">
 </div>
 
 <div class="action-bar">
@@ -286,7 +288,9 @@
 <div class="sheet" id="reportSheet">
 
     <div class="logo-top">
-        <img src="{{ url_for('static', filename='images/LOGO.jpg') }}" alt="{{ department.name }} logo" class="sb-logo">
+        <img src="{{ url_for('static', filename='images/LOGO.jpg') }}"
+             alt="{% if department %}{{ department.name }} logo{% else %}Summit Technical College Logo{% endif %}"
+             class="sb-logo">
     </div>
     <div class="college-name">SUMMIT TECHNICAL COLLEGE</div>
     <div class="office">OFFICE OF THE ACADEMIC REGISTRAR</div>
