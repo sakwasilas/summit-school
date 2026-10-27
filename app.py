@@ -698,28 +698,32 @@ def admin_dashboard():
         courses = db.query(Course).all()
         students_count = db.query(StudentProfile).count()
         exams_count = db.query(Quiz).count()
-        departments_count = db.query(Department).count()
-
-        class DummyPagination:
-            page = 1
-            per_page = len(courses) if courses else 1
-            total = len(courses)
-            pages = 1
-            has_prev = False
-            has_next = False
-            prev_num = 1
-            next_num = 1
-            first = 1 if courses else 0
-            last = len(courses)
+        
+        # ═══ FIX: Fetch department stats for the dashboard cards ═══
+        departments_list = db.query(Department).order_by(Department.name.asc()).all()
+        departments = []
+        for d in departments_list:
+            dept_courses = db.query(Course).filter_by(department_id=d.id).all()
+            dept_course_ids = [c.id for c in dept_courses]
+            dept_students = 0
+            if dept_course_ids:
+                dept_students = db.query(StudentProfile).filter(StudentProfile.course_id.in_(dept_course_ids)).count()
+            departments.append({
+                "id": d.id,
+                "name": d.name,
+                "courses_count": len(dept_courses),
+                "students_count": dept_students
+            })
+        departments_count = len(departments)
 
         return render_template(
             "admin/admin_dashboard.html",
             courses=courses,
-            pagination=DummyPagination(),
-            username=session.get("username"),
+            departments=departments,
             students_count=students_count,
             exams_count=exams_count,
             departments_count=departments_count,
+            username=session.get("username"),
             current_year=datetime.now().year,
         )
     finally:
@@ -1624,7 +1628,7 @@ def manage_students():
         db.close()
 
 
-# ═══ FIXED: New Admin All Students Filter View ═══
+# ═══ NEW: Admin All Students Filter View ═══
 @app.route("/admin/students", methods=["GET", "POST"])
 def admin_all_students():
     if session.get("role") != "admin":
