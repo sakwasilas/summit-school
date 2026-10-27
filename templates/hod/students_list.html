@@ -234,6 +234,8 @@
         .act-btn:hover { transform: translateY(-1px); }
         .act-view    { background: #eff6ff; color: #1e40af; }
         .act-view:hover { background: #1e3a8a; color: white; }
+        .act-edit    { background: #fef3c7; color: #92400e; }
+        .act-edit:hover { background: #f59e0b; color: white; }
         .act-promote { background: #dbeafe; color: #1e40af; }
         .act-promote:hover { background: #3b82f6; color: white; }
         .act-block   { background: #fef3c7; color: #92400e; }
@@ -331,10 +333,10 @@
                 <col style="width: 130px;">
                 <col style="width: 190px;">
                 <col style="width: 130px;">
-                <col style="width: 240px;"> <!-- Increased width for Course -->
+                <col style="width: 240px;"> 
                 <col style="width: 180px;">
                 <col style="width: 100px;">
-                <col style="width: 300px;">
+                <col style="width: 340px;"> <!-- Wider for actions -->
             </colgroup>
             <thead>
                 <tr>
@@ -342,8 +344,8 @@
                     <th>Adm No</th>
                     <th>Full Name</th>
                     <th>Phone</th>
-                    <th>Course / Move</th> <!-- Renamed -->
-                    <th>Current Module</th>
+                    <th>Course</th> <!-- Reverted to just Course -->
+                    <th>Current Semester</th>
                     <th class="center">Status</th>
                     <th class="center">Actions</th>
                 </tr>
@@ -368,24 +370,7 @@
                     </td>
 
                     <td class="cell-course">
-                        <div style="font-weight: 600; margin-bottom: 6px; color: #0f1724;">
-                            {{ s.course.name if s.course else '—' }}
-                        </div>
-                        
-                        <!-- ═══ NEW: Move Course Form ═══ -->
-                        <form method="POST" action="{{ url_for('hod_change_student_course', student_id=s.id) }}"
-                              onsubmit="return confirm('Move {{ s.full_name }} to a different course?');"
-                              style="display: flex; gap: 4px;">
-                            <select name="course_id" class="form-select form-select-sm" required style="font-size: 11.5px; padding: 2px 6px; height: auto;">
-                                <option value="">— Move to —</option>
-                                {% for c in courses %}
-                                    {% if c.id != s.course_id %}
-                                        <option value="{{ c.id }}">{{ c.name }}</option>
-                                    {% endif %}
-                                {% endfor %}
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-warning" style="font-size: 11px; padding: 2px 8px; font-weight: 700;">Go</button>
-                        </form>
+                        {{ s.course.name if s.course else '—' }}
                     </td>
 
                     <!-- READ-ONLY module badge -->
@@ -413,6 +398,11 @@
 
                     <td>
                         <div class="actions">
+                            <!-- ═══ NEW: Edit Button ═══ -->
+                            <a href="{{ url_for('edit_student', student_id=s.id) }}" class="act-btn act-edit">
+                                Edit
+                            </a>
+
                             <a href="{{ url_for('hod_student_detail', student_id=s.id) }}"
                                class="act-btn act-view">
                                 View
@@ -420,7 +410,7 @@
 
                             <form method="POST" style="display:inline;"
                                   action="{{ url_for('hod_promote_student', student_id=s.id) }}"
-                                  onsubmit="return confirm('Promote {{ s.full_name }} to the next module?');">
+                                  onsubmit="return confirm('Promote {{ s.full_name }} to the next semester?');">
                                 <button type="submit" class="act-btn act-promote">
                                     Promote
                                 </button>
