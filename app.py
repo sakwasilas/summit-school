@@ -18,6 +18,7 @@ from sqlalchemy import or_, func
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
+from openpyxl.styles import Font, PatternFill, Alignment
 
 from connections import SessionLocal
 from models import (
@@ -225,6 +226,176 @@ def get_student_subject_marks(db, student_id, subject_id, semester_id, course):
     scores = [c for c in cells.values() if c is not None]
     avg = round(sum(scores) / len(scores), 2) if scores else None
     return {"cells": cells, "labels": labels, "average": avg, "total": avg or 0}
+
+
+def knec_grade(avg):
+    """KNEC grade 1-7 from average. Returns '' for None."""
+    if avg is None:
+        return ""
+    return (1 if avg >= 84 else 2 if avg >= 75 else 3 if avg >= 66
+            else 4 if avg >= 60 else 5 if avg >= 50
+            else 6 if avg >= 40 else 7)
+
+
+def knec_result(avg):
+    """KNEC result label from average. Returns '' for None."""
+    if avg is None:
+        return ""
+    return ("DISTINCTION" if avg >= 75 else "CREDIT" if avg >= 60
+            else "PASS" if avg >= 40 else "REFER")
+
+
+"""
+============================================================
+KNEC ANALYTICS WORKBOOK BUILDER
+============================================================
+"""
+def _build_knec_analytics_workbook(db, course):
+    """
+    Build a multi-sheet KNEC analytics workbook for the given course.
+
+    Sheets:
+      - Student Summary   (per-student, per-semester averages + overall)
+      - Ranking           (sorted by overall average)
+      - Subject Stats     (mean, std dev, pass %, distinction %)
+      - Grade Distribution
+      - Raw Marks         (audit trail of every CAT1/CAT2/Final)
+    """
+    students = (
+        student_query(db).filter_by(course_id=course.id)
+        .order_by(StudentProfile.full_name.asc()).all()
+    )
+    semesters = (
+        semester_query(db).filter_by(course_id=course.id)
+        .order_by(Semester.created_at.asc()).all()
+    )
+
+    student_rows = []
+    raw_rows = []
+    subject_stats = {}  # subject_id -> list of totals
+
+    for s in students:
+        per_sem_avg = {}
+        overall_sum, overall_n = 0, 0
+
+        for sem in semesters:
+            subjects = (
+                subject_query(db)
+                .filter_by(course_id=course.id, semester_id=sem.id).all()
+            )
+            sem_sum, sem_n = 0, 0
+            for subj in subjects:
+                m = db.query(KnecMark).filter_by(
+                    student_id=s.id, subject_id=subj.id, semester_id=sem.id
+                ).first()
+                if not m:
+                    continue
+                total = (m.cat1 or 0) + (m.cat2 or 0) + (m.final or 0)
+                sem_sum += total
+                sem_n += 1
+                overall_sum += total
+                overall_n += 1
+
+                raw_rows.append({
+                    "Admission No": s.admission_number,
+                    "Student Name": s.full_name,
+                    "Semester": sem.name,
+                    "Subject": subj.name,
+                    "CAT1 (15)": m.cat1,
+                    "CAT2 (15)": m.cat2,
+                    "Final (70)": m.final,
+                    "Total (100)": total,
+                })
+                subject_stats.setdefault(subj.id, []).append(total)
+
+            per_sem_avg[sem.name] = round(sem_sum / sem_n, 2) if sem_n else None
+
+        overall_avg = round(overall_sum / overall_n, 2) if overall_n else None
+
+        row = {
+            "Admission No": s.admission_number,
+            "Student Name": s.full_name,
+            "Exam Type": (s.exam_type or "").upper(),
+        }
+        row.update(per_sem_avg)
+        row["Overall Average"] = overall_avg
+        row["Grade"] = knec_grade(overall_avg)
+        row["Result"] = knec_result(overall_avg)
+        student_rows.append(row)
+
+    # ---- Subject stats ----
+    stat_rows = []
+    for subj_id, totals in subject_stats.items():
+        subj = db.query(Subject).filter_by(id=subj_id).first()
+        n = len(totals)
+        mean = round(sum(totals) / n, 2) if n else 0
+        variance = round(sum((x - mean) ** 2 for x in totals) / n, 2) if n else 0
+        stat_rows.append({
+            "Subject": subj.name if subj else "",
+            "Entries": n,
+            "Mean": mean,
+            "Std Dev": round(variance ** 0.5, 2),
+            "Highest": max(totals) if totals else 0,
+            "Lowest": min(totals) if totals else 0,
+            "Pass Rate (>=40)": round(sum(1 for x in totals if x >= 40) / n * 100, 2) if n else 0,
+            "Distinction Rate (>=75)": round(sum(1 for x in totals if x >= 75) / n * 100, 2) if n else 0,
+        })
+    stat_rows.sort(key=lambda r: r["Subject"])
+
+    # ---- Grade distribution ----
+    dist = defaultdict(int)
+    for r in student_rows:
+        if r["Result"]:
+            dist[r["Result"]] += 1
+    dist_rows = [{"Result": k, "Students": v} for k, v in dist.items()]
+
+    # ---- Ranking ----
+    ranked = sorted(
+        [r for r in student_rows if r["Overall Average"] is not None],
+        key=lambda r: r["Overall Average"], reverse=True,
+    )
+    rank_rows = []
+    for i, r in enumerate(ranked, 1):
+        rank_rows.append({
+            "Rank": i,
+            "Admission No": r["Admission No"],
+            "Student Name": r["Student Name"],
+            "Overall Average": r["Overall Average"],
+            "Grade": r["Grade"],
+            "Result": r["Result"],
+        })
+
+    # ---- Write workbook ----
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        sheets = {
+            "Student Summary": pd.DataFrame(student_rows),
+            "Ranking": pd.DataFrame(rank_rows),
+            "Subject Stats": pd.DataFrame(stat_rows),
+            "Grade Distribution": pd.DataFrame(dist_rows),
+            "Raw Marks": pd.DataFrame(raw_rows),
+        }
+        for name, df in sheets.items():
+            if df.empty:
+                df = pd.DataFrame({"Note": ["No data available"]})
+            df.to_excel(writer, index=False, sheet_name=name)
+            ws = writer.sheets[name]
+
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill("solid", fgColor="1ABC9C")
+            for cell in ws[1]:
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+
+            for col in ws.columns:
+                width = max(len(str(c.value or "")) for c in col) + 3
+                ws.column_dimensions[col[0].column_letter].width = min(width, 40)
+
+            ws.freeze_panes = "A2"
+
+    buf.seek(0)
+    return buf
 
 
 """
@@ -698,8 +869,7 @@ def admin_dashboard():
         courses = db.query(Course).all()
         students_count = db.query(StudentProfile).count()
         exams_count = db.query(Quiz).count()
-        
-        # ═══ FIX: Fetch department stats for the dashboard cards ═══
+
         departments_list = db.query(Department).order_by(Department.name.asc()).all()
         departments = []
         for d in departments_list:
@@ -1251,7 +1421,7 @@ def edit_subject(subject_id):
 
         if request.method == "POST":
             subject.name = request.form["subject_name"].strip()
-            
+
             semester_id = request.form.get("semester_id") or None
             if semester_id:
                 semester_id = int(semester_id)
@@ -1628,7 +1798,7 @@ def manage_students():
         db.close()
 
 
-# ═══ NEW: Admin All Students Filter View ═══
+# ═══ Admin All Students Filter View ═══
 @app.route("/admin/students", methods=["GET", "POST"])
 def admin_all_students():
     if session.get("role") != "admin":
@@ -1636,29 +1806,23 @@ def admin_all_students():
 
     db = SessionLocal()
     try:
-        # 1. Get filter values
         dept_id = request.args.get("dept_id", type=int)
         course_id = request.args.get("course_id", type=int)
         search = request.args.get("search", "").strip()
 
-        # 2. Fetch departments for the first dropdown
         departments = db.query(Department).order_by(Department.name.asc()).all()
-        
+
         courses = []
         students = []
 
-        # 3. Logic for cascading dropdowns
         if dept_id:
             courses = db.query(Course).filter_by(department_id=dept_id).order_by(Course.name.asc()).all()
-            
-            # 4. Fetch students based on filters
+
             q = student_query(db)
-            
+
             if course_id:
-                # Filter by specific course
                 q = q.filter(StudentProfile.course_id == course_id)
             else:
-                # Filter by all courses in the department
                 course_ids = [c.id for c in courses]
                 q = q.filter(StudentProfile.course_id.in_(course_ids))
 
@@ -1672,12 +1836,11 @@ def admin_all_students():
 
             students = q.order_by(StudentProfile.full_name.asc()).all()
 
-        # 5. Handle POST actions (Block/Delete) from this view
         if request.method == "POST":
             student_id = request.form.get("student_id")
             action = request.form.get("action")
             student = db.query(StudentProfile).filter_by(id=student_id).first()
-            
+
             if action == "toggle_block" and student:
                 student.blocked = not student.blocked
                 db.commit()
@@ -1686,13 +1849,12 @@ def admin_all_students():
                 _delete_student_tree(db, student)
                 db.commit()
                 flash("Student deleted.", "success")
-            
-            # Redirect back to the same filtered view
+
             return redirect(url_for("admin_all_students", dept_id=dept_id, course_id=course_id, search=search))
 
         return render_template(
             "admin/all_students.html",
-            departments=departments, courses=courses, 
+            departments=departments, courses=courses,
             students=students, dept_id=dept_id, course_id=course_id, search=search
         )
     finally:
@@ -1774,6 +1936,7 @@ def edit_student(student_id):
         return redirect(url_for("login"))
 
     db = SessionLocal()
+    back_url = url_for("login")
     try:
         student = db.query(StudentProfile).filter_by(id=student_id).first()
         if not student:
@@ -1785,7 +1948,7 @@ def edit_student(student_id):
             if not course or course.department_id != session["department_id"]:
                 flash("❌ That student is not in your department.", "danger")
                 return redirect(url_for("hod_dashboard"))
-            
+
             available_courses = db.query(Course).filter_by(department_id=session["department_id"]).all()
             available_semesters = db.query(Semester).filter(Semester.course_id.in_([c.id for c in available_courses])).all()
             available_modules = db.query(Module).filter(Module.course_id.in_([c.id for c in available_courses])).all()
@@ -1800,14 +1963,14 @@ def edit_student(student_id):
             student.full_name = request.form.get("full_name", "").strip()
             student.admission_number = request.form.get("admission_number", "").strip()
             student.phone_number = request.form.get("phone_number", "").strip() or None
-            
+
             new_course_id = request.form.get("course_id", type=int)
             new_semester_id = request.form.get("semester_id", type=int)
             new_module_id = request.form.get("module_id", type=int)
 
             if new_course_id:
                 student.course_id = new_course_id
-                
+
             if new_semester_id:
                 sem = db.query(Semester).filter_by(id=new_semester_id).first()
                 if sem and sem.course_id == student.course_id:
@@ -3140,6 +3303,32 @@ def admin_reports_class_export():
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             as_attachment=True,
             download_name=f"ClassReport_{safe_course}_{safe_sem}.xlsx",
+        )
+    finally:
+        db.close()
+
+
+# ═══ NEW: KNEC Analytics (admin) ═══
+@app.route("/admin/analytics/knec/<int:course_id>/export")
+def admin_knec_analytics_export(course_id):
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    db = SessionLocal()
+    try:
+        course = db.query(Course).filter_by(id=course_id).first()
+        if not course or get_course_assessment_type(course) != "knec":
+            flash("KNEC course not found.", "danger")
+            return redirect(url_for("admin_reports_picker"))
+
+        buf = _build_knec_analytics_workbook(db, course)
+
+        safe_course = course.name.replace(" ", "_")[:30]
+        return send_file(
+            buf,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name=f"KNEC_Analytics_{safe_course}.xlsx",
         )
     finally:
         db.close()
@@ -5388,6 +5577,35 @@ def hod_reports_class_export():
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             as_attachment=True,
             download_name=f"ClassReport_{safe_course}_{safe_sem}.xlsx",
+        )
+    finally:
+        db.close()
+
+
+# ═══ NEW: KNEC Analytics (HOD-scoped) ═══
+@app.route("/hod/analytics/knec/<int:course_id>/export")
+def hod_knec_analytics_export(course_id):
+    if session.get("role") != "hod":
+        return redirect(url_for("login"))
+
+    department_id = session["department_id"]
+    db = SessionLocal()
+    try:
+        course = db.query(Course).filter_by(
+            id=course_id, department_id=department_id
+        ).first()
+        if not course or get_course_assessment_type(course) != "knec":
+            flash("KNEC course not found in your department.", "danger")
+            return redirect(url_for("hod_dashboard"))
+
+        buf = _build_knec_analytics_workbook(db, course)
+
+        safe_course = course.name.replace(" ", "_")[:30]
+        return send_file(
+            buf,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name=f"KNEC_Analytics_{safe_course}.xlsx",
         )
     finally:
         db.close()
