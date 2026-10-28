@@ -244,6 +244,13 @@
         }
         .action-card.filtered i { color: #059669; }
 
+        /* ADD COURSE / ADD SUBJECT (sky blue accent) */
+        .action-card.add-item:hover {
+            border-color: #0ea5e9;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.18);
+        }
+        .action-card.add-item i { color: #0ea5e9; }
+
         .knec-btn {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 9px 14px;
@@ -334,6 +341,12 @@
             </a>
             <a href="{{ url_for('manage_courses') }}" class="nav-link">
                 <i class="bi bi-journals"></i> Courses
+            </a>
+            <a href="{{ url_for('add_course') }}" class="nav-link">
+                <i class="bi bi-plus-square-fill"></i> Add Course
+            </a>
+            <a href="{{ url_for('add_subject') }}" class="nav-link">
+                <i class="bi bi-journal-plus"></i> Add Subject
             </a>
             <a href="{{ url_for('manage_semesters') }}" class="nav-link">
                 <i class="bi bi-calendar3"></i> Semesters
@@ -453,6 +466,16 @@
                     <i class="bi bi-book-half"></i>
                     <div class="act-title">Manage Courses</div>
                     <div class="act-desc">Add, edit, or delete courses and subjects.</div>
+                </a>
+                <a href="{{ url_for('add_course') }}" class="action-card add-item">
+                    <i class="bi bi-plus-square-fill"></i>
+                    <div class="act-title">Add Course</div>
+                    <div class="act-desc">Create a new course (KNEC / Short / Periodic).</div>
+                </a>
+                <a href="{{ url_for('add_subject') }}" class="action-card add-item">
+                    <i class="bi bi-journal-plus"></i>
+                    <div class="act-title">Add Subject</div>
+                    <div class="act-desc">Attach a subject to a course and semester.</div>
                 </a>
                 <a href="{{ url_for('admin_marks_picker') }}" class="action-card">
                     <i class="bi bi-pencil-square"></i>
