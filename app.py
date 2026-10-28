@@ -247,20 +247,17 @@ def knec_result(avg):
 
 """
 ============================================================
-KNEC ANALYTICS WORKBOOK BUILDER
+KNEC ANALYTICS WORKBOOK BUILDER (OPTIMIZED)
 ============================================================
 """
 def _build_knec_analytics_workbook(db, course):
     """
     Build a multi-sheet KNEC analytics workbook for the given course.
 
-    Sheets:
-      - Student Summary   (per-student, per-semester averages + overall)
-      - Ranking           (sorted by overall average)
-      - Subject Stats     (mean, std dev, pass %, distinction %)
-      - Grade Distribution
-      - Raw Marks         (audit trail of every CAT1/CAT2/Final)
+    OPTIMIZED: Uses bulk queries + in-memory Python grouping to avoid
+    the "WORKER TIMEOUT" that happens when fetching marks one-by-one.
     """
+    # 1) Fetch students and semesters for the course
     students = (
         student_query(db).filter_by(course_id=course.id)
         .order_by(StudentProfile.full_name.asc()).all()
@@ -270,6 +267,33 @@ def _build_knec_analytics_workbook(db, course):
         .order_by(Semester.created_at.asc()).all()
     )
 
+    # 2) Fetch ALL subjects for this course — one query
+    all_subjects = (
+        subject_query(db).filter_by(course_id=course.id)
+        .order_by(Subject.name.asc()).all()
+    )
+    subject_by_id = {s.id: s for s in all_subjects}
+
+    # 3) Fetch ALL marks for these students — ONE query (no lazy loads)
+    student_ids = [s.id for s in students]
+    all_marks = []
+    if student_ids:
+        all_marks = (
+            db.query(KnecMark)
+            .filter(KnecMark.student_id.in_(student_ids))
+            .all()
+        )
+
+    # 4) Group marks in memory: {student_id: {semester_name: {subject_id: mark}}}
+    marks_by_student_sem = {}
+    for m in all_marks:
+        sem_obj = next((s for s in semesters if s.id == m.semester_id), None)
+        if not sem_obj:
+            continue
+        sem_name = sem_obj.name
+        marks_by_student_sem.setdefault(m.student_id, {}).setdefault(sem_name, {})[m.subject_id] = m
+
+    # 5) Build rows
     student_rows = []
     raw_rows = []
     subject_stats = {}  # subject_id -> list of totals
@@ -279,17 +303,13 @@ def _build_knec_analytics_workbook(db, course):
         overall_sum, overall_n = 0, 0
 
         for sem in semesters:
-            subjects = (
-                subject_query(db)
-                .filter_by(course_id=course.id, semester_id=sem.id).all()
-            )
+            sem_marks = marks_by_student_sem.get(s.id, {}).get(sem.name, {})
             sem_sum, sem_n = 0, 0
-            for subj in subjects:
-                m = db.query(KnecMark).filter_by(
-                    student_id=s.id, subject_id=subj.id, semester_id=sem.id
-                ).first()
-                if not m:
-                    continue
+
+            for subj_id, m in sem_marks.items():
+                subj = subject_by_id.get(subj_id)
+                subj_name = subj.name if subj else f"Subject #{subj_id}"
+
                 total = (m.cat1 or 0) + (m.cat2 or 0) + (m.final or 0)
                 sem_sum += total
                 sem_n += 1
@@ -300,13 +320,13 @@ def _build_knec_analytics_workbook(db, course):
                     "Admission No": s.admission_number,
                     "Student Name": s.full_name,
                     "Semester": sem.name,
-                    "Subject": subj.name,
+                    "Subject": subj_name,
                     "CAT1 (15)": m.cat1,
                     "CAT2 (15)": m.cat2,
                     "Final (70)": m.final,
                     "Total (100)": total,
                 })
-                subject_stats.setdefault(subj.id, []).append(total)
+                subject_stats.setdefault(subj_id, []).append(total)
 
             per_sem_avg[sem.name] = round(sem_sum / sem_n, 2) if sem_n else None
 
@@ -323,10 +343,10 @@ def _build_knec_analytics_workbook(db, course):
         row["Result"] = knec_result(overall_avg)
         student_rows.append(row)
 
-    # ---- Subject stats ----
+    # 6) Subject stats
     stat_rows = []
     for subj_id, totals in subject_stats.items():
-        subj = db.query(Subject).filter_by(id=subj_id).first()
+        subj = subject_by_id.get(subj_id)
         n = len(totals)
         mean = round(sum(totals) / n, 2) if n else 0
         variance = round(sum((x - mean) ** 2 for x in totals) / n, 2) if n else 0
@@ -342,14 +362,14 @@ def _build_knec_analytics_workbook(db, course):
         })
     stat_rows.sort(key=lambda r: r["Subject"])
 
-    # ---- Grade distribution ----
+    # 7) Grade distribution
     dist = defaultdict(int)
     for r in student_rows:
         if r["Result"]:
             dist[r["Result"]] += 1
     dist_rows = [{"Result": k, "Students": v} for k, v in dist.items()]
 
-    # ---- Ranking ----
+    # 8) Ranking
     ranked = sorted(
         [r for r in student_rows if r["Overall Average"] is not None],
         key=lambda r: r["Overall Average"], reverse=True,
@@ -365,7 +385,7 @@ def _build_knec_analytics_workbook(db, course):
             "Result": r["Result"],
         })
 
-    # ---- Write workbook ----
+    # 9) Write workbook
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:
         sheets = {
@@ -3332,7 +3352,8 @@ def admin_knec_analytics_export(course_id):
         )
     finally:
         db.close()
-        
+
+
 @app.route("/admin/analytics/knec", methods=["GET"])
 def admin_knec_analytics_picker():
     if session.get("role") != "admin":
@@ -3340,7 +3361,6 @@ def admin_knec_analytics_picker():
 
     db = SessionLocal()
     try:
-        # Only KNEC courses
         courses = (
             db.query(Course)
             .order_by(Course.name.asc())
@@ -3351,7 +3371,6 @@ def admin_knec_analytics_picker():
             if (c.assessment_type or "knec").strip().lower() == "knec"
         ]
 
-        # Enrich each course with quick stats for the cards
         course_rows = []
         for c in knec_courses:
             students_count = db.query(StudentProfile).filter_by(course_id=c.id).count()
