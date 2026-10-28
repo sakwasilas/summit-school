@@ -1598,6 +1598,196 @@ def delete_semester(semester_id):
     return redirect(url_for("manage_semesters"))
 
 
+# @app.route("/upload_exam", methods=["GET", "POST"])
+# def upload_exam():
+#     if session.get("role") != "admin":
+#         return redirect(url_for("login"))
+
+#     db = SessionLocal()
+#     try:
+#         courses = db.query(Course).all()
+#         subjects = subject_query(db).all()
+
+#         if request.method == "POST":
+#             title = request.form["title"].strip()
+#             course_id = int(request.form["course"])
+#             subject_id = int(request.form["subject"])
+#             duration = int(request.form.get("duration", 30))
+#             file = request.files.get("quiz_file")
+
+#             if not file or not allowed(file.filename, ALLOWED_EXAM_EXTENSIONS):
+#                 flash("❌ Upload a valid .docx file.", "danger")
+#                 return redirect(request.url)
+
+#             filename = secure_filename(file.filename)
+#             file_path = os.path.join(EXAMS_UPLOAD_FOLDER, filename)
+#             file.save(file_path)
+
+#             questions = parse_docx_questions(file_path, image_output_dir=QUESTION_IMAGES_FOLDER)
+#             if not questions:
+#                 flash("❌ No valid questions found.", "danger")
+#                 return redirect(request.url)
+
+#             quiz = Quiz(title=title, course_id=course_id, subject_id=subject_id,
+#                         duration=duration, status="active")
+#             db.add(quiz)
+#             db.commit()
+#             db.refresh(quiz)
+
+#             for q in questions:
+#                 db.add(Question(
+#                     quiz_id=quiz.id,
+#                     question_text=q.get("question", ""),
+#                     option_a=q.get("a", ""), option_b=q.get("b", ""),
+#                     option_c=q.get("c", ""), option_d=q.get("d", ""),
+#                     correct_option=q.get("answer", "").lower(),
+#                     marks=q.get("marks", 1),
+#                     extra_content=q.get("extra_content"),
+#                     image=q.get("image"),
+#                 ))
+#             db.commit()
+#             flash(f"✅ Uploaded quiz with {len(questions)} question(s).", "success")
+
+#             return render_template(
+#                 "admin/upload_exams.html",
+#                 courses=courses, subjects=subjects, uploaded_quiz_id=quiz.id,
+#             )
+
+#         return render_template("admin/upload_exams.html", courses=courses, subjects=subjects)
+#     finally:
+#         db.close()
+
+
+# @app.route("/admin/manage_quizzes", methods=["GET", "POST"])
+# def manage_quizzes():
+#     if session.get("role") != "admin":
+#         return redirect(url_for("login"))
+
+#     db = SessionLocal()
+#     try:
+#         if request.method == "POST":
+#             quiz_id = int(request.form.get("quiz_id"))
+#             action = request.form.get("action")
+
+#             quiz = db.query(Quiz).filter_by(id=quiz_id).first()
+#             if not quiz:
+#                 flash("Quiz not found.", "danger")
+#                 return redirect(url_for("manage_quizzes"))
+
+#             if action == "activate":
+#                 quiz.status = "active"
+#             elif action == "deactivate":
+#                 quiz.status = "inactive"
+
+#             db.commit()
+#             flash(f"Quiz '{quiz.title}' has been {quiz.status}.", "success")
+#             return redirect(url_for("manage_quizzes"))
+
+#         quizzes = quiz_query(db).all()
+#         return render_template("admin/manage_quizzes.html", quizzes=quizzes)
+#     finally:
+#         db.close()
+
+
+# @app.route("/admin/delete_quiz/<int:quiz_id>", methods=["POST"])
+# def delete_quiz(quiz_id):
+#     if session.get("role") != "admin":
+#         return redirect(url_for("login"))
+
+#     db = SessionLocal()
+#     try:
+#         quiz = db.query(Quiz).filter_by(id=quiz_id).first()
+#         if quiz:
+#             _delete_quiz_tree(db, quiz)
+#             db.commit()
+#             flash("Quiz deleted successfully.", "success")
+#         else:
+#             flash("Quiz not found.", "danger")
+#     except Exception as e:
+#         db.rollback()
+#         flash(f"Error deleting quiz: {str(e)}", "danger")
+#     finally:
+#         db.close()
+
+#     return redirect(url_for("manage_quizzes"))
+
+
+# @app.route("/admin/review_quiz/<int:quiz_id>", methods=["GET", "POST"])
+# def review_uploaded_quiz(quiz_id):
+#     if session.get("role") != "admin":
+#         return redirect(url_for("login"))
+
+#     db = SessionLocal()
+#     try:
+#         quiz = quiz_query(db).filter_by(id=quiz_id).first()
+#         if not quiz:
+#             flash("Quiz not found.", "danger")
+#             return redirect(url_for("upload_exam"))
+
+#         if request.method == "POST":
+#             action = request.form.get("action")
+#             if action == "delete":
+#                 _delete_quiz_tree(db, quiz)
+#                 db.commit()
+#                 flash("❌ Quiz deleted.", "warning")
+#                 return redirect(url_for("upload_exam"))
+#             elif action == "confirm":
+#                 flash("✅ Quiz confirmed and saved.", "success")
+#                 return redirect(url_for("upload_exam"))
+
+#         questions = db.query(Question).filter_by(quiz_id=quiz.id).all()
+#         return render_template("admin/review_uploaded_quiz.html", quiz=quiz, questions=questions)
+#     finally:
+#         db.close()
+
+
+# @app.route("/manage_students", methods=["GET", "POST"])
+# def manage_students():
+#     if session.get("role") != "admin":
+#         return redirect(url_for("login"))
+
+#     db = SessionLocal()
+#     try:
+#         if request.method == "POST":
+#             student_id = request.form.get("student_id")
+#             action = request.form.get("action")
+#             student = db.query(StudentProfile).filter_by(id=student_id).first()
+
+#             if action == "toggle_block" and student:
+#                 student.blocked = not student.blocked
+#                 db.commit()
+#             elif action == "delete" and student:
+#                 try:
+#                     _delete_student_tree(db, student)
+#                     db.commit()
+#                     flash("✅ Student deleted.", "success")
+#                 except Exception as e:
+#                     db.rollback()
+#                     flash(f"Error deleting student: {str(e)}", "danger")
+
+#             return redirect(url_for("manage_students"))
+
+#         search_query_str = request.args.get("search", "").strip()
+#         if search_query_str:
+#             students = (
+#                 student_query(db)
+#                 .filter(or_(
+#                     StudentProfile.full_name.ilike(f"%{search_query_str}%"),
+#                     StudentProfile.exam_type.ilike(f"%{search_query_str}%"),
+#                     StudentProfile.admission_number.ilike(f"%{search_query_str}%"),
+#                     StudentProfile.phone_number.ilike(f"%{search_query_str}%"),
+#                 ))
+#                 .all()
+#             )
+#         else:
+#             students = student_query(db).all()
+
+#         return render_template(
+#             "admin/manage_students.html",
+#             students=students, search_query=search_query_str,
+#         )
+#     finally:
+#         db.close()
 @app.route("/upload_exam", methods=["GET", "POST"])
 def upload_exam():
     if session.get("role") != "admin":
@@ -1605,9 +1795,6 @@ def upload_exam():
 
     db = SessionLocal()
     try:
-        courses = db.query(Course).all()
-        subjects = subject_query(db).all()
-
         if request.method == "POST":
             title = request.form["title"].strip()
             course_id = int(request.form["course"])
@@ -1617,26 +1804,40 @@ def upload_exam():
 
             if not file or not allowed(file.filename, ALLOWED_EXAM_EXTENSIONS):
                 flash("❌ Upload a valid .docx file.", "danger")
-                return redirect(request.url)
+                return redirect(url_for("upload_exam"))
 
             filename = secure_filename(file.filename)
             file_path = os.path.join(EXAMS_UPLOAD_FOLDER, filename)
             file.save(file_path)
 
-            questions = parse_docx_questions(file_path, image_output_dir=QUESTION_IMAGES_FOLDER)
+            # ═══ FREE THE FILE HANDLE IMMEDIATELY ═══
+            file.close()
+            del file
+
+            try:
+                questions = parse_docx_questions(
+                    file_path, image_output_dir=QUESTION_IMAGES_FOLDER
+                )
+            except Exception as parse_err:
+                flash(f"❌ Could not parse file: {parse_err}", "danger")
+                return redirect(url_for("upload_exam"))
+
             if not questions:
                 flash("❌ No valid questions found.", "danger")
-                return redirect(request.url)
+                return redirect(url_for("upload_exam"))
 
-            quiz = Quiz(title=title, course_id=course_id, subject_id=subject_id,
-                        duration=duration, status="active")
+            quiz = Quiz(
+                title=title, course_id=course_id, subject_id=subject_id,
+                duration=duration, status="active",
+            )
             db.add(quiz)
             db.commit()
             db.refresh(quiz)
+            quiz_id = quiz.id
 
             for q in questions:
                 db.add(Question(
-                    quiz_id=quiz.id,
+                    quiz_id=quiz_id,
                     question_text=q.get("question", ""),
                     option_a=q.get("a", ""), option_b=q.get("b", ""),
                     option_c=q.get("c", ""), option_d=q.get("d", ""),
@@ -1648,147 +1849,26 @@ def upload_exam():
             db.commit()
             flash(f"✅ Uploaded quiz with {len(questions)} question(s).", "success")
 
-            return render_template(
-                "admin/upload_exams.html",
-                courses=courses, subjects=subjects, uploaded_quiz_id=quiz.id,
-            )
+            # ═══ FREE MEMORY BEFORE THE DB SESSION CLOSES ═══
+            del questions
 
-        return render_template("admin/upload_exams.html", courses=courses, subjects=subjects)
-    finally:
-        db.close()
-
-
-@app.route("/admin/manage_quizzes", methods=["GET", "POST"])
-def manage_quizzes():
-    if session.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    db = SessionLocal()
-    try:
-        if request.method == "POST":
-            quiz_id = int(request.form.get("quiz_id"))
-            action = request.form.get("action")
-
-            quiz = db.query(Quiz).filter_by(id=quiz_id).first()
-            if not quiz:
-                flash("Quiz not found.", "danger")
-                return redirect(url_for("manage_quizzes"))
-
-            if action == "activate":
-                quiz.status = "active"
-            elif action == "deactivate":
-                quiz.status = "inactive"
-
-            db.commit()
-            flash(f"Quiz '{quiz.title}' has been {quiz.status}.", "success")
+            # ═══ Redirect instead of re-rendering (no giant context) ═══
             return redirect(url_for("manage_quizzes"))
 
-        quizzes = quiz_query(db).all()
-        return render_template("admin/manage_quizzes.html", quizzes=quizzes)
-    finally:
-        db.close()
-
-
-@app.route("/admin/delete_quiz/<int:quiz_id>", methods=["POST"])
-def delete_quiz(quiz_id):
-    if session.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    db = SessionLocal()
-    try:
-        quiz = db.query(Quiz).filter_by(id=quiz_id).first()
-        if quiz:
-            _delete_quiz_tree(db, quiz)
-            db.commit()
-            flash("Quiz deleted successfully.", "success")
-        else:
-            flash("Quiz not found.", "danger")
+        # ── GET branch (form) ──
+        courses = db.query(Course).all()
+        subjects = subject_query(db).all()
+        return render_template(
+            "admin/upload_exams.html", courses=courses, subjects=subjects
+        )
     except Exception as e:
         db.rollback()
-        flash(f"Error deleting quiz: {str(e)}", "danger")
+        import traceback
+        traceback.print_exc()
+        flash(f"❌ Upload failed: {e}", "danger")
+        return redirect(url_for("upload_exam"))
     finally:
         db.close()
-
-    return redirect(url_for("manage_quizzes"))
-
-
-@app.route("/admin/review_quiz/<int:quiz_id>", methods=["GET", "POST"])
-def review_uploaded_quiz(quiz_id):
-    if session.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    db = SessionLocal()
-    try:
-        quiz = quiz_query(db).filter_by(id=quiz_id).first()
-        if not quiz:
-            flash("Quiz not found.", "danger")
-            return redirect(url_for("upload_exam"))
-
-        if request.method == "POST":
-            action = request.form.get("action")
-            if action == "delete":
-                _delete_quiz_tree(db, quiz)
-                db.commit()
-                flash("❌ Quiz deleted.", "warning")
-                return redirect(url_for("upload_exam"))
-            elif action == "confirm":
-                flash("✅ Quiz confirmed and saved.", "success")
-                return redirect(url_for("upload_exam"))
-
-        questions = db.query(Question).filter_by(quiz_id=quiz.id).all()
-        return render_template("admin/review_uploaded_quiz.html", quiz=quiz, questions=questions)
-    finally:
-        db.close()
-
-
-@app.route("/manage_students", methods=["GET", "POST"])
-def manage_students():
-    if session.get("role") != "admin":
-        return redirect(url_for("login"))
-
-    db = SessionLocal()
-    try:
-        if request.method == "POST":
-            student_id = request.form.get("student_id")
-            action = request.form.get("action")
-            student = db.query(StudentProfile).filter_by(id=student_id).first()
-
-            if action == "toggle_block" and student:
-                student.blocked = not student.blocked
-                db.commit()
-            elif action == "delete" and student:
-                try:
-                    _delete_student_tree(db, student)
-                    db.commit()
-                    flash("✅ Student deleted.", "success")
-                except Exception as e:
-                    db.rollback()
-                    flash(f"Error deleting student: {str(e)}", "danger")
-
-            return redirect(url_for("manage_students"))
-
-        search_query_str = request.args.get("search", "").strip()
-        if search_query_str:
-            students = (
-                student_query(db)
-                .filter(or_(
-                    StudentProfile.full_name.ilike(f"%{search_query_str}%"),
-                    StudentProfile.exam_type.ilike(f"%{search_query_str}%"),
-                    StudentProfile.admission_number.ilike(f"%{search_query_str}%"),
-                    StudentProfile.phone_number.ilike(f"%{search_query_str}%"),
-                ))
-                .all()
-            )
-        else:
-            students = student_query(db).all()
-
-        return render_template(
-            "admin/manage_students.html",
-            students=students, search_query=search_query_str,
-        )
-    finally:
-        db.close()
-
 
 @app.route("/admin/students", methods=["GET", "POST"])
 def admin_all_students():
