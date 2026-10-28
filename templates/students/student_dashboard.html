@@ -314,17 +314,25 @@
 <body>
 <div class="page-wrap">
 
-<div class="container-fluid">
-    <div class="row">
-        <!-- SIDEBAR -->
-        <div class="col-md-2 sidebar d-flex flex-column">
-            <div class="sidebar-header text-center">
-              <img src="{{ url_for('static', filename='images/LOGO.jpg') }}" alt="SUMMIT LOGO" class="sb-logo">
-                <h6 class="text-white fw-bold mb-0">{{ department.name }}</h6>
-                <small class="text-white-50">HOD Panel</small>
+    <!-- ========================================================= -->
+    <!-- TOP BAR (replaces the old sidebar + loose buttons)        -->
+    <!-- ========================================================= -->
+    <div class="top-bar">
+        <div>
+            <h1>
+                <i class="bi bi-mortarboard-fill"></i>
+                {{ student_profile.full_name if student_profile else 'My Dashboard' }}
+            </h1>
+            <div class="sub">
+                {% if student_profile and student_profile.admission_number %}
+                    Admission No: {{ student_profile.admission_number }}
+                {% endif %}
+                {% if student_profile and student_profile.course %}
+                    &nbsp;·&nbsp; {{ student_profile.course.name }}
+                {% endif %}
             </div>
         </div>
-        <div>
+        <div class="d-flex gap-2 flex-wrap">
             <a href="{{ url_for('student_results') }}" class="btn btn-outline-primary fw-bold">
                 <i class="bi bi-clipboard-data"></i> My Results
             </a>
@@ -355,7 +363,7 @@
                     {% for quiz in row.quizzes %}
                         {% set ns.has_exams = true %}
                         {% set result = results_by_quiz.get(quiz.id) %}
-                        
+
                         <div class="exam-card {% if result %}completed{% endif %}">
                             <div>
                                 <span class="badge {% if result %}badge-done{% else %}badge-active{% endif %}">
@@ -367,11 +375,11 @@
                                     <i class="bi bi-clock"></i> {{ quiz.duration }} Minutes
                                 </div>
                             </div>
-                            
+
                             <div>
                                 {% if result %}
                                     <div class="badge-score">
-                                        <i class="bi bi-check-circle-fill"></i> 
+                                        <i class="bi bi-check-circle-fill"></i>
                                         Score: {{ result.score }} / {{ result.total_marks }}
                                     </div>
                                 {% else %}
@@ -385,7 +393,7 @@
                 {% endfor %}
             {% endfor %}
         </div>
-        
+
         {% if not ns.has_exams %}
         <div class="text-center text-muted py-5" style="background: white; border-radius: 12px; margin-bottom: 30px;">
             <i class="bi bi-inbox" style="font-size: 40px; color: #cbd5e1;"></i>
