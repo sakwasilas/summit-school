@@ -3332,6 +3332,52 @@ def admin_knec_analytics_export(course_id):
         )
     finally:
         db.close()
+        
+@app.route("/admin/analytics/knec", methods=["GET"])
+def admin_knec_analytics_picker():
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    db = SessionLocal()
+    try:
+        # Only KNEC courses
+        courses = (
+            db.query(Course)
+            .order_by(Course.name.asc())
+            .all()
+        )
+        knec_courses = [
+            c for c in courses
+            if (c.assessment_type or "knec").strip().lower() == "knec"
+        ]
+
+        # Enrich each course with quick stats for the cards
+        course_rows = []
+        for c in knec_courses:
+            students_count = db.query(StudentProfile).filter_by(course_id=c.id).count()
+            semesters_count = db.query(Semester).filter_by(course_id=c.id).count()
+            subjects_count = db.query(Subject).filter_by(course_id=c.id).count()
+            marks_count = (
+                db.query(KnecMark)
+                .join(StudentProfile, KnecMark.student_id == StudentProfile.id)
+                .filter(StudentProfile.course_id == c.id)
+                .count()
+            )
+            course_rows.append({
+                "course": c,
+                "students_count": students_count,
+                "semesters_count": semesters_count,
+                "subjects_count": subjects_count,
+                "marks_count": marks_count,
+            })
+
+        return render_template(
+            "admin/knec_analytics_picker.html",
+            course_rows=course_rows,
+            username=session.get("username"),
+        )
+    finally:
+        db.close()
 
 
 @app.route("/admin/reports/student/<int:student_id>/<int:semester_id>")
