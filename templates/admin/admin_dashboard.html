@@ -237,6 +237,13 @@
         }
         .action-card.knec i { color: #7c3aed; }
 
+        /* FILTERED REPORT cards (emerald accent) */
+        .action-card.filtered:hover {
+            border-color: #059669;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.18);
+        }
+        .action-card.filtered i { color: #059669; }
+
         .knec-btn {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 9px 14px;
@@ -349,6 +356,9 @@
             </a>
             <a href="{{ url_for('admin_reports_picker') }}" class="nav-link">
                 <i class="bi bi-file-earmark-bar-graph-fill"></i> Reports
+            </a>
+            <a href="{{ url_for('admin_filtered_report_export') }}" class="nav-link">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Filtered Report
             </a>
             <a href="{{ url_for('admin_knec_analytics_picker') }}" class="nav-link">
                 <i class="bi bi-bar-chart-line-fill"></i> KNEC Analytics
@@ -469,6 +479,11 @@
                     <div class="act-title">Reports</div>
                     <div class="act-desc">Generate and export class reports.</div>
                 </a>
+                <a href="{{ url_for('admin_filtered_report_export') }}" class="action-card filtered">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>
+                    <div class="act-title">Filtered Report</div>
+                    <div class="act-desc">Pick course + semester + module, export to Excel.</div>
+                </a>
                 <a href="{{ url_for('admin_knec_analytics_picker') }}" class="action-card knec">
                     <i class="bi bi-bar-chart-line-fill"></i>
                     <div class="act-title">KNEC Analytics</div>
@@ -488,6 +503,24 @@
                     <i class="bi bi-activity"></i>
                     <div class="act-title">Live Activity</div>
                     <div class="act-desc">See which students are taking exams now.</div>
+                </a>
+            </div>
+
+            <!-- FILTERED REPORT -->
+            <div class="section-head">
+                <i class="bi bi-file-earmark-spreadsheet" style="color:#059669;"></i> Filtered Report — Export by Course / Semester / Module
+            </div>
+            <div style="margin-bottom: 40px;">
+                <a href="{{ url_for('admin_filtered_report_export') }}"
+                   class="action-card filtered"
+                   style="max-width: 420px;">
+                    <i class="bi bi-funnel-fill"></i>
+                    <div class="act-title">Open Filtered Report</div>
+                    <div class="act-desc">
+                        Pick a course, semester, and optional module. Preview the results,
+                        then download a clean single-sheet Excel file with every student,
+                        subject, mark, and result — no more clutter.
+                    </div>
                 </a>
             </div>
 

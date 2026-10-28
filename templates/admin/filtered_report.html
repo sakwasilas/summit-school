@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Filtered Report — Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 30px;
+        }
+        .wrap { max-width: 1150px; margin: 0 auto; }
+        h1 { font-size: 24px; font-weight: 800; color: #0f1724; }
+        .subtitle { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+        .back-link { color: #475569; text-decoration: none; font-size: 13px; }
+        .back-link:hover { text-decoration: underline; }
+        .card-box {
+            background: white; border-radius: 14px; padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.05);
+            border: 1px solid #e2e8f0; margin-bottom: 20px;
+        }
+        .card-box h5 {
+            font-size: 16px; font-weight: 700; color: #0f1724;
+            margin-bottom: 4px; display: flex; align-items: center; gap: 8px;
+        }
+        .card-box h5 i { color: #1abc9c; }
+        .form-label {
+            font-size: 12px; font-weight: 600; color: #475569;
+            text-transform: uppercase; letter-spacing: .5px;
+        }
+        .btn-primary {
+            background: #1abc9c; border-color: #1abc9c; font-weight: 600;
+        }
+        .btn-primary:hover { background: #16a085; border-color: #16a085; }
+        .btn-export {
+            background: #7c3aed; border-color: #7c3aed; color: #fff; font-weight: 600;
+        }
+        .btn-export:hover { background: #6d28d9; border-color: #6d28d9; color: #fff; }
+        .btn-export:disabled { opacity: .5; }
+
+        .preview-table {
+            font-size: 12px; white-space: nowrap;
+        }
+        .preview-table th {
+            background: #f0f5f6; color: #475569; font-size: 10px;
+            text-transform: uppercase; letter-spacing: .5px;
+            font-weight: 700; border-bottom: 2px solid #e5e7eb;
+        }
+        .preview-table td { vertical-align: middle; }
+        .result-badge {
+            font-size: 10px; font-weight: 700; padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .result-distinction { background: #ecfdf5; color: #059669; }
+        .result-credit      { background: #eff6ff; color: #2563eb; }
+        .result-pass        { background: #fffbeb; color: #b45309; }
+        .result-fail        { background: #fef2f2; color: #b91c1c; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <a href="{{ url_for('admin_dashboard') }}" class="back-link">
+        <i class="bi bi-arrow-left"></i> Back to dashboard
+    </a>
+    <h1 class="mt-3"><i class="bi bi-file-earmark-spreadsheet"></i> Filtered Report</h1>
+    <p class="subtitle">
+        Pick a <strong>Course</strong>, <strong>Semester</strong>, and optionally a
+        <strong>Module</strong>, then export the results to Excel.
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+            <div class="alert alert-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <form method="GET" action="{{ url_for('admin_filtered_report_export') }}">
+        <div class="card-box">
+            <h5><i class="bi bi-funnel"></i> Filters</h5>
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <label class="form-label">Course</label>
+                    <select name="course_id" id="courseSelect" class="form-select" required>
+                        <option value="">— choose course —</option>
+                        {% for c in courses %}
+                            <option value="{{ c.id }}"
+                                {% if selected_course and selected_course.id == c.id %}selected{% endif %}>
+                                {{ c.name }} ({{ c.level }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Semester</label>
+                    <select name="semester_id" id="semesterSelect" class="form-select" required>
+                        <option value="">— choose course first —</option>
+                        {% for sem in semesters %}
+                            <option value="{{ sem.id }}" data-course="{{ sem.course_id }}"
+                                {% if selected_semester and selected_semester.id == sem.id %}selected{% endif %}>
+                                {{ sem.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Module (optional)</label>
+                    <select name="module_id" id="moduleSelect" class="form-select">
+                        <option value="">— all modules —</option>
+                        {% for mod in modules %}
+                            <option value="{{ mod.id }}" data-course="{{ mod.course_id }}"
+                                {% if selected_module and selected_module.id == mod.id %}selected{% endif %}>
+                                {{ mod.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-3 d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-eye"></i> Preview
+                </button>
+                <button type="submit" name="export" value="true"
+                        class="btn btn-export"
+                        {% if not report_rows %}disabled{% endif %}>
+                    <i class="bi bi-download"></i> Export to Excel
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {% if report_rows %}
+        <div class="card-box">
+            <h5>
+                <i class="bi bi-table"></i> Preview
+                <span class="text-muted small ms-auto" style="font-size: 12px;">
+                    {{ report_rows|length }} row(s)
+                </span>
+            </h5>
+
+            <div class="table-responsive mt-3" style="max-height: 480px; overflow-y: auto;">
+                <table class="table preview-table mb-0">
+                    <thead>
+                        <tr>
+                            {% for key in report_rows[0].keys() %}
+                                <th>{{ key }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in report_rows %}
+                            <tr>
+                                {% for value in row.values() %}
+                                    <td>
+                                        {% if loop.last and value in ['DISTINCTION','CREDIT','PASS','FAIL','REFER'] %}
+                                            <span class="result-badge
+                                                {% if value == 'DISTINCTION' %}result-distinction
+                                                {% elif value == 'CREDIT' %}result-credit
+                                                {% elif value == 'PASS' %}result-pass
+                                                {% else %}result-fail{% endif %}">
+                                                {{ value }}
+                                            </span>
+                                        {% else %}
+                                            {{ value }}
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% elif selected_course and selected_semester %}
+        <div class="alert alert-info">
+            No marks found for that selection. Try a different course, semester, or module.
+        </div>
+    {% endif %}
+
+</div>
+
+<script>
+    const courseSelect   = document.getElementById('courseSelect');
+    const semesterSelect = document.getElementById('semesterSelect');
+    const moduleSelect   = document.getElementById('moduleSelect');
+
+    function filterDropdown(selectEl, courseId) {
+        const allOpts = Array.from(selectEl.querySelectorAll('option[data-course]'));
+        allOpts.forEach(o => o.remove());
+
+        if (!courseId) {
+            selectEl.value = '';
+            return;
+        }
+        const matching = allOpts.filter(o => o.dataset.course === String(courseId));
+        matching.forEach(o => selectEl.appendChild(o));
+    }
+
+    courseSelect.addEventListener('change', function () {
+        filterDropdown(semesterSelect, this.value);
+        filterDropdown(moduleSelect, this.value);
+        semesterSelect.value = '';
+        moduleSelect.value = '';
+    });
+
+    if (courseSelect.value) {
+        filterDropdown(semesterSelect, courseSelect.value);
+        filterDropdown(moduleSelect, courseSelect.value);
+    }
+</script>
+</body>
+</html>
