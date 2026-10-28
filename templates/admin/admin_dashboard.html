@@ -230,6 +230,25 @@
         .action-card .act-title { font-weight: 700; font-size: 14px; }
         .action-card .act-desc { font-size: 12px; color: #64748b; line-height: 1.4; }
 
+        /* KNEC ANALYTICS cards (purple accent) */
+        .action-card.knec:hover {
+            border-color: #7c3aed;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18);
+        }
+        .action-card.knec i { color: #7c3aed; }
+
+        .knec-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 9px 14px;
+            background: #7c3aed; color: #fff;
+            border-radius: 9px;
+            font-size: 13px; font-weight: 700;
+            text-decoration: none;
+            transition: all .15s;
+        }
+        .knec-btn:hover { background: #6d28d9; color: #fff; }
+        .knec-btn.disabled { opacity: .55; pointer-events: none; }
+
         /* DEPARTMENTS */
         .dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
         .dept-card {
@@ -330,6 +349,9 @@
             </a>
             <a href="{{ url_for('admin_reports_picker') }}" class="nav-link">
                 <i class="bi bi-file-earmark-bar-graph-fill"></i> Reports
+            </a>
+            <a href="{{ url_for('admin_knec_analytics_picker') }}" class="nav-link">
+                <i class="bi bi-bar-chart-line-fill"></i> KNEC Analytics
             </a>
             <a href="{{ url_for('view_results') }}" class="nav-link">
                 <i class="bi bi-bar-chart-fill"></i> Quiz Results
@@ -447,6 +469,11 @@
                     <div class="act-title">Reports</div>
                     <div class="act-desc">Generate and export class reports.</div>
                 </a>
+                <a href="{{ url_for('admin_knec_analytics_picker') }}" class="action-card knec">
+                    <i class="bi bi-bar-chart-line-fill"></i>
+                    <div class="act-title">KNEC Analytics</div>
+                    <div class="act-desc">Download multi-sheet Excel analytics per KNEC course.</div>
+                </a>
                 <a href="{{ url_for('show_credentials') }}" class="action-card">
                     <i class="bi bi-key-fill"></i>
                     <div class="act-title">View Credentials</div>
@@ -462,6 +489,37 @@
                     <div class="act-title">Live Activity</div>
                     <div class="act-desc">See which students are taking exams now.</div>
                 </a>
+            </div>
+
+            <!-- KNEC ANALYTICS DOWNLOAD -->
+            <div class="section-head">
+                <i class="bi bi-bar-chart-line-fill" style="color:#7c3aed;"></i> KNEC Analytics — Download by Course
+            </div>
+            <div class="actions-grid">
+                {% set knec_courses = [] %}
+                {% for c in courses %}
+                    {% if (c.assessment_type or 'knec')|lower == 'knec' %}
+                        {% set _ = knec_courses.append(c) %}
+                    {% endif %}
+                {% endfor %}
+
+                {% if knec_courses %}
+                    {% for c in knec_courses %}
+                    <a href="{{ url_for('admin_knec_analytics_export', course_id=c.id) }}"
+                       class="action-card knec">
+                        <i class="bi bi-download"></i>
+                        <div class="act-title">{{ c.name }}</div>
+                        <div class="act-desc">
+                            {{ c.level or 'KNEC' }} — click to download the multi-sheet analytics workbook.
+                        </div>
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info w-100 mb-0">
+                        No KNEC courses found. Add or edit a course and set its assessment type to
+                        <strong>KNEC</strong> to see analytics here.
+                    </div>
+                {% endif %}
             </div>
 
             <!-- DEPARTMENTS BREAKDOWN -->
