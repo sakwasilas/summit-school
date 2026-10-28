@@ -18,6 +18,8 @@
             --text: #293b48;
             --muted: #6b7c87;
             --border: #e1e8ec;
+            --purple: #7c3aed;
+            --purple-light: #ede9fe;
         }
 
         * { box-sizing: border-box; }
@@ -274,6 +276,7 @@
         .wf-num.green { background: var(--teal); }
         .wf-num.amber { background: #b98127; }
         .wf-num.red { background: #647c8b; }
+        .wf-num.purple { background: var(--purple); }
 
         .wf-head h2 {
             margin: 0;
@@ -550,6 +553,16 @@
         .mini-btn.ghost:hover {
             background: #dfe8eb;
             color: var(--navy);
+        }
+
+        .mini-btn.purple {
+            background: var(--purple-light);
+            color: var(--purple);
+        }
+
+        .mini-btn.purple:hover {
+            background: var(--purple);
+            color: white;
         }
 
         .wf-footer {
@@ -1029,6 +1042,10 @@
 
             <a href="{{ url_for('hod_all_students') }}" class="sb-link">
                 <i class="bi bi-person-lines-fill"></i> All Students
+            </a>
+
+            <a href="{{ url_for('hod_add_student') }}" class="sb-link">
+                <i class="bi bi-person-plus"></i> Add Student
             </a>
 
             <a href="{{ url_for('hod_students_upload') }}" class="sb-link">
