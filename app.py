@@ -1942,12 +1942,31 @@ def admin_add_student():
             if errors:
                 for e in errors:
                     flash(f"❌ {e}", "danger")
+
+                # ── C2: repopulate dependent dropdowns for the re-render ──
+                error_course_id = request.form.get("course_id", type=int)
+                error_semesters = []
+                error_modules = []
+                if error_course_id:
+                    error_semesters = (
+                        db.query(Semester)
+                        .filter_by(course_id=error_course_id)
+                        .order_by(Semester.created_at.asc())
+                        .all()
+                    )
+                    error_modules = (
+                        db.query(Module)
+                        .filter_by(course_id=error_course_id)
+                        .order_by(Module.order.asc(), Module.name.asc())
+                        .all()
+                    )
+
                 return render_template(
                     "admin/add_student.html",
                     departments=departments,
                     courses=courses,
-                    semesters=[],
-                    modules=[],
+                    semesters=error_semesters,
+                    modules=error_modules,
                     form=request.form,
                     errors=errors,
                     error_fields=_error_fields_from(errors),
@@ -1965,7 +1984,6 @@ def admin_add_student():
                 phone=data["phone"],
                 username=data["username"],
                 password=data["password"],
-                # Admin is not department-scoped → omit strict_department_id
             )
 
             if not ok:
@@ -1987,7 +2005,7 @@ def admin_add_student():
             flash(f"✅ {msg}", "success")
             return redirect(url_for("admin_all_students"))
 
-        # GET branch
+        # ── GET branch ──
         return render_template(
             "admin/add_student.html",
             departments=departments,
@@ -4298,14 +4316,39 @@ def hod_add_student():
             data, errors = _validate_new_student_form(
                 db, request.form, department_id=department_id
             )
+
             if errors:
                 for e in errors:
                     flash(f"❌ {e}", "danger")
+
+                # ── C2: repopulate dependent dropdowns for the re-render ──
+                error_course_id = request.form.get("course_id", type=int)
+                error_semesters = []
+                error_modules = []
+                if error_course_id:
+                    error_semesters = (
+                        db.query(Semester)
+                        .filter_by(course_id=error_course_id)
+                        .order_by(Semester.created_at.asc())
+                        .all()
+                    )
+                    error_modules = (
+                        db.query(Module)
+                        .filter_by(course_id=error_course_id)
+                        .order_by(Module.order.asc(), Module.name.asc())
+                        .all()
+                    )
+
                 return render_template(
                     "hod/add_student.html",
-                    department=department, hod_name=session.get("username"),
-                    courses=courses, semesters=[], modules=[], form=request.form,
-                    errors=errors, error_fields=_error_fields_from(errors),
+                    department=department,
+                    hod_name=session.get("username"),
+                    courses=courses,
+                    semesters=error_semesters,
+                    modules=error_modules,
+                    form=request.form,
+                    errors=errors,
+                    error_fields=_error_fields_from(errors),
                 )
 
             ok, msg, _ = _create_single_student(
@@ -4317,39 +4360,53 @@ def hod_add_student():
                 password=data["password"],
                 strict_department_id=department_id,
             )
+
             if not ok:
                 db.rollback()
                 flash(f"❌ {msg}", "danger")
                 return render_template(
                     "hod/add_student.html",
-                    department=department, hod_name=session.get("username"),
-                    courses=courses, semesters=[], modules=[], form=request.form,
-                    errors=[msg], error_fields=set(),
+                    department=department,
+                    hod_name=session.get("username"),
+                    courses=courses,
+                    semesters=[],
+                    modules=[],
+                    form=request.form,
+                    errors=[msg],
+                    error_fields=set(),
                 )
 
             db.commit()
             flash(f"✅ {msg}", "success")
             return redirect(url_for("hod_students_list"))
 
+        # ── GET branch ──
         return render_template(
             "hod/add_student.html",
-            department=department, hod_name=session.get("username"),
-            courses=courses, semesters=[], modules=[], form={},
-            errors=[], error_fields=set(),
+            department=department,
+            hod_name=session.get("username"),
+            courses=courses,
+            semesters=[],
+            modules=[],
+            form={},
+            errors=[],
+            error_fields=set(),
         )
+
     except IntegrityError as e:
         db.rollback()
-        import traceback; traceback.print_exc()
+        traceback.print_exc()
         flash(f"❌ {_translate_db_error(e)}", "danger")
         return redirect(url_for("hod_add_student"))
-    except Exception as e:
+
+    except Exception:
         db.rollback()
-        import traceback; traceback.print_exc()
+        traceback.print_exc()
         flash("❌ An unexpected error occurred. Please try again.", "danger")
         return redirect(url_for("hod_add_student"))
+
     finally:
         db.close()
-
 
 @app.route("/hod/students/upload/template")
 def hod_students_template():

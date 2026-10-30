@@ -65,11 +65,9 @@
           <label class="form-label">Semester</label>
           <select id="semester" name="semester_id" class="form-select {% if 'semester_id' in error_fields %}is-invalid{% endif %}">
             <option value="">-- (defaults to current) --</option>
-            <!-- Populated via JS -->
-            {% if form.get('semester_id') %}
-               <!-- We need a placeholder to keep the value if validation fails -->
-               <option value="{{ form.get('semester_id') }}" selected>Loading...</option>
-            {% endif %}
+            {% for s in semesters %}
+              <option value="{{ s.id }}" {% if form.get('semester_id') == s.id|string %}selected{% endif %}>{{ s.name }}</option>
+            {% endfor %}
           </select>
         </div>
       </div>
@@ -79,10 +77,9 @@
           <label class="form-label">Module</label>
           <select id="module" name="module" class="form-select {% if 'module' in error_fields %}is-invalid{% endif %}">
             <option value="">-- None --</option>
-            <!-- Populated via JS -->
-            {% if form.get('module') %}
-               <option value="{{ form.get('module') }}" selected>{{ form.get('module') }}</option>
-            {% endif %}
+            {% for m in modules %}
+              <option value="{{ m.name }}" {% if form.get('module') == m.name %}selected{% endif %}>{{ m.name }}</option>
+            {% endfor %}
           </select>
         </div>
         <div class="col-md-6">
@@ -114,7 +111,6 @@
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Phone Number</label>
-          <!-- Note: Removed type="number" so it accepts + and spaces -->
           <input type="text" name="phone_number" class="form-control {% if 'phone_number' in error_fields %}is-invalid{% endif %}" value="{{ form.get('phone_number', '') }}">
         </div>
       </div>
@@ -161,13 +157,12 @@
 
   courseSel.addEventListener('change', () => {
     const cId = courseSel.value;
-    
-    // Clear previous options
+
     semSel.innerHTML = '<option value="">-- (defaults to current) --</option>';
     modSel.innerHTML = '<option value="">-- None --</option>';
-    
+
     refreshExamTypeDefault();
-    
+
     if (!cId) return;
 
     Promise.all([
@@ -187,10 +182,8 @@
     });
   });
 
-  // Trigger on page load if a course was already selected (e.g., after an error)
-  if (courseSel.value) {
-    courseSel.dispatchEvent(new Event('change'));
-  }
+  // No auto-dispatch — server pre-populates semesters & modules on error re-render.
+  // The dropdowns only refresh when the user actively changes the course.
 </script>
 </body>
 </html>

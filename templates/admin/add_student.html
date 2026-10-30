@@ -19,7 +19,7 @@
   <div><strong>Admin</strong> — {{ username }}</div>
   <div>
     <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
-    <a href="{{ url_for('manage_students') }}">Students</a>
+    <a href="{{ url_for('admin_all_students') }}">Students</a>
     <a href="{{ url_for('logout') }}">Logout</a>
   </div>
 </div>
@@ -30,7 +30,7 @@
     <h3 class="mb-0">Add Single Student</h3>
     <div>
       <a href="{{ url_for('admin_students_upload') }}" class="btn btn-outline-secondary btn-sm">Bulk Upload</a>
-      <a href="{{ url_for('manage_students') }}" class="btn btn-outline-primary btn-sm">Back to Students</a>
+      <a href="{{ url_for('admin_all_students') }}" class="btn btn-outline-primary btn-sm">Back to Students</a>
     </div>
   </div>
 
@@ -50,7 +50,8 @@
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Course *</label>
-          <select id="course" name="course_id" class="form-select" required>
+          <select id="course" name="course_id"
+                  class="form-select {% if 'course_id' in error_fields %}is-invalid{% endif %}" required>
             <option value="">-- Select Course --</option>
             {% for c in courses %}
               <option value="{{ c.id }}"
@@ -63,7 +64,8 @@
         </div>
         <div class="col-md-6">
           <label class="form-label">Semester</label>
-          <select id="semester" name="semester_id" class="form-select">
+          <select id="semester" name="semester_id"
+                  class="form-select {% if 'semester_id' in error_fields %}is-invalid{% endif %}">
             <option value="">-- (defaults to current) --</option>
             {% for s in semesters %}
               <option value="{{ s.id }}" {% if form.semester_id == s.id|string %}selected{% endif %}>{{ s.name }}</option>
@@ -75,7 +77,8 @@
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Module</label>
-          <select id="module" name="module" class="form-select">
+          <select id="module" name="module"
+                  class="form-select {% if 'module' in error_fields %}is-invalid{% endif %}">
             <option value="">-- None --</option>
             {% for m in modules %}
               <option value="{{ m.name }}" {% if form.module == m.name %}selected{% endif %}>{{ m.name }}</option>
@@ -84,7 +87,8 @@
         </div>
         <div class="col-md-6">
           <label class="form-label">Exam Type *</label>
-          <select id="exam_type" name="exam_type" class="form-select" required>
+          <select id="exam_type" name="exam_type"
+                  class="form-select {% if 'exam_type' in error_fields %}is-invalid{% endif %}" required>
             <option value="knec" {% if form.exam_type == 'knec' %}selected{% endif %}>KNEC</option>
             <option value="internal" {% if form.exam_type == 'internal' %}selected{% endif %}>Internal</option>
           </select>
@@ -98,18 +102,24 @@
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Full Name *</label>
-          <input type="text" name="full_name" class="form-control" value="{{ form.full_name or '' }}" required>
+          <input type="text" name="full_name"
+                 class="form-control {% if 'full_name' in error_fields %}is-invalid{% endif %}"
+                 value="{{ form.full_name or '' }}" required>
         </div>
         <div class="col-md-6">
           <label class="form-label">Admission Number *</label>
-          <input type="text" name="admission_number" class="form-control" value="{{ form.admission_number or '' }}" required>
+          <input type="text" name="admission_number"
+                 class="form-control {% if 'admission_number' in error_fields %}is-invalid{% endif %}"
+                 value="{{ form.admission_number or '' }}" required>
         </div>
       </div>
 
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Phone Number</label>
-          <input type="text" name="phone_number" class="form-control" value="{{ form.phone_number or '' }}">
+          <input type="text" name="phone_number"
+                 class="form-control {% if 'phone_number' in error_fields %}is-invalid{% endif %}"
+                 value="{{ form.phone_number or '' }}">
         </div>
       </div>
 
@@ -120,11 +130,15 @@
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           <label class="form-label">Username</label>
-          <input type="text" name="username" class="form-control" value="{{ form.username or '' }}" placeholder="(auto from admission no.)">
+          <input type="text" name="username"
+                 class="form-control {% if 'username' in error_fields %}is-invalid{% endif %}"
+                 value="{{ form.username or '' }}" placeholder="(auto from admission no.)">
         </div>
         <div class="col-md-6">
           <label class="form-label">Password</label>
-          <input type="text" name="password" class="form-control" value="{{ form.password or '' }}" placeholder="(defaults to admission no.)">
+          <input type="text" name="password"
+                 class="form-control {% if 'password' in error_fields %}is-invalid{% endif %}"
+                 value="{{ form.password or '' }}" placeholder="(defaults to admission no.)">
         </div>
       </div>
 
@@ -175,10 +189,7 @@
     });
   });
 
-  // If a course was already selected after a validation error
-  if (courseSel.value) {
-    courseSel.dispatchEvent(new Event('change'));
-  }
+  // No auto-dispatch — server pre-populates dropdowns on validation-error re-render.
 </script>
 </body>
 </html>
