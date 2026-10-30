@@ -1926,7 +1926,6 @@ def admin_all_students():
     finally:
         db.close()
 
-
 @app.route("/admin/students/add", methods=["GET", "POST"])
 def admin_add_student():
     if session.get("role") != "admin":
@@ -1939,59 +1938,83 @@ def admin_add_student():
 
         if request.method == "POST":
             data, errors = _validate_new_student_form(db, request.form)
+
             if errors:
                 for e in errors:
                     flash(f"❌ {e}", "danger")
                 return render_template(
                     "admin/add_student.html",
-                    departments=departments, courses=courses,
-                    semesters=[], modules=[], form=request.form,
-                    errors=errors, error_fields=_error_fields_from(errors),
+                    departments=departments,
+                    courses=courses,
+                    semesters=[],
+                    modules=[],
+                    form=request.form,
+                    errors=errors,
+                    error_fields=_error_fields_from(errors),
                     username=session.get("username"),
                 )
 
             ok, msg, _ = _create_single_student(
                 db,
-                full_name=data["full_name"], admission=data["admission"],
-                course=data["course"], exam_type=data["exam_type"],
-                semester_id=data["semester_id"], module_obj=data["module_obj"],
-                phone=data["phone"], username=data["username"],
+                full_name=data["full_name"],
+                admission=data["admission"],
+                course=data["course"],
+                exam_type=data["exam_type"],
+                semester_id=data["semester_id"],
+                module_obj=data["module_obj"],
+                phone=data["phone"],
+                username=data["username"],
                 password=data["password"],
+                # Admin is not department-scoped → omit strict_department_id
             )
+
             if not ok:
                 db.rollback()
                 flash(f"❌ {msg}", "danger")
                 return render_template(
                     "admin/add_student.html",
-                    departments=departments, courses=courses,
-                    semesters=[], modules=[], form=request.form,
-                    errors=[msg], error_fields=set(),
+                    departments=departments,
+                    courses=courses,
+                    semesters=[],
+                    modules=[],
+                    form=request.form,
+                    errors=[msg],
+                    error_fields=set(),
                     username=session.get("username"),
                 )
 
             db.commit()
             flash(f"✅ {msg}", "success")
-            return redirect(url_for("manage_students"))
+            return redirect(url_for("admin_all_students"))
 
+        # GET branch
         return render_template(
             "admin/add_student.html",
-            departments=departments, courses=courses,
-            semesters=[], modules=[], form={},
-            errors=[], error_fields=set(),
+            departments=departments,
+            courses=courses,
+            semesters=[],
+            modules=[],
+            form={},
+            errors=[],
+            error_fields=set(),
             username=session.get("username"),
         )
+
     except IntegrityError as e:
         db.rollback()
-        import traceback; traceback.print_exc()
+        traceback.print_exc()
         flash(f"❌ {_translate_db_error(e)}", "danger")
         return redirect(url_for("admin_add_student"))
-    except Exception as e:
+
+    except Exception:
         db.rollback()
-        import traceback; traceback.print_exc()
+        traceback.print_exc()
         flash("❌ An unexpected error occurred. Please try again.", "danger")
         return redirect(url_for("admin_add_student"))
+
     finally:
         db.close()
+
 
 
 @app.route("/admin/student/<int:student_id>/edit", methods=["GET", "POST"])
