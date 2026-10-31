@@ -539,37 +539,6 @@
                 </a>
             </div>
 
-            <!-- KNEC ANALYTICS DOWNLOAD -->
-            <div class="section-head">
-                <i class="bi bi-bar-chart-line-fill" style="color:#7c3aed;"></i> KNEC Analytics — Download by Course
-            </div>
-            <div class="actions-grid">
-                {% set knec_courses = [] %}
-                {% for c in courses %}
-                    {% if (c.assessment_type or 'knec')|lower == 'knec' %}
-                        {% set _ = knec_courses.append(c) %}
-                    {% endif %}
-                {% endfor %}
-
-                {% if knec_courses %}
-                    {% for c in knec_courses %}
-                    <a href="{{ url_for('admin_knec_analytics_export', course_id=c.id) }}"
-                       class="action-card knec">
-                        <i class="bi bi-download"></i>
-                        <div class="act-title">{{ c.name }}</div>
-                        <div class="act-desc">
-                            {{ c.level or 'KNEC' }} — click to download the multi-sheet analytics workbook.
-                        </div>
-                    </a>
-                    {% endfor %}
-                {% else %}
-                    <div class="alert alert-info w-100 mb-0">
-                        No KNEC courses found. Add or edit a course and set its assessment type to
-                        <strong>KNEC</strong> to see analytics here.
-                    </div>
-                {% endif %}
-            </div>
-
             <!-- DEPARTMENTS BREAKDOWN -->
             <div class="section-head">
                 <i class="bi bi-building"></i> Departments Breakdown
