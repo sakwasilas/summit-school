@@ -1659,7 +1659,7 @@ def delete_semester(semester_id):
 #         db.close()
 
 
- @app.route("/admin/manage_quizzes", methods=["GET", "POST"])
+@app.route("/admin/manage_quizzes", methods=["GET", "POST"])
 def manage_quizzes():
     if session.get("role") != "admin":
         return redirect(url_for("login"))
@@ -1789,87 +1789,8 @@ def review_uploaded_quiz(quiz_id):
 #         )
 #     finally:
 #         db.close()
-@app.route("/upload_exam", methods=["GET", "POST"])
-def upload_exam():
-    if session.get("role") != "admin":
-        return redirect(url_for("login"))
 
-    db = SessionLocal()
-    try:
-        if request.method == "POST":
-            title = request.form["title"].strip()
-            course_id = int(request.form["course"])
-            subject_id = int(request.form["subject"])
-            duration = int(request.form.get("duration", 30))
-            file = request.files.get("quiz_file")
 
-            if not file or not allowed(file.filename, ALLOWED_EXAM_EXTENSIONS):
-                flash("❌ Upload a valid .docx file.", "danger")
-                return redirect(url_for("upload_exam"))
-
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(EXAMS_UPLOAD_FOLDER, filename)
-            file.save(file_path)
-
-            # ═══ FREE THE FILE HANDLE IMMEDIATELY ═══
-            file.close()
-            del file
-
-            try:
-                questions = parse_docx_questions(
-                    file_path, image_output_dir=QUESTION_IMAGES_FOLDER
-                )
-            except Exception as parse_err:
-                flash(f"❌ Could not parse file: {parse_err}", "danger")
-                return redirect(url_for("upload_exam"))
-
-            if not questions:
-                flash("❌ No valid questions found.", "danger")
-                return redirect(url_for("upload_exam"))
-
-            quiz = Quiz(
-                title=title, course_id=course_id, subject_id=subject_id,
-                duration=duration, status="active",
-            )
-            db.add(quiz)
-            db.commit()
-            db.refresh(quiz)
-            quiz_id = quiz.id
-
-            for q in questions:
-                db.add(Question(
-                    quiz_id=quiz_id,
-                    question_text=q.get("question", ""),
-                    option_a=q.get("a", ""), option_b=q.get("b", ""),
-                    option_c=q.get("c", ""), option_d=q.get("d", ""),
-                    correct_option=q.get("answer", "").lower(),
-                    marks=q.get("marks", 1),
-                    extra_content=q.get("extra_content"),
-                    image=q.get("image"),
-                ))
-            db.commit()
-            flash(f"✅ Uploaded quiz with {len(questions)} question(s).", "success")
-
-            # ═══ FREE MEMORY BEFORE THE DB SESSION CLOSES ═══
-            del questions
-
-            # ═══ Redirect instead of re-rendering (no giant context) ═══
-            return redirect(url_for("manage_quizzes"))
-
-        # ── GET branch (form) ──
-        courses = db.query(Course).all()
-        subjects = subject_query(db).all()
-        return render_template(
-            "admin/upload_exams.html", courses=courses, subjects=subjects
-        )
-    except Exception as e:
-        db.rollback()
-        import traceback
-        traceback.print_exc()
-        flash(f"❌ Upload failed: {e}", "danger")
-        return redirect(url_for("upload_exam"))
-    finally:
-        db.close()
 
 @app.route("/admin/students", methods=["GET", "POST"])
 def admin_all_students():
