@@ -119,7 +119,7 @@
         }
         .step-banner strong { color: #1e40af; }
 
-        /* PICKER FORM — now four columns */
+        /* PICKER FORM */
         .picker-card {
             background: white;
             padding: 20px 24px;
@@ -129,7 +129,7 @@
         }
         .picker-grid {
             display: grid;
-            grid-template-columns: 2.2fr 1.8fr 1.4fr auto;   /* Course / Semester / Module / Refresh */
+            grid-template-columns: 2.2fr 1.8fr 1.4fr auto;
             gap: 14px;
             align-items: end;
         }
@@ -266,7 +266,8 @@
 <body>
 <div class="page-wrap">
 
-    <a href="{{ url_for('hod_dashboard') }}" class="back-link">
+    {# ── Role-aware back link ── #}
+    <a href="{{ url_for('hod_dashboard' if hod_mode else 'admin_dashboard') }}" class="back-link">
         <i class="bi bi-arrow-left"></i> Back to dashboard
     </a>
 
@@ -404,7 +405,8 @@
                         {% endif %}
                     </td>
                     <td style="text-align:center;">
-                        <a href="{{ url_for('hod_enter_marks', subject_id=subj.id, semester_id=semester.id) }}"
+                        {# ── Role-aware "Enter Marks" link ── #}
+                        <a href="{{ url_for('hod_enter_marks' if hod_mode else 'admin_enter_marks', subject_id=subj.id, semester_id=semester.id) }}"
                            class="act-btn act-enter">
                             <i class="bi bi-pencil-square"></i> Enter Marks
                         </a>
