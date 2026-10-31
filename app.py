@@ -6,6 +6,7 @@ IMPORTS
 import os
 import io
 import re
+import traceback
 from collections import namedtuple, defaultdict
 from datetime import datetime
 
@@ -1658,87 +1659,87 @@ def delete_semester(semester_id):
 #         db.close()
 
 
-# @app.route("/admin/manage_quizzes", methods=["GET", "POST"])
-# def manage_quizzes():
-#     if session.get("role") != "admin":
-#         return redirect(url_for("login"))
+ @app.route("/admin/manage_quizzes", methods=["GET", "POST"])
+def manage_quizzes():
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
 
-#     db = SessionLocal()
-#     try:
-#         if request.method == "POST":
-#             quiz_id = int(request.form.get("quiz_id"))
-#             action = request.form.get("action")
+    db = SessionLocal()
+    try:
+        if request.method == "POST":
+            quiz_id = int(request.form.get("quiz_id"))
+            action = request.form.get("action")
 
-#             quiz = db.query(Quiz).filter_by(id=quiz_id).first()
-#             if not quiz:
-#                 flash("Quiz not found.", "danger")
-#                 return redirect(url_for("manage_quizzes"))
+            quiz = db.query(Quiz).filter_by(id=quiz_id).first()
+            if not quiz:
+                flash("Quiz not found.", "danger")
+                return redirect(url_for("manage_quizzes"))
 
-#             if action == "activate":
-#                 quiz.status = "active"
-#             elif action == "deactivate":
-#                 quiz.status = "inactive"
+            if action == "activate":
+                quiz.status = "active"
+            elif action == "deactivate":
+                quiz.status = "inactive"
 
-#             db.commit()
-#             flash(f"Quiz '{quiz.title}' has been {quiz.status}.", "success")
-#             return redirect(url_for("manage_quizzes"))
+            db.commit()
+            flash(f"Quiz '{quiz.title}' has been {quiz.status}.", "success")
+            return redirect(url_for("manage_quizzes"))
 
-#         quizzes = quiz_query(db).all()
-#         return render_template("admin/manage_quizzes.html", quizzes=quizzes)
-#     finally:
-#         db.close()
+        quizzes = quiz_query(db).all()
+        return render_template("admin/manage_quizzes.html", quizzes=quizzes)
+    finally:
+        db.close()
 
+@app.route("/admin/delete_quiz/<int:quiz_id>", methods=["POST"])
+def delete_quiz(quiz_id):
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
 
-# @app.route("/admin/delete_quiz/<int:quiz_id>", methods=["POST"])
-# def delete_quiz(quiz_id):
-#     if session.get("role") != "admin":
-#         return redirect(url_for("login"))
+    db = SessionLocal()
+    try:
+        quiz = db.query(Quiz).filter_by(id=quiz_id).first()
+        if quiz:
+            _delete_quiz_tree(db, quiz)
+            db.commit()
+            flash("Quiz deleted successfully.", "success")
+        else:
+            flash("Quiz not found.", "danger")
+    except Exception as e:
+        db.rollback()
+        flash(f"Error deleting quiz: {str(e)}", "danger")
+    finally:
+        db.close()
 
-#     db = SessionLocal()
-#     try:
-#         quiz = db.query(Quiz).filter_by(id=quiz_id).first()
-#         if quiz:
-#             _delete_quiz_tree(db, quiz)
-#             db.commit()
-#             flash("Quiz deleted successfully.", "success")
-#         else:
-#             flash("Quiz not found.", "danger")
-#     except Exception as e:
-#         db.rollback()
-#         flash(f"Error deleting quiz: {str(e)}", "danger")
-#     finally:
-#         db.close()
+    return redirect(url_for("view_results"))
 
-#     return redirect(url_for("manage_quizzes"))
+@app.route("/admin/review_quiz/<int:quiz_id>", methods=["GET", "POST"])
+def review_uploaded_quiz(quiz_id):
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
 
+    db = SessionLocal()
+    try:
+        quiz = quiz_query(db).filter_by(id=quiz_id).first()
+        if not quiz:
+            flash("Quiz not found.", "danger")
+            return redirect(url_for("upload_exam"))
 
-# @app.route("/admin/review_quiz/<int:quiz_id>", methods=["GET", "POST"])
-# def review_uploaded_quiz(quiz_id):
-#     if session.get("role") != "admin":
-#         return redirect(url_for("login"))
+        if request.method == "POST":
+            action = request.form.get("action")
+            if action == "delete":
+                _delete_quiz_tree(db, quiz)
+                db.commit()
+                flash("❌ Quiz deleted.", "warning")
+                return redirect(url_for("upload_exam"))
+            elif action == "confirm":
+                flash("✅ Quiz confirmed and saved.", "success")
+                return redirect(url_for("upload_exam"))
 
-#     db = SessionLocal()
-#     try:
-#         quiz = quiz_query(db).filter_by(id=quiz_id).first()
-#         if not quiz:
-#             flash("Quiz not found.", "danger")
-#             return redirect(url_for("upload_exam"))
-
-#         if request.method == "POST":
-#             action = request.form.get("action")
-#             if action == "delete":
-#                 _delete_quiz_tree(db, quiz)
-#                 db.commit()
-#                 flash("❌ Quiz deleted.", "warning")
-#                 return redirect(url_for("upload_exam"))
-#             elif action == "confirm":
-#                 flash("✅ Quiz confirmed and saved.", "success")
-#                 return redirect(url_for("upload_exam"))
-
-#         questions = db.query(Question).filter_by(quiz_id=quiz.id).all()
-#         return render_template("admin/review_uploaded_quiz.html", quiz=quiz, questions=questions)
-#     finally:
-#         db.close()
+        questions = db.query(Question).filter_by(quiz_id=quiz.id).all()
+        return render_template(
+            "admin/review_uploaded_quiz.html", quiz=quiz, questions=questions
+        )
+    finally:
+        db.close()
 
 
 # @app.route("/manage_students", methods=["GET", "POST"])
@@ -3565,18 +3566,28 @@ def admin_report_student(student_id, semester_id):
             .order_by(Subject.name.asc()).all()
         )
 
+        # ── Only include subjects the student actually has marks for ──
         rows = []
         grand_total = 0
         counted = 0
 
         for subj in subjects:
             info = get_student_subject_marks(db, student.id, subj.id, sem.id, course)
+            if not info:
+                continue
             rows.append({"subject": subj, "info": info})
-            if info:
-                grand_total += info["total"]
-                counted += 1
+            grand_total += info["total"]
+            counted += 1
 
         avg = round(grand_total / counted, 2) if counted else None
+
+        if not rows:
+            flash(
+                "No marks have been entered for this student in the selected semester yet.",
+                "warning",
+            )
+            return redirect(url_for("admin_reports_picker"))
+
         labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
 
         return render_template(
@@ -3589,7 +3600,6 @@ def admin_report_student(student_id, semester_id):
         )
     finally:
         db.close()
-
 
 """
 ============================================================
@@ -4972,12 +4982,14 @@ def hod_student_detail(student_id):
             sem_total = 0
             sem_count = 0
 
+            # ── Only include subjects the student actually has marks for ──
             for subj in subjects:
                 info = get_student_subject_marks(db, student.id, subj.id, sem.id, course)
-                rows.append({"subject": subj, "info": info, "has_marks": info is not None})
-                if info:
-                    sem_total += info["total"]
-                    sem_count += 1
+                if not info:
+                    continue
+                rows.append({"subject": subj, "info": info, "has_marks": True})
+                sem_total += info["total"]
+                sem_count += 1
 
             avg = round(sem_total / sem_count, 2) if sem_count else None
             semester_reports.append({
@@ -6237,16 +6249,25 @@ def hod_report_student(student_id, semester_id):
             .order_by(Subject.name.asc()).all()
         )
 
+        # ── Only include subjects the student actually has marks for ──
         rows = []
         grand_total = 0
         counted = 0
         for subj in subjects:
             info = get_student_subject_marks(db, student.id, subj.id, sem.id, course)
+            if not info:
+                continue
             rows.append({"subject": subj, "info": info})
-            if info:
-                grand_total += info["total"]
-                counted += 1
+            grand_total += info["total"]
+            counted += 1
         avg = round(grand_total / counted, 2) if counted else None
+
+        if not rows:
+            flash(
+                "No marks have been entered for this student in the selected semester yet.",
+                "warning",
+            )
+            return redirect(url_for("hod_students_list"))
 
         labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
 
@@ -6645,7 +6666,6 @@ def student_results():
     finally:
         db.close()
 
-
 @app.route("/student/print_report")
 def student_print_report():
     if "username" not in session or session.get("role") != "student":
@@ -6684,16 +6704,26 @@ def student_print_report():
             .order_by(Subject.name.asc()).all()
         )
 
+        # ── Only include subjects the student actually has marks for ──
         rows = []
         grand_total = 0
         counted = 0
         for subj in subjects:
             info = get_student_subject_marks(db, student.id, subj.id, sem.id, course)
+            if not info:
+                continue
             rows.append({"subject": subj, "info": info})
-            if info:
-                grand_total += info["total"]
-                counted += 1
+            grand_total += info["total"]
+            counted += 1
+
         avg = round(grand_total / counted, 2) if counted else None
+
+        if not rows:
+            flash(
+                "No marks have been entered for this student in the selected semester yet.",
+                "warning",
+            )
+            return redirect(url_for("student_results"))
 
         labels = list(KASNEB_LABELS) if atype == "kasneb" else get_periodic_labels(course)
 
@@ -6707,6 +6737,7 @@ def student_print_report():
         )
     finally:
         db.close()
+
 
 
 """
