@@ -1842,54 +1842,53 @@ def review_uploaded_quiz(quiz_id):
         db.close()
 
 
-# @app.route("/manage_students", methods=["GET", "POST"])
-# def manage_students():
-#     if session.get("role") != "admin":
-#         return redirect(url_for("login"))
+@app.route("/manage_students", methods=["GET", "POST"])
+def manage_students():
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
 
-#     db = SessionLocal()
-#     try:
-#         if request.method == "POST":
-#             student_id = request.form.get("student_id")
-#             action = request.form.get("action")
-#             student = db.query(StudentProfile).filter_by(id=student_id).first()
+    db = SessionLocal()
+    try:
+        if request.method == "POST":
+            student_id = request.form.get("student_id")
+            action = request.form.get("action")
+            student = db.query(StudentProfile).filter_by(id=student_id).first()
 
-#             if action == "toggle_block" and student:
-#                 student.blocked = not student.blocked
-#                 db.commit()
-#             elif action == "delete" and student:
-#                 try:
-#                     _delete_student_tree(db, student)
-#                     db.commit()
-#                     flash("✅ Student deleted.", "success")
-#                 except Exception as e:
-#                     db.rollback()
-#                     flash(f"Error deleting student: {str(e)}", "danger")
+            if action == "toggle_block" and student:
+                student.blocked = not student.blocked
+                db.commit()
+            elif action == "delete" and student:
+                try:
+                    _delete_student_tree(db, student)
+                    db.commit()
+                    flash("✅ Student deleted.", "success")
+                except Exception as e:
+                    db.rollback()
+                    flash(f"Error deleting student: {str(e)}", "danger")
 
-#             return redirect(url_for("manage_students"))
+            return redirect(url_for("manage_students"))
 
-#         search_query_str = request.args.get("search", "").strip()
-#         if search_query_str:
-#             students = (
-#                 student_query(db)
-#                 .filter(or_(
-#                     StudentProfile.full_name.ilike(f"%{search_query_str}%"),
-#                     StudentProfile.exam_type.ilike(f"%{search_query_str}%"),
-#                     StudentProfile.admission_number.ilike(f"%{search_query_str}%"),
-#                     StudentProfile.phone_number.ilike(f"%{search_query_str}%"),
-#                 ))
-#                 .all()
-#             )
-#         else:
-#             students = student_query(db).all()
+        search_query_str = request.args.get("search", "").strip()
+        if search_query_str:
+            students = (
+                student_query(db)
+                .filter(or_(
+                    StudentProfile.full_name.ilike(f"%{search_query_str}%"),
+                    StudentProfile.exam_type.ilike(f"%{search_query_str}%"),
+                    StudentProfile.admission_number.ilike(f"%{search_query_str}%"),
+                    StudentProfile.phone_number.ilike(f"%{search_query_str}%"),
+                ))
+                .all()
+            )
+        else:
+            students = student_query(db).all()
 
-#         return render_template(
-#             "admin/manage_students.html",
-#             students=students, search_query=search_query_str,
-#         )
-#     finally:
-#         db.close()
-
+        return render_template(
+            "admin/manage_students.html",
+            students=students, search_query=search_query_str,
+        )
+    finally:
+        db.close()
 
 
 @app.route("/admin/students", methods=["GET", "POST"])
