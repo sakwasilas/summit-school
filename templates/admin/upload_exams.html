@@ -1,6 +1,5 @@
 {% block content %}
 <style>
-    /* [Keep all your existing CSS from the previous version here] */
     .upload-wrapper { max-width: 800px; margin: 30px auto; padding: 0 20px; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
     .upload-card { background: #ffffff; border-radius: 16px; padding: 32px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; }
     .back-link { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: #64748b; font-size: 14px; font-weight: 600; margin-bottom: 20px; transition: color 0.15s; }
@@ -8,24 +7,40 @@
     .page-title { font-size: 24px; font-weight: 900; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
     .page-title i { color: #d97706; }
     .page-sub { font-size: 14px; color: #64748b; margin-bottom: 24px; }
+    
+    .download-box { 
+        background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; 
+        padding: 20px; margin-bottom: 24px; text-align: center;
+    }
+    .download-box p { margin: 0 0 12px 0; color: #166534; font-size: 14px; font-weight: 500; }
+    .btn-download {
+        display: inline-flex; align-items: center; gap: 8px; 
+        background: #16a34a; color: white; border: none; padding: 12px 24px; 
+        border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer;
+        transition: background 0.15s;
+    }
+    .btn-download:hover { background: #15803d; }
+
     .info-panel { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; font-size: 13px; color: #1e40af; line-height: 1.6; }
     .info-panel strong { display: block; margin-bottom: 8px; color: #1e3a8a; }
     .info-panel ul { margin: 0; padding-left: 20px; }
     .info-panel code { background: #dbeafe; color: #1e3a8a; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+    
     .flash { padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border: 1px solid transparent; }
     .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
     .flash.danger { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
     .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
     .flash.info { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
     .close-btn { background: transparent; border: none; font-size: 20px; cursor: pointer; color: currentColor; opacity: 0.7; }
-    .close-btn:hover { opacity: 1; }
+    
     .form-group { margin-bottom: 20px; }
     .form-label { display: block; font-size: 12px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
     .form-control, .form-select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1.5px solid #e2e8f0; font-size: 14px; background: #f8fafc; color: #0f172a; transition: all 0.15s; font-family: inherit; }
     .form-control:focus, .form-select:focus { outline: none; border-color: #3b82f6; background: #ffffff; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12); }
-    .form-hint { font-size: 12px; color: #64748b; margin-top: 6px; }
+    
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media (max-width: 640px) { .row-2 { grid-template-columns: 1fr; } }
+    
     .file-drop { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 32px 20px; text-align: center; background: #f8fafc; transition: all 0.15s; cursor: pointer; display: block; }
     .file-drop:hover { border-color: #3b82f6; background: #eff6ff; }
     .file-drop.dragover { border-color: #3b82f6; background: #dbeafe; }
@@ -34,7 +49,7 @@
     .file-drop .hint { font-size: 12px; color: #64748b; margin-top: 4px; }
     .file-drop input[type="file"] { display: none; }
     .file-name { margin-top: 10px; font-size: 13px; color: #1e40af; font-weight: 600; word-break: break-all; }
-    .file-name:empty { display: none; }
+    
     .btn-submit { width: 100%; padding: 14px; background: #1e3a8a; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
     .btn-submit:hover:not(:disabled) { background: #1e2e6e; }
     .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
@@ -62,22 +77,22 @@
             {% endfor %}
         {% endwith %}
 
-        <div class="info-panel">
-            <strong>📄 Format your .docx like this:</strong>
-            <ul>
-                <li>Number each question: <code>1. What is ...</code></li>
-                <li>Options on separate lines: <code>A. ...</code>, <code>B. ...</code></li>
-                <li>Answer line: <code>Answer: B</code> or <code>Ans: B</code></li>
-                <li>Optional marks: <code>(2 marks)</code></li>
-            </ul>
+        <!-- NEW DOWNLOAD BOX -->
+        <div class="download-box">
+            <p>Don't have a file ready? Download our simple format template:</p>
+            <button type="button" class="btn-download" onclick="downloadTemplate()">
+                <i class="bi bi-file-earmark-word-fill"></i> Download Format Template (.docx)
+            </button>
         </div>
 
-        <!-- NEW BUTTON: DOWNLOAD TEMPLATE -->
-        <div style="margin-bottom: 24px; text-align: center;">
-            <button type="button" onclick="downloadTemplate()" style="display: inline-flex; align-items: center; gap: 8px; background: #ecfdf5; color: #065f46; border: 1px solid #34d399; padding: 12px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.15s;">
-                <i class="bi bi-file-earmark-word-fill" style="font-size: 18px;"></i>
-                Download Format Template (.docx)
-            </button>
+        <div class="info-panel">
+            <strong>📄 Format Rules (The parser is smart, but follow these):</strong>
+            <ul>
+                <li>Number each question: <code>1. What is ...</code> or <code>1) What is ...</code></li>
+                <li>Options: <code>A. ...</code>, <code>B. ...</code> (must be on new lines)</li>
+                <li>Answer: <code>Answer: B</code> or <code>Ans: B</code> or <code>Correct Answer: B</code></li>
+                <li>Marks: <code>(2 marks)</code> or <code>(2mks)</code> (optional)</li>
+            </ul>
         </div>
 
         <form method="POST" action="{{ url_for('upload_exam') }}" enctype="multipart/form-data" id="uploadForm">
@@ -108,7 +123,6 @@
                         </option>
                         {% endfor %}
                     </select>
-                    <div class="form-hint">Filtered by selected course.</div>
                 </div>
             </div>
 
@@ -136,7 +150,7 @@
 </div>
 
 <script>
-    // 1. Filter subjects based on selected course
+    // Filter subjects based on selected course
     const courseSelect = document.getElementById('course');
     const subjectSelect = document.getElementById('subject');
     const allSubjectOptions = Array.from(subjectSelect.querySelectorAll('option[data-course]'));
@@ -152,7 +166,7 @@
         });
     });
 
-    // 2. File drop UI
+    // File drop UI
     const fileDrop = document.getElementById('fileDrop');
     const fileInput = document.getElementById('quiz_file');
     const fileName = document.getElementById('fileName');
@@ -180,52 +194,57 @@
         }
     });
 
-    // 3. Disable button on submit
+    // Disable button on submit
     document.getElementById('uploadForm').addEventListener('submit', () => {
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
         btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading &amp; parsing...';
     });
 
-    // 4. Download Template Logic (No backend Python needed!)
+    // Download Template Logic
     function downloadTemplate() {
-        // This creates a perfectly formatted Word document string
         const html = `
             <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
             <head><meta charset='utf-8'><title>Exam Template</title></head>
             <body style="font-family: Arial, sans-serif; font-size: 12pt;">
                 <h2 style="text-align:center;">SUMMIT TECHNICAL COLLEGE</h2>
                 <h3 style="text-align:center;">EXAM FORMAT TEMPLATE</h3>
-                <p style="font-style: italic; color: #555;">Delete these instructions before uploading.</p>
-                <ol>
-                    <li>Number the questions (e.g., 1. What is...).</li>
-                    <li>Put each option on a new line (A. ...).</li>
-                    <li>Indicate the correct answer at the end (e.g., Answer: B).</li>
-                </ol>
+                <p style="font-style: italic; color: #555;">Type your questions below. The system will automatically parse them.</p>
                 <hr>
+                
                 <p><b>1. What is the capital city of Kenya? (1 mark)</b></p>
-                <p>A. Mombasa<br>B. Nairobi<br>C. Kisumu<br>D. Nakuru</p>
+                <p>A. Mombasa</p>
+                <p>B. Nairobi</p>
+                <p>C. Kisumu</p>
+                <p>D. Nakuru</p>
                 <p><b style="color: green;">Answer: B</b></p>
-                <br>
+                
+                <br><br>
+                
                 <p><b>2. Which of the following is a prime number? (2 marks)</b></p>
-                <p>A. 4<br>B. 6<br>C. 7<br>D. 9</p>
+                <p>A. 4</p>
+                <p>B. 6</p>
+                <p>C. 7</p>
+                <p>D. 9</p>
                 <p><b style="color: green;">Answer: C</b></p>
+                
+                <br><br>
+                
+                <p><b>3. The earth revolves around the sun.</b></p>
+                <p>A. True</p>
+                <p>B. False</p>
+                <p><b style="color: green;">Answer: A</b></p>
             </body>
             </html>
         `;
 
-        // Convert the HTML string to a Blob (a file-like object)
         const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-        
-        // Create a temporary link to trigger the download
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'Exam_Format_Template.doc'; // Saves as .doc
+        a.download = 'Exam_Format_Template.doc'; 
         document.body.appendChild(a);
         a.click();
-        
-        // Clean up
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }
