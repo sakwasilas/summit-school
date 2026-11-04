@@ -190,7 +190,7 @@
         .stat-val { font-size: 28px; font-weight: 800; line-height: 1.1; color: #0f1724; }
         .stat-label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-top: 4px; }
 
-        /* QUICK ACTIONS - full task grid */
+        /* QUICK ACTIONS */
         .section-head {
             font-weight: 800; font-size: 15px;
             color: #0f1724; margin: 0 0 16px;
@@ -232,48 +232,18 @@
         .action-card .act-title { font-weight: 700; font-size: 14px; }
         .action-card .act-desc { font-size: 12px; color: #64748b; line-height: 1.4; }
 
-        /* KNEC ANALYTICS cards (purple accent) */
-        .action-card.knec:hover {
-            border-color: #7c3aed;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18);
-        }
+        /* ACCENTED CARDS */
+        .action-card.knec:hover { border-color: #7c3aed; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18); }
         .action-card.knec i { color: #7c3aed; }
-
-        /* FILTERED REPORT cards (emerald accent) */
-        .action-card.filtered:hover {
-            border-color: #059669;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.18);
-        }
+        .action-card.filtered:hover { border-color: #059669; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.18); }
         .action-card.filtered i { color: #059669; }
-
-        /* ADD COURSE / ADD SUBJECT (sky blue accent) */
-        .action-card.add-item:hover {
-            border-color: #0ea5e9;
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.18);
-        }
+        .action-card.add-item:hover { border-color: #0ea5e9; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.18); }
         .action-card.add-item i { color: #0ea5e9; }
-
-        /* MANAGE EXAMS (amber accent) */
-        .action-card.exams:hover {
-            border-color: #d97706;
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.18);
-        }
+        .action-card.exams:hover { border-color: #d97706; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.18); }
         .action-card.exams i { color: #d97706; }
 
-        .knec-btn {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 9px 14px;
-            background: #7c3aed; color: #fff;
-            border-radius: 9px;
-            font-size: 13px; font-weight: 700;
-            text-decoration: none;
-            transition: all .15s;
-        }
-        .knec-btn:hover { background: #6d28d9; color: #fff; }
-        .knec-btn.disabled { opacity: .55; pointer-events: none; }
-
         /* DEPARTMENTS */
-        .dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 40px; }
         .dept-card {
             background: white; border-radius: 12px; padding: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0;
@@ -286,6 +256,86 @@
         .dept-meta { display: flex; gap: 16px; font-size: 13px; color: #64748b; margin-top: auto; padding-top: 12px; border-top: 1px solid #f1f5f9; }
         .dept-meta span { display: flex; align-items: center; gap: 6px; font-weight: 600; }
         .dept-meta i { color: #3b82f6; }
+
+        /* ===== NEW: TWO-COLUMN PANEL ===== */
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        @media (max-width: 900px) { .panel-grid { grid-template-columns: 1fr; } }
+
+        .panel {
+            background: white;
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+        .panel-head {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f1724;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .panel-head .left { display: flex; align-items: center; gap: 8px; }
+        .panel-head i { color: #1e3a8a; font-size: 16px; }
+        .panel-head .more-link {
+            font-size: 11px;
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 700;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+        .panel-head .more-link:hover { text-decoration: underline; }
+
+        .panel-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+        }
+        .panel-row:last-child { border-bottom: none; }
+        .panel-row .name {
+            font-weight: 700;
+            color: #0f1724;
+        }
+        .panel-row .subtext {
+            font-size: 11.5px;
+            color: #64748b;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+        .panel-row .badge {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-active { background: #ecfdf5; color: #065f46; }
+        .badge-inactive { background: #fef2f2; color: #991b1b; }
+        .badge-knec { background: #eff6ff; color: #1e40af; }
+        .badge-internal { background: #fffbeb; color: #92400e; }
+        .badge-warn { background: #fef2f2; color: #991b1b; }
+
+        .panel-empty {
+            text-align: center;
+            padding: 24px 0;
+            color: #94a3b8;
+            font-size: 12.5px;
+            font-weight: 500;
+        }
 
         /* MOBILE */
         @media (max-width: 992px) {
@@ -454,6 +504,113 @@
                 </a>
             </div>
 
+            <!-- ======================================================== -->
+            <!-- NEW: OPERATIONAL OVERVIEW PANELS                          -->
+            <!-- ======================================================== -->
+            <div class="section-head">
+                <i class="bi bi-speedometer2"></i> System Overview
+            </div>
+            <div class="panel-grid">
+
+                <!-- Recent Students -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <div class="left"><i class="bi bi-person-plus-fill"></i> Recent Students</div>
+                        <a href="{{ url_for('admin_all_students') }}" class="more-link">View All →</a>
+                    </div>
+                    {% if recent_students %}
+                        {% for s in recent_students %}
+                        <div class="panel-row">
+                            <div>
+                                <div class="name">{{ s.full_name }}</div>
+                                <div class="subtext">{{ s.admission_number }}{% if s.course %} · {{ s.course.name }}{% endif %}</div>
+                            </div>
+                            {% if s.exam_type %}
+                            <span class="badge {{ 'badge-knec' if s.exam_type == 'knec' else 'badge-internal' }}">
+                                {{ s.exam_type|upper }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="panel-empty">No students registered yet.</div>
+                    {% endif %}
+                </div>
+
+                <!-- Recent Exams -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <div class="left"><i class="bi bi-patch-question-fill"></i> Recent Exams</div>
+                        <a href="{{ url_for('manage_quizzes') }}" class="more-link">View All →</a>
+                    </div>
+                    {% if recent_quizzes %}
+                        {% for q in recent_quizzes %}
+                        <div class="panel-row">
+                            <div>
+                                <div class="name">{{ q.title }}</div>
+                                <div class="subtext">
+                                    {% if q.subject %}{{ q.subject.name }}{% endif %}
+                                    {% if q.course %} · {{ q.course.name }}{% endif %}
+                                </div>
+                            </div>
+                            <span class="badge {{ 'badge-active' if q.status == 'active' else 'badge-inactive' }}">
+                                {{ q.status|upper }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="panel-empty">No exams uploaded yet.</div>
+                    {% endif %}
+                </div>
+
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- NEW: SYSTEM HEALTH PANELS                                 -->
+            <!-- ======================================================== -->
+            <div class="panel-grid">
+
+                <!-- Students by Exam Type -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <div class="left"><i class="bi bi-pie-chart-fill"></i> Students by Exam Type</div>
+                    </div>
+                    {% if exam_type_breakdown %}
+                        {% for row in exam_type_breakdown %}
+                        <div class="panel-row">
+                            <div class="name">{{ row.label }}</div>
+                            <span class="badge badge-knec">{{ row.count }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="panel-empty">No students yet.</div>
+                    {% endif %}
+                </div>
+
+                <!-- Data Health Warnings -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <div class="left"><i class="bi bi-exclamation-triangle-fill"></i> Data Health</div>
+                    </div>
+                    {% if health_warnings %}
+                        {% for w in health_warnings %}
+                        <div class="panel-row">
+                            <div>
+                                <div class="name">{{ w.title }}</div>
+                                <div class="subtext">{{ w.desc }}</div>
+                            </div>
+                            <span class="badge badge-warn">{{ w.count }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="panel-empty" style="color:#059669;">
+                            <i class="bi bi-check-circle-fill"></i> Everything looks good!
+                        </div>
+                    {% endif %}
+                </div>
+
+            </div>
+
             <!-- QUICK ACTIONS -->
             <div class="section-head">
                 <i class="bi bi-lightning-charge-fill"></i> Quick Actions
@@ -538,24 +695,6 @@
                     <i class="bi bi-activity"></i>
                     <div class="act-title">Live Activity</div>
                     <div class="act-desc">See which students are taking exams now.</div>
-                </a>
-            </div>
-
-            <!-- FILTERED REPORT -->
-            <div class="section-head">
-                <i class="bi bi-file-earmark-spreadsheet" style="color:#059669;"></i> Filtered Report — Export by Course / Semester / Module
-            </div>
-            <div style="margin-bottom: 40px;">
-                <a href="{{ url_for('admin_filtered_report_export') }}"
-                   class="action-card filtered"
-                   style="max-width: 420px;">
-                    <i class="bi bi-funnel-fill"></i>
-                    <div class="act-title">Open Filtered Report</div>
-                    <div class="act-desc">
-                        Pick a course, semester, and optional module. Preview the results,
-                        then download a clean single-sheet Excel file with every student,
-                        subject, mark, and result — no more clutter.
-                    </div>
                 </a>
             </div>
 

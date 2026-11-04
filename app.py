@@ -871,14 +871,93 @@ def admin_dashboard():
             dept_course_ids = [c.id for c in dept_courses]
             dept_students = 0
             if dept_course_ids:
-                dept_students = db.query(StudentProfile).filter(StudentProfile.course_id.in_(dept_course_ids)).count()
+                dept_students = db.query(StudentProfile).filter(
+                    StudentProfile.course_id.in_(dept_course_ids)
+                ).count()
             departments.append({
                 "id": d.id,
                 "name": d.name,
                 "courses_count": len(dept_courses),
-                "students_count": dept_students
+                "students_count": dept_students,
             })
         departments_count = len(departments)
+
+        # ── NEW: recent students (last 5) ──
+        recent_students = (
+            db.query(StudentProfile)
+            .order_by(StudentProfile.id.desc())
+            .limit(5)
+            .all()
+        )
+
+        # ── NEW: recent quizzes (last 5) ──
+        recent_quizzes = (
+            db.query(Quiz)
+            .order_by(Quiz.id.desc())
+            .limit(5)
+            .all()
+        )
+
+        # ── NEW: exam type breakdown ──
+        knec_count = db.query(StudentProfile).filter(
+            StudentProfile.exam_type == "knec"
+        ).count()
+        internal_count = db.query(StudentProfile).filter(
+            StudentProfile.exam_type == "internal"
+        ).count()
+        exam_type_breakdown = [
+            {"label": "KNEC", "count": knec_count},
+            {"label": "Internal", "count": internal_count},
+        ]
+
+        # ── NEW: data health warnings ──
+        health_warnings = []
+
+        # Courses with no semesters
+        courses_no_sem = []
+        for c in courses:
+            if db.query(Semester).filter_by(course_id=c.id).count() == 0:
+                courses_no_sem.append(c.name)
+        if courses_no_sem:
+            health_warnings.append({
+                "title": "Courses with no semesters",
+                "desc": ", ".join(courses_no_sem[:3]) + ("..." if len(courses_no_sem) > 3 else ""),
+                "count": len(courses_no_sem),
+            })
+
+        # Students with no semester assigned
+        students_no_sem = db.query(StudentProfile).filter(
+            StudentProfile.current_semester_id.is_(None)
+        ).count()
+        if students_no_sem:
+            health_warnings.append({
+                "title": "Students with no semester",
+                "desc": "Need to be assigned to a current semester",
+                "count": students_no_sem,
+            })
+
+        # Students blocked
+        blocked = db.query(StudentProfile).filter(
+            StudentProfile.blocked == True
+        ).count()
+        if blocked:
+            health_warnings.append({
+                "title": "Blocked students",
+                "desc": "Currently frozen from taking exams",
+                "count": blocked,
+            })
+
+        # Courses with no subjects
+        courses_no_subj = []
+        for c in courses:
+            if db.query(Subject).filter_by(course_id=c.id).count() == 0:
+                courses_no_subj.append(c.name)
+        if courses_no_subj:
+            health_warnings.append({
+                "title": "Courses with no subjects",
+                "desc": ", ".join(courses_no_subj[:3]) + ("..." if len(courses_no_subj) > 3 else ""),
+                "count": len(courses_no_subj),
+            })
 
         return render_template(
             "admin/admin_dashboard.html",
@@ -887,6 +966,10 @@ def admin_dashboard():
             students_count=students_count,
             exams_count=exams_count,
             departments_count=departments_count,
+            recent_students=recent_students,
+            recent_quizzes=recent_quizzes,
+            exam_type_breakdown=exam_type_breakdown,
+            health_warnings=health_warnings,
             username=session.get("username"),
             current_year=datetime.now().year,
         )
