@@ -1,188 +1,312 @@
 {% block content %}
-<div class="form-container">
-  <a href="{{ url_for('admin_dashboard') }}" class="back-link">← Back to Admin Dashboard</a>
-  <h1>AcademiaPro</h1>
+<style>
+    .upload-wrapper {
+        max-width: 800px;
+        margin: 30px auto;
+        padding: 0 20px;
+        font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
 
-  <h2>Upload New Exam</h2>
+    .upload-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+    }
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="flash-messages">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }}">
-            {{ message }}
-            <button type="button" class="close-btn" aria-label="Close" onclick="this.parentElement.style.display='none'">×</button>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        transition: color 0.15s;
+    }
+    .back-link:hover { color: #1e3a8a; }
 
-  <form method="POST" enctype="multipart/form-data">
-    <div class="form-group">
-      <label for="title">Title of exam (e.g., ICT CAT 1)</label>
-      <input type="text" name="title" id="title" placeholder="Enter exam title" required>
+    .page-title {
+        font-size: 24px;
+        font-weight: 900;
+        color: #0f172a;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .page-title i { color: #d97706; }
+    
+    .page-sub {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 24px;
+    }
+
+    .info-panel {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        font-size: 13px;
+        color: #1e40af;
+        line-height: 1.6;
+    }
+    .info-panel strong { display: block; margin-bottom: 8px; color: #1e3a8a; }
+    .info-panel ul { margin: 0; padding-left: 20px; }
+    .info-panel code {
+        background: #dbeafe;
+        color: #1e3a8a;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+
+    .flash {
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        border: 1px solid transparent;
+    }
+    .flash.success { background: #f0fdf9; color: #065f46; border-color: #a7f3d0; }
+    .flash.danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+    .flash.warning { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+    .flash.info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+    .close-btn {
+        background: transparent; border: none; font-size: 20px;
+        cursor: pointer; color: currentColor; opacity: 0.7;
+    }
+    .close-btn:hover { opacity: 1; }
+
+    .form-group { margin-bottom: 20px; }
+    
+    .form-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        color: #334155;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+
+    .form-control, .form-select {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1.5px solid #e2e8f0;
+        font-size: 14px;
+        background: #f8fafc;
+        color: #0f172a;
+        transition: all 0.15s;
+        font-family: inherit;
+    }
+    .form-control:focus, .form-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+
+    .form-hint { font-size: 12px; color: #64748b; margin-top: 6px; }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .row-2 { grid-template-columns: 1fr; } }
+
+    .file-drop {
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 32px 20px;
+        text-align: center;
+        background: #f8fafc;
+        transition: all 0.15s;
+        cursor: pointer;
+        display: block;
+    }
+    .file-drop:hover { border-color: #3b82f6; background: #eff6ff; }
+    .file-drop.dragover { border-color: #3b82f6; background: #dbeafe; }
+    .file-drop i { font-size: 36px; color: #3b82f6; }
+    .file-drop .label { font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 10px; }
+    .file-drop .hint { font-size: 12px; color: #64748b; margin-top: 4px; }
+    .file-drop input[type="file"] { display: none; }
+    
+    .file-name {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #1e40af;
+        font-weight: 600;
+        word-break: break-all;
+    }
+    .file-name:empty { display: none; }
+
+    .btn-submit {
+        width: 100%;
+        padding: 14px;
+        background: #1e3a8a;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .btn-submit:hover:not(:disabled) { background: #1e2e6e; }
+    .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
+</style>
+
+<div class="upload-wrapper">
+    <a href="{{ url_for('admin_dashboard') }}" class="back-link">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+
+    <div class="upload-card">
+        <div class="page-title">
+            <i class="bi bi-cloud-arrow-up-fill"></i> Upload Exam (.docx)
+        </div>
+        <div class="page-sub">
+            Upload a Word file with multiple-choice questions. The parser will extract questions, options, and answers automatically.
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, msg in messages %}
+            <div class="flash {{ category if category in ['success','danger','warning','info'] else 'info' }}">
+                <span><i class="bi bi-info-circle-fill"></i> {{ msg }}</span>
+                <button class="close-btn" onclick="this.parentElement.style.display='none'">×</button>
+            </div>
+            {% endfor %}
+        {% endwith %}
+
+        <div class="info-panel">
+            <strong>📄 Format your .docx like this:</strong>
+            <ul>
+                <li>Number each question: <code>1. What is ...</code></li>
+                <li>Options on separate lines: <code>A. ...</code>, <code>B. ...</code></li>
+                <li>Answer line: <code>Answer: B</code> or <code>Ans: B</code></li>
+                <li>Optional marks: <code>(2 marks)</code></li>
+            </ul>
+        </div>
+
+        <form method="POST" action="{{ url_for('upload_exam') }}" enctype="multipart/form-data" id="uploadForm">
+            
+            <div class="form-group">
+                <label class="form-label" for="title">Exam Title</label>
+                <input type="text" id="title" name="title" class="form-control" placeholder="e.g. CAT 1 — Financial Accounting" required>
+            </div>
+
+            <div class="row-2">
+                <div class="form-group">
+                    <label class="form-label" for="course">Course</label>
+                    <select id="course" name="course" class="form-select" required>
+                        <option value="">— Select course —</option>
+                        {% for c in courses %}
+                        <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="subject">Subject</label>
+                    <select id="subject" name="subject" class="form-select" required>
+                        <option value="">— Select subject —</option>
+                        {% for s in subjects %}
+                        <option value="{{ s.id }}" data-course="{{ s.course_id }}">
+                            {{ s.name }}{% if s.course %} — {{ s.course.name }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-hint">Filtered by selected course.</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="duration">Duration (minutes)</label>
+                <input type="number" id="duration" name="duration" class="form-control" value="30" min="1" max="600" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Exam File (.docx)</label>
+                <label class="file-drop" id="fileDrop" for="quiz_file">
+                    <i class="bi bi-file-earmark-word-fill"></i>
+                    <div class="label">Click to choose or drag &amp; drop</div>
+                    <div class="hint">Only .docx files are accepted</div>
+                    <div class="file-name" id="fileName"></div>
+                    <input type="file" id="quiz_file" name="quiz_file" accept=".docx" required>
+                </label>
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitBtn">
+                <i class="bi bi-cloud-upload-fill"></i> Upload &amp; Parse Exam
+            </button>
+        </form>
     </div>
-
-    <div class="form-group">
-      <label for="course">Select Course</label>
-      <select name="course" id="course" required>
-        <option value="">-- Select Course --</option>
-        {% for course in courses %}
-          <option value="{{ course.id }}">{{ course.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="subject">Select Subject</label>
-      <select name="subject" id="subject" required>
-        <option value="">-- Select Subject --</option>
-        {% for subject in subjects %}
-          <option value="{{ subject.id }}">{{ subject.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="duration">Exam Duration (in minutes)</label>
-      <input type="number" name="duration" id="duration" placeholder="Enter duration" required min="1" max="180">
-    </div>
-
-    <div class="form-group">
-      <label for="quiz_file">Choose File</label>
-      <input type="file" name="quiz_file" id="quiz_file" accept=".docx" required>
-    </div>
-
-    <button type="submit" class="submit-btn">Upload Quiz</button>
-  </form>
 </div>
 
+<script>
+    // Filter subjects based on selected course
+    const courseSelect = document.getElementById('course');
+    const subjectSelect = document.getElementById('subject');
+    const allSubjectOptions = Array.from(subjectSelect.querySelectorAll('option[data-course]'));
 
+    courseSelect.addEventListener('change', function () {
+        const cid = this.value;
+        subjectSelect.innerHTML = '<option value="">— Select subject —</option>';
+        if (!cid) return;
+        allSubjectOptions.forEach(opt => {
+            if (opt.dataset.course === cid) {
+                subjectSelect.appendChild(opt.cloneNode(true));
+            }
+        });
+    });
+
+    // File drop UI
+    const fileDrop = document.getElementById('fileDrop');
+    const fileInput = document.getElementById('quiz_file');
+    const fileName = document.getElementById('fileName');
+
+    fileInput.addEventListener('change', () => {
+        fileName.textContent = fileInput.files.length ? '📎 ' + fileInput.files[0].name : '';
+    });
+
+    ['dragenter', 'dragover'].forEach(ev => {
+        fileDrop.addEventListener(ev, e => {
+            e.preventDefault();
+            fileDrop.classList.add('dragover');
+        });
+    });
+    ['dragleave', 'drop'].forEach(ev => {
+        fileDrop.addEventListener(ev, e => {
+            e.preventDefault();
+            fileDrop.classList.remove('dragover');
+        });
+    });
+    fileDrop.addEventListener('drop', e => {
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            fileName.textContent = '📎 ' + e.dataTransfer.files[0].name;
+        }
+    });
+
+    // Disable button on submit
+    document.getElementById('uploadForm').addEventListener('submit', () => {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Uploading &amp; parsing...';
+    });
+</script>
 {% endblock %}
-
-<style>
-  /* General body styling */
-  body {
-    font-family: 'Arial', sans-serif;
-    background-color: #f4f7fb;
-    margin: 0;
-    padding: 0;
-  }
-
-  /* Form container styling */
-  .form-container {
-    background-color: white;
-    padding: 2rem;
-    margin: 2rem auto;
-    width: 80%;
-    max-width: 800px;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Back link styling */
-  .back-link {
-    text-decoration: none;
-    color: #3498db;
-    font-size: 1rem;
-  }
-
-  .back-link:hover {
-    text-decoration: underline;
-  }
-
-  /* Form heading styling */
-  h2 {
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
-    color: #333;
-  }
-
-  /* Flash messages styling */
-  .flash-messages {
-    margin-bottom: 1rem;
-  }
-
-  .flash-messages .alert {
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 5px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .alert-success {
-    background-color: #28a745;
-    color: white;
-  }
-
-  .alert-error {
-    background-color: #dc3545;
-    color: white;
-  }
-
-  .close-btn {
-    background: transparent;
-    border: none;
-    font-size: 1.5rem;
-    color: white;
-    cursor: pointer;
-  }
-
-  /* Form field styling */
-  .form-group {
-    margin-bottom: 1.5rem;
-  }
-
-  label {
-    font-size: 1rem;
-    color: #555;
-    margin-bottom: 0.5rem;
-    display: block;
-  }
-
-  input[type="text"],
-  input[type="number"],
-  input[type="file"],
-  select {
-    width: 100%;
-    padding: 0.8rem;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 1rem;
-  }
-
-  input[type="number"] {
-    max-width: 120px;
-  }
-
-  select {
-    cursor: pointer;
-  }
-
-  /* Button styling */
-  .submit-btn {
-    background-color: #3498db;
-    color: white;
-    padding: 1rem;
-    border: none;
-    border-radius: 5px;
-    width: 100%;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.3s;
-  }
-
-  .submit-btn:hover {
-    background-color: #2980b9;
-  }
-
-  /* Responsive design */
-  @media (max-width: 768px) {
-    .form-container {
-      width: 95%;
-    }
-  }
-</style>
