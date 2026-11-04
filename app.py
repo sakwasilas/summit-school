@@ -2086,7 +2086,7 @@ def edit_student(student_id):
             available_courses = db.query(Course).all()
             available_semesters = db.query(Semester).all()
             available_modules = db.query(Module).all()
-            back_url = url_for("manage_students")
+            back_url = url_for("admin_all_students")   # ← FIXED
 
         if request.method == "POST":
             student.full_name = request.form.get("full_name", "").strip()
@@ -2139,7 +2139,6 @@ def edit_student(student_id):
         return redirect(back_url)
     finally:
         db.close()
-
 
 @app.route("/admin/assign-modules", methods=["GET", "POST"])
 def admin_assign_modules():
