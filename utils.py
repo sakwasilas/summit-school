@@ -381,6 +381,24 @@ def is_question_start(text):
     return bool(re.match(r"^(\d+)[\.\)]\s*", text))
 
 
+def has_word_numbering(paragraph):
+    """
+    NEW: Detect if a paragraph was given an automatic number by MS Word.
+    This catches questions like 23. and 25. which Word auto-numbers
+    without actually writing the number into the paragraph text.
+    """
+    try:
+        pPr = paragraph._element.pPr
+        if pPr is None:
+            return False
+        numPr = pPr.numPr
+        if numPr is None:
+            return False
+        return numPr.numId is not None
+    except Exception:
+        return False
+
+
 def is_option_line(text):
     """Check if text is an option (A, B, C, D)"""
     text = text.strip()
@@ -575,18 +593,29 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
                 print(f"📘 Added to shared instructions ({instruction_counter}): {text[:50]}...")
                 continue
 
+            # ── NEW: check if this paragraph is an auto-numbered list item ──
+            is_auto_numbered = has_word_numbering(block) and not is_option_line(text)
+            starts_new_question = is_question_start(text) or is_auto_numbered
+
             # Check if this starts a new question
-            if is_question_start(text):
+            if starts_new_question:
                 # Save previous question
                 save_current_question()
+
+                # If Word auto-numbered it (but no literal number in text),
+                # we prepend a synthetic number so it's clearly a new question.
+                display_text = text
+                if is_auto_numbered and not is_question_start(text):
+                    display_text = f"{len(questions) + 1}. {text}"
+                    print(f"🔢 Auto-numbered by Word → injecting '{len(questions) + 1}.'")
 
                 # Get shared instructions if any
                 instructions = clean_shared_instructions()
                 
                 # Create new question with shared instructions if any
-                full_text = text
+                full_text = display_text
                 if instructions:
-                    full_text = instructions + "\n\n" + text
+                    full_text = instructions + "\n\n" + display_text
                     in_instruction_block = False
 
                 current_question = {
@@ -597,11 +626,11 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
                     "d": "",
                     "answer": "",
                     "image": None,
-                    "marks": get_marks_from_text(text),
+                    "marks": get_marks_from_text(display_text),
                     "extra_content": ""
                 }
                 current_option = None
-                print(f"🆕 New question started: {text[:50]}...")
+                print(f"🆕 New question started: {display_text[:50]}...")
                 continue
 
             # Check if this is an option
