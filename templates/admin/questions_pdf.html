@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 20mm;
+    @bottom-center {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 8.5pt; color: #777;
+    }
+  }
+  body {
+    font-family: "DejaVu Sans", "Segoe UI", sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.5;
+    color: #111;
+  }
+  .header {
+    border-bottom: 2px solid #168B83;
+    padding-bottom: 4mm;
+    margin-bottom: 6mm;
+  }
+  .header h1 {
+    font-size: 15pt;
+    margin: 0 0 1.5mm;
+    color: #0e5c57;
+  }
+  .header .meta {
+    color: #555;
+    font-size: 9pt;
+  }
+  .note {
+    background: #fff8e1;
+    border-left: 3px solid #f0b429;
+    padding: 2mm 3mm;
+    font-size: 9pt;
+    color: #6b4a00;
+    margin-bottom: 5mm;
+  }
+  .q {
+    margin: 0 0 5mm;
+    page-break-inside: avoid;
+  }
+  .q .top { display: flex; justify-content: space-between; align-items: baseline; }
+  .q .num  { font-weight: 700; }
+  .q .marks { color: #888; font-size: 8.5pt; }
+  .q .text { margin: 1mm 0 1.5mm; }
+  .q .text p { margin: 0 0 1mm; }
+  .img { max-width: 65%; margin: 2mm 0; display: block; }
+  .opts { margin-left: 6mm; }
+  .opts .opt { margin: 0.6mm 0; }
+  .opts .opt b { color: #168B83; margin-right: 1mm; }
+  .key-grid { column-count: 2; column-gap: 10mm; }
+  .key-grid .row {
+    break-inside: avoid;
+    padding: 1.2mm 0;
+    border-bottom: 1px dotted #ddd;
+    display: flex; justify-content: space-between;
+  }
+  .key-grid .row .n { color: #444; }
+  .key-grid .row .a { font-weight: 700; color: #1a7f37; }
+  .key-grid .row.missing .a { color: #c0392b; }
+</style>
+</head>
+<body>
+
+{% set display_name = subject.name if subject else (subject_name or "Untitled") %}
+
+{% if mode == "answers" %}
+  {# ────────────── ANSWER KEY ────────────── #}
+  <div class="header">
+    <h1>{{ display_name }} — Answer Key</h1>
+    <div class="meta">
+      {% if subject and subject.course %}Course: {{ subject.course.name }} · {% endif %}
+      {{ questions|length }} questions
+    </div>
+  </div>
+
+  {% if missing_answers %}
+    <div class="note">
+      {{ missing_answers }} of {{ questions|length }} question(s) had no
+      <code>Answer: X</code> line in the uploaded file (shown as <b>—</b>).
+    </div>
+  {% endif %}
+
+  <div class="key-grid">
+    {% for q in questions %}
+      <div class="row {% if not q.correct_option %}missing{% endif %}">
+        <span class="n">{{ loop.index }}.</span>
+        <span class="a">{{ (q.correct_option or "—")|upper }}</span>
+      </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  {# ────────────── QUESTION PAPER ────────────── #}
+  <div class="header">
+    <h1>{{ display_name }} — Question Paper</h1>
+    <div class="meta">
+      {% if subject and subject.course %}Course: {{ subject.course.name }} · {% endif %}
+      {% if subject and subject.semester %}Semester: {{ subject.semester.name }} · {% endif %}
+      {{ questions|length }} questions
+    </div>
+  </div>
+
+  {% for q in questions %}
+    <div class="q">
+      <div class="top">
+        <span class="num">{{ loop.index }}.</span>
+        <span class="marks">{{ q.marks }} mark{{ '' if q.marks == 1 else 's' }}</span>
+      </div>
+
+      <div class="text">
+        {% for para in q.question_text.split('\n') if para.strip() %}
+          <p>{{ para }}</p>
+        {% endfor %}
+      </div>
+
+      {% if q.image %}
+        <img class="img"
+             src="{{ url_for('static', filename='question_images/' ~ q.image, _external=True) }}">
+      {% endif %}
+
+      {% if q.option_a or q.option_b or q.option_c or q.option_d %}
+        <div class="opts">
+          {% if q.option_a %}<div class="opt"><b>a)</b> {{ q.option_a }}</div>{% endif %}
+          {% if q.option_b %}<div class="opt"><b>b)</b> {{ q.option_b }}</div>{% endif %}
+          {% if q.option_c %}<div class="opt"><b>c)</b> {{ q.option_c }}</div>{% endif %}
+          {% if q.option_d %}<div class="opt"><b>d)</b> {{ q.option_d }}</div>{% endif %}
+        </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% endif %}
+
+</body>
+</html>

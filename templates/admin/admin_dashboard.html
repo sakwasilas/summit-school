@@ -242,6 +242,12 @@
         .action-card.exams:hover { border-color: #d97706; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.18); }
         .action-card.exams i { color: #d97706; }
 
+        /* NEW: PDF EXTRACT CARDS */
+        .action-card.pdf-questions:hover { border-color: #7c3aed; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18); }
+        .action-card.pdf-questions i { color: #7c3aed; }
+        .action-card.pdf-answers:hover { border-color: #059669; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.18); }
+        .action-card.pdf-answers i { color: #059669; }
+
         /* DEPARTMENTS */
         .dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 40px; }
         .dept-card {
@@ -257,7 +263,7 @@
         .dept-meta span { display: flex; align-items: center; gap: 6px; font-weight: 600; }
         .dept-meta i { color: #3b82f6; }
 
-        /* ===== NEW: TWO-COLUMN PANEL ===== */
+        /* TWO-COLUMN PANEL */
         .panel-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -443,6 +449,14 @@
             </a>
             <a href="{{ url_for('view_results') }}" class="nav-link">
                 <i class="bi bi-bar-chart-fill"></i> Quiz Results
+            </a>
+
+            <div class="side-title">Tools</div>
+            <a href="{{ url_for('extract_docx_pdf') }}?mode=questions" class="nav-link">
+                <i class="bi bi-file-earmark-text-fill"></i> Extract Questions PDF
+            </a>
+            <a href="{{ url_for('extract_docx_pdf') }}?mode=answers" class="nav-link">
+                <i class="bi bi-check2-circle"></i> Extract Answers PDF
             </a>
 
             <div class="side-title">System</div>
@@ -677,6 +691,19 @@
                     <div class="act-title">KNEC Analytics</div>
                     <div class="act-desc">Download multi-sheet Excel analytics per KNEC course.</div>
                 </a>
+
+                <!-- NEW: DOCX → PDF EXTRACT -->
+                <a href="{{ url_for('extract_docx_pdf') }}?mode=questions" class="action-card pdf-questions">
+                    <i class="bi bi-file-earmark-text-fill"></i>
+                    <div class="act-title">Extract Question Paper</div>
+                    <div class="act-desc">Upload a .docx and download a clean question paper PDF.</div>
+                </a>
+                <a href="{{ url_for('extract_docx_pdf') }}?mode=answers" class="action-card pdf-answers">
+                    <i class="bi bi-check2-circle"></i>
+                    <div class="act-title">Extract Answer Key</div>
+                    <div class="act-desc">Upload a .docx and download the answer-key PDF.</div>
+                </a>
+
                 <a href="{{ url_for('show_credentials') }}" class="action-card">
                     <i class="bi bi-key-fill"></i>
                     <div class="act-title">View Credentials</div>

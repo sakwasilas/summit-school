@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Extract .docx → PDF</title>
+  <style>
+    body { font-family: "Segoe UI", Arial, sans-serif; background:#f4f6f9; margin:0; padding:40px 20px; color:#222; }
+    .wrap { max-width: 640px; margin: 0 auto; background:#fff; border-radius:10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.06); padding: 28px 32px; }
+    h1 { font-size: 1.35rem; margin: 0 0 6px; color:#0e5c57; }
+    p.lead { color:#555; font-size:.92rem; margin:0 0 22px; }
+    .field { margin: 0 0 18px; }
+    label { font-weight:600; font-size:.9rem; display:block; margin-bottom:6px; }
+    input[type=file] { display:block; width:100%; padding:8px; border:1px solid #ccd;
+                       border-radius:6px; background:#fafbfc; }
+    .radios label { font-weight:400; display:inline-block; margin-right:18px; }
+    button { background:#168B83; color:#fff; border:0; padding:10px 18px;
+             font-size:.95rem; border-radius:6px; cursor:pointer; font-weight:600; }
+    button:hover { background:#0e5c57; }
+    .flash { padding:10px 14px; border-radius:6px; margin:0 0 16px; font-size:.9rem; }
+    .flash.danger  { background:#fdecea; color:#8a1f11; border:1px solid #f5c2c0; }
+    .flash.success { background:#e6f7ee; color:#155724; border:1px solid #b7e4c7; }
+    .flash.warning { background:#fff8e1; color:#6b4a00; border:1px solid #f0b429; }
+    .note { background:#f6f9fc; border-left:3px solid #168B83; padding:10px 14px;
+            font-size:.85rem; color:#333; border-radius:4px; margin-top:22px; }
+    .note code { background:#eef; padding:1px 5px; border-radius:3px; font-size:.82rem; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Extract Questions / Answers from .docx</h1>
+  <p class="lead">
+    Upload a Word exam file. You get <b>one PDF per request</b> — either a
+    question paper (no answers) or an answer key (answers only). Run it twice
+    if you want both.
+  </p>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, m in msgs %}
+      <div class="flash {{ cat }}">{{ m }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="post" enctype="multipart/form-data">
+    <div class="field">
+      <label>Word file (.docx)</label>
+      <input type="file" name="docx_file" accept=".docx" required>
+    </div>
+
+    <div class="field radios">
+      <label>What do you want to download?</label>
+      <label><input type="radio" name="mode" value="questions" checked> Question Paper</label>
+      <label><input type="radio" name="mode" value="answers"> Answer Key</label>
+    </div>
+
+    <button type="submit">Generate PDF</button>
+  </form>
+
+  <div class="note">
+    <b>How the file should be formatted</b><br>
+    The parser (<code>parse_docx_questions</code>) recognises:
+    <br>• Questions: lines starting with <code>1.</code>, <code>2)</code> etc.
+    <br>• Options: <code>A.</code>, <code>B)</code>, <code>C.</code>, <code>D.</code> on separate lines
+    <br>• Answers: a line like <code>Answer: b</code> (also accepts <code>Ans: c</code>, <code>Correct answer: A</code>)
+    <br>• Marks: <code>(2 marks)</code> or <code>(2 mks)</code> in the question line
+    <br>• Images &amp; tables: kept, images saved to <code>static/question_images/</code>
+  </div>
+</div>
+</body>
+</html>

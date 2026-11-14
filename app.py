@@ -10,6 +10,9 @@ import traceback
 from collections import namedtuple, defaultdict
 from datetime import datetime
 
+from weasyprint import HTML
+from collections import namedtuple
+
 import pandas as pd
 from flask import (
     Flask, render_template, request, redirect, url_for,
@@ -1840,10 +1843,6 @@ def review_uploaded_quiz(quiz_id):
         )
     finally:
         db.close()
-
-
-
-
 
 @app.route("/admin/students", methods=["GET", "POST"])
 def admin_all_students():
@@ -6710,6 +6709,117 @@ def student_print_report():
         )
     finally:
         db.close()
+
+
+''' New route '''
+
+# ─────────────────────────────────────────────────────────────
+# DOCX → PDF EXTRACTOR (no database needed)
+# Upload a .docx, get a Question Paper PDF or an Answer Key PDF.
+# ─────────────────────────────────────────────────────────────
+
+# Small namedtuple so the template can use attribute access
+_ExtractedQ = namedtuple(
+    "ExtractedQ",
+    "question_text option_a option_b option_c option_d correct_option marks image",
+)
+
+
+def _dicts_to_attr_objs(questions):
+    """Convert parse_docx_questions() dicts into objects the template can read."""
+    out = []
+    for q in questions:
+        out.append(_ExtractedQ(
+            question_text=q.get("question", "") or "",
+            option_a=q.get("a", "") or "",
+            option_b=q.get("b", "") or "",
+            option_c=q.get("c", "") or "",
+            option_d=q.get("d", "") or "",
+            correct_option=(q.get("answer", "") or "").strip().lower(),
+            marks=q.get("marks", 1) or 1,
+            image=q.get("image"),
+        ))
+    return out
+
+
+@app.route("/admin/extract_docx_pdf", methods=["GET", "POST"])
+def extract_docx_pdf():
+    if session.get("role") not in ("admin", "hod"):
+        return redirect(url_for("login"))
+
+    # ── GET: show upload form ──
+    if request.method == "GET":
+        return render_template("admin/extract_docx_pdf.html")
+
+    # ── POST: parse uploaded file and render PDF ──
+    file = request.files.get("docx_file")
+    mode = request.form.get("mode", "questions")   # "questions" | "answers"
+
+    if not file or not file.filename.lower().endswith(".docx"):
+        flash("Please upload a .docx file.", "danger")
+        return redirect(url_for("extract_docx_pdf"))
+
+    filename = secure_filename(file.filename)
+    if not filename:
+        flash("Invalid filename.", "danger")
+        return redirect(url_for("extract_docx_pdf"))
+
+    tmp_path = os.path.join(EXAMS_UPLOAD_FOLDER, "tmp_" + filename)
+    file.save(tmp_path)
+
+    try:
+        questions_raw = parse_docx_questions(
+            tmp_path, image_output_dir=QUESTION_IMAGES_FOLDER
+        )
+    except Exception as e:
+        flash(f"Could not parse file: {e}", "danger")
+        return redirect(url_for("extract_docx_pdf"))
+
+    if not questions_raw:
+        flash("No questions found in that file. "
+              "Check the format — see the notes on this page.", "warning")
+        return redirect(url_for("extract_docx_pdf"))
+
+    questions = _dicts_to_attr_objs(questions_raw)
+
+    subject_name = os.path.splitext(filename)[0].replace("_", " ").strip() or "Untitled"
+
+    missing = sum(1 for q in questions if not q.correct_option)
+
+    if mode == "answers" and missing == len(questions):
+        flash(
+            "None of the questions had an 'Answer: X' line. "
+            "Check that your .docx uses a line like 'Answer: b'.",
+            "warning",
+        )
+        return redirect(url_for("extract_docx_pdf"))
+
+    html = render_template(
+        "admin/questions_pdf.html",
+        subject=None,                 # template handles None
+        subject_name=subject_name,
+        questions=questions,
+        mode=mode,
+        missing_answers=missing,
+    )
+
+    try:
+        pdf_bytes = HTML(string=html, base_url=request.url_root).write_pdf()
+    except Exception as e:
+        flash(f"PDF render failed: {e}", "danger")
+        return redirect(url_for("extract_docx_pdf"))
+
+    suffix = "Answer_Key" if mode == "answers" else "Question_Paper"
+    safe = subject_name.replace(" ", "_")[:40]
+    fname = f"{safe}_{suffix}.pdf"
+
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=fname,
+    )
+
 
 
 
