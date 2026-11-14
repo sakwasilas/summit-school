@@ -10,7 +10,8 @@ import traceback
 from collections import namedtuple, defaultdict
 from datetime import datetime
 
-from weasyprint import HTML
+from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 from collections import namedtuple
 
 import pandas as pd
@@ -6711,35 +6712,231 @@ def student_print_report():
         db.close()
 
 
-''' New route '''
-
 # ─────────────────────────────────────────────────────────────
-# DOCX → PDF EXTRACTOR (no database needed)
-# Upload a .docx, get a Question Paper PDF or an Answer Key PDF.
+# DOCX → PDF EXTRACTOR (pure Python, works on Render)
+# Uses fpdf2 — no Pango/Cairo/GTK needed.
 # ─────────────────────────────────────────────────────────────
 
-# Small namedtuple so the template can use attribute access
-_ExtractedQ = namedtuple(
-    "ExtractedQ",
-    "question_text option_a option_b option_c option_d correct_option marks image",
-)
+class _QuestionPDF(FPDF):
+    """A tiny FPDF subclass that adds a footer page number."""
+    def __init__(self, *args, footer_label="", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.footer_label = footer_label
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Helvetica", "I", 8)
+        self.set_text_color(120, 120, 120)
+        self.cell(
+            0, 8,
+            f"{self.footer_label}  |  Page {self.page_no()} of {{nb}}",
+            align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT,
+        )
 
 
-def _dicts_to_attr_objs(questions):
-    """Convert parse_docx_questions() dicts into objects the template can read."""
-    out = []
-    for q in questions:
-        out.append(_ExtractedQ(
-            question_text=q.get("question", "") or "",
-            option_a=q.get("a", "") or "",
-            option_b=q.get("b", "") or "",
-            option_c=q.get("c", "") or "",
-            option_d=q.get("d", "") or "",
-            correct_option=(q.get("answer", "") or "").strip().lower(),
-            marks=q.get("marks", 1) or 1,
-            image=q.get("image"),
-        ))
-    return out
+def _clean_text(s):
+    """FPDF's built-in fonts are Latin-1 only. Replace unrepresentable chars."""
+    if not s:
+        return ""
+    replacements = {
+        "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"',
+        "\u2013": "-", "\u2014": "-", "\u2026": "...",
+        "\u2022": "-", "\u00a0": " ",
+    }
+    for k, v in replacements.items():
+        s = s.replace(k, v)
+    return s.encode("latin-1", errors="replace").decode("latin-1")
+
+
+def _build_questions_pdf(questions, subject_name, mode, missing):
+    """
+    Build the PDF in memory and return the bytes.
+    `questions` is a list of _ExtractedQ objects.
+    mode = "questions" or "answers".
+    """
+    title_suffix = "Answer Key" if mode == "answers" else "Question Paper"
+
+    pdf = _QuestionPDF(
+        orientation="P", unit="mm", format="A4",
+        footer_label=_clean_text(subject_name),
+    )
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.add_page()
+
+    # ── Header ──
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_text_color(14, 92, 87)
+    pdf.cell(
+        0, 8,
+        _clean_text(f"{subject_name} - {title_suffix}"),
+        new_x=XPos.LMARGIN, new_y=YPos.NEXT,
+    )
+
+    pdf.set_draw_color(22, 139, 131)
+    pdf.set_line_width(0.6)
+    pdf.line(
+        pdf.l_margin, pdf.get_y() + 1,
+        pdf.w - pdf.r_margin, pdf.get_y() + 1,
+    )
+    pdf.ln(4)
+
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(
+        0, 5, f"Total questions: {len(questions)}",
+        new_x=XPos.LMARGIN, new_y=YPos.NEXT,
+    )
+
+    if mode == "answers" and missing:
+        pdf.ln(2)
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.set_text_color(120, 90, 0)
+        pdf.multi_cell(
+            0, 5,
+            _clean_text(
+                f"Note: {missing} of {len(questions)} question(s) had no "
+                f"'Answer: X' line in the uploaded file (shown as a dash)."
+            ),
+            new_x=XPos.LMARGIN, new_y=YPos.NEXT,
+        )
+
+    pdf.ln(6)
+
+    # ── Answer key: compact 2-column grid ──
+    if mode == "answers":
+        pdf = _render_answers_grid(pdf, questions)
+        out = pdf.output()
+        return bytes(out) if not isinstance(out, (bytes, bytearray)) else out
+
+    # ── Question paper: one block per question ──
+    for i, q in enumerate(questions, start=1):
+        if pdf.get_y() > pdf.h - pdf.b_margin - 30:
+            pdf.add_page()
+
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.set_text_color(15, 23, 36)
+        pdf.cell(10, 6, f"{i}.", new_x=XPos.RIGHT, new_y=YPos.TOP)
+
+        marks_label = f"{q.marks} mark" + ("" if q.marks == 1 else "s")
+        pdf.set_font("Helvetica", "I", 8.5)
+        pdf.set_text_color(130, 130, 130)
+        pdf.set_x(pdf.w - pdf.r_margin - 25)
+        pdf.cell(
+            25, 6, marks_label, align="R",
+            new_x=XPos.LMARGIN, new_y=YPos.NEXT,
+        )
+
+        pdf.set_x(pdf.l_margin + 4)
+        pdf.set_font("Helvetica", "", 10.5)
+        pdf.set_text_color(20, 20, 20)
+
+        for para in _clean_text(q.question_text).split("\n"):
+            para = para.strip()
+            if not para:
+                continue
+            pdf.set_x(pdf.l_margin + 4)
+            pdf.multi_cell(
+                pdf.w - pdf.l_margin - pdf.r_margin - 4, 5.2, para,
+                new_x=XPos.LMARGIN, new_y=YPos.NEXT,
+            )
+
+        if q.image:
+            img_path = os.path.join(QUESTION_IMAGES_FOLDER, q.image)
+            if os.path.isfile(img_path):
+                try:
+                    pdf.set_x(pdf.l_margin + 6)
+                    pdf.image(
+                        img_path,
+                        w=min(90, pdf.w - pdf.l_margin - pdf.r_margin - 6),
+                    )
+                    pdf.ln(2)
+                except Exception:
+                    pass
+
+        opts = [
+            (lbl, val)
+            for lbl, val in (
+                ("a", q.option_a), ("b", q.option_b),
+                ("c", q.option_c), ("d", q.option_d),
+            )
+            if val
+        ]
+        if opts:
+            pdf.ln(1)
+            for lbl, val in opts:
+                pdf.set_x(pdf.l_margin + 6)
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.set_text_color(22, 139, 131)
+                pdf.cell(6, 5, f"{lbl})", new_x=XPos.RIGHT, new_y=YPos.TOP)
+
+                pdf.set_font("Helvetica", "", 10)
+                pdf.set_text_color(30, 30, 30)
+                pdf.multi_cell(
+                    pdf.w - pdf.l_margin - pdf.r_margin - 12, 5.2,
+                    _clean_text(val),
+                    new_x=XPos.LMARGIN, new_y=YPos.NEXT,
+                )
+
+        pdf.ln(4)
+
+    out = pdf.output()
+    return bytes(out) if not isinstance(out, (bytes, bytearray)) else out
+
+
+def _render_answers_grid(pdf, questions):
+    """Clean 2-column answer grid, restarting pages as needed."""
+    pdf.set_font("Helvetica", "", 10)
+
+    col_w = (pdf.w - pdf.l_margin - pdf.r_margin) / 2
+    row_h = 6.5
+    n = len(questions)
+    rows_per_col = 20
+
+    i = 0
+    while i < n:
+        if pdf.get_y() > pdf.h - pdf.b_margin - row_h:
+            pdf.add_page()
+
+        top_y = pdf.get_y()
+        remaining = n - i
+        per_page = rows_per_col * 2
+        chunk = min(per_page, remaining)
+
+        for j in range(chunk):
+            idx = i + j
+            q = questions[idx]
+            col = j // rows_per_col
+            row = j % rows_per_col
+
+            x = pdf.l_margin + col * col_w
+            y = top_y + row * row_h
+
+            pdf.set_xy(x, y)
+            pdf.set_text_color(60, 60, 60)
+            pdf.cell(10, row_h, f"{idx + 1}.")
+
+            ans = (q.correct_option or "-").upper()
+            pdf.set_x(x + 12)
+            if q.correct_option:
+                pdf.set_text_color(26, 127, 55)
+                pdf.set_font("Helvetica", "B", 11)
+            else:
+                pdf.set_text_color(180, 50, 50)
+                pdf.set_font("Helvetica", "I", 11)
+            pdf.cell(col_w - 12, row_h, ans)
+
+            pdf.set_draw_color(220, 220, 220)
+            pdf.set_line_width(0.2)
+            pdf.line(x + 10, y + row_h, x + col_w - 4, y + row_h)
+
+            pdf.set_font("Helvetica", "", 10)
+
+        i += chunk
+
+        if i < n:
+            pdf.add_page()
+
+    return pdf
 
 
 @app.route("/admin/extract_docx_pdf", methods=["GET", "POST"])
@@ -6749,11 +6946,16 @@ def extract_docx_pdf():
 
     # ── GET: show upload form ──
     if request.method == "GET":
-        return render_template("admin/extract_docx_pdf.html")
+        preset = request.args.get("mode", "questions")
+        if preset not in ("questions", "answers"):
+            preset = "questions"
+        return render_template("admin/extract_docx_pdf.html", preset_mode=preset)
 
     # ── POST: parse uploaded file and render PDF ──
     file = request.files.get("docx_file")
-    mode = request.form.get("mode", "questions")   # "questions" | "answers"
+    mode = request.form.get("mode", "questions")
+    if mode not in ("questions", "answers"):
+        mode = "questions"
 
     if not file or not file.filename.lower().endswith(".docx"):
         flash("Please upload a .docx file.", "danger")
@@ -6776,14 +6978,15 @@ def extract_docx_pdf():
         return redirect(url_for("extract_docx_pdf"))
 
     if not questions_raw:
-        flash("No questions found in that file. "
-              "Check the format — see the notes on this page.", "warning")
+        flash(
+            "No questions found in that file. "
+            "Check the format — see the notes on this page.",
+            "warning",
+        )
         return redirect(url_for("extract_docx_pdf"))
 
     questions = _dicts_to_attr_objs(questions_raw)
-
     subject_name = os.path.splitext(filename)[0].replace("_", " ").strip() or "Untitled"
-
     missing = sum(1 for q in questions if not q.correct_option)
 
     if mode == "answers" and missing == len(questions):
@@ -6794,18 +6997,11 @@ def extract_docx_pdf():
         )
         return redirect(url_for("extract_docx_pdf"))
 
-    html = render_template(
-        "admin/questions_pdf.html",
-        subject=None,                 # template handles None
-        subject_name=subject_name,
-        questions=questions,
-        mode=mode,
-        missing_answers=missing,
-    )
-
     try:
-        pdf_bytes = HTML(string=html, base_url=request.url_root).write_pdf()
+        pdf_bytes = _build_questions_pdf(questions, subject_name, mode, missing)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         flash(f"PDF render failed: {e}", "danger")
         return redirect(url_for("extract_docx_pdf"))
 
@@ -6819,8 +7015,6 @@ def extract_docx_pdf():
         as_attachment=True,
         download_name=fname,
     )
-
-
 
 
 """
