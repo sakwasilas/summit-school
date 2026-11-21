@@ -339,6 +339,13 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
 
             print(f"📊 Table found")
 
+            # FIX: If the previous question already has an answer, we assume the table
+            # is a case study for upcoming questions and detach it from the previous question.
+            if current_question and current_question.get("answer"):
+                save_current_question()
+                current_question = None
+                current_option = None
+
             # If we are currently in the middle of choosing an option, reset it
             # so the table goes to the main question text, not Option D.
             if current_option:
