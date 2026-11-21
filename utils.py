@@ -1,284 +1,3 @@
-# import os
-# import re
-# from docx import Document
-# from docx.oxml.ns import qn
-# from docx.table import Table
-# from docx.text.paragraph import Paragraph
-
-# DEFAULT_IMAGE_DIR = "static/question_images"
-
-
-# def normalize_text(text):
-#     if text is None:
-#         return ""
-#     return text.replace("\xa0", " ").strip()
-
-
-# def extract_table_text(table):
-#     rows = []
-#     for row in table.rows:
-#         cells = [normalize_text(cell.text) for cell in row.cells]
-#         rows.append(" | ".join(cells))
-#     return "\n".join(rows).strip()
-
-
-# def save_image_from_run(run, output_dir, image_counter):
-#     blip_elements = run._element.findall(
-#         './/a:blip',
-#         namespaces={'a': 'http://schemas.openxmlformats.org/drawingml/2006/main'}
-#     )
-
-#     if not blip_elements:
-#         return None
-
-#     r_id = blip_elements[0].get(qn('r:embed'))
-#     if not r_id:
-#         return None
-
-#     image_part = run.part.related_parts[r_id]
-#     image_data = image_part.blob
-
-#     image_filename = f"question_image_{image_counter}.png"
-#     image_path = os.path.join(output_dir, image_filename)
-
-#     with open(image_path, 'wb') as f:
-#         f.write(image_data)
-
-#     return image_filename
-
-
-# def iter_block_items(document):
-#     body = document.element.body
-#     for child in body.iterchildren():
-#         if child.tag.endswith('p'):
-#             yield Paragraph(child, document)
-#         elif child.tag.endswith('tbl'):
-#             yield Table(child, document)
-
-
-# def append_with_newline(existing, new_text):
-#     new_text = normalize_text(new_text)
-#     if not new_text:
-#         return existing
-#     if not existing:
-#         return new_text
-#     return existing + "\n" + new_text
-
-
-# def is_question_start(text):
-#     return bool(re.match(r"^\d+[\.\)]\s*", text))
-
-
-# def is_answer_line(text):
-#     return bool(re.match(r"^(answer|correct answer|ans|answr)\s*:", text, re.IGNORECASE))
-
-
-# def is_instruction_line(text):
-#     lowered = text.lower().strip()
-#     starters = (
-#         "use the following",
-#         "use matrices",
-#         "use the information below",
-#         "use the information to answer",
-#         "refer to the following",
-#         "answer question",
-#         "answer questions",
-#     )
-#     return lowered.startswith(starters)
-
-
-# def parse_answer_letter(text):
-#     match = re.search(
-#         r"^(?:answer|correct answer|ans|answr)\s*:\s*([A-Da-d])\b",
-#         text.strip(),
-#         re.IGNORECASE
-#     )
-#     return match.group(1).lower() if match else ""
-
-
-# def get_marks_from_text(text):
-#     match = re.search(r"\((\d+)\s*(?:mks|marks?)\)", text, re.IGNORECASE)
-#     if match:
-#         return int(match.group(1))
-#     return 1
-
-
-# def finalize_question(question, questions):
-#     if question and normalize_text(question.get("question")):
-#         questions.append(question)
-#         return True
-#     return False
-
-
-# def parse_docx_questions(file_stream, image_output_dir=DEFAULT_IMAGE_DIR):
-#     document = Document(file_stream)
-#     questions = []
-
-#     current_question = None
-#     current_option = None
-#     current_shared_block = ""
-#     image_counter = 0
-#     skipped = 0
-
-#     os.makedirs(image_output_dir, exist_ok=True)
-
-#     blocks = list(iter_block_items(document))
-#     print(f"📄 Found {len(blocks)} total blocks")
-
-#     def close_current_question():
-#         nonlocal current_question, current_option, skipped
-#         if current_question:
-#             saved = finalize_question(current_question, questions)
-#             if not saved:
-#                 skipped += 1
-#         current_question = None
-#         current_option = None
-
-#     for idx, block in enumerate(blocks):
-#         print(f"\nProcessing block {idx}: {type(block).__name__}")
-
-#         if isinstance(block, Paragraph):
-#             text = normalize_text(block.text)
-
-#             # Save images
-#             for run in block.runs:
-#                 image_name = save_image_from_run(run, image_output_dir, image_counter + 1)
-#                 if image_name and current_question:
-#                     image_counter += 1
-#                     current_question["image"] = image_name
-#                     print(f"📸 Saved image: {image_name}")
-
-#             if not text:
-#                 continue
-
-#             print("TEXT:", text)
-
-#             # Start shared instruction block
-#             if is_instruction_line(text):
-#                 close_current_question()
-#                 current_shared_block = text
-#                 current_option = None
-#                 print("📘 Started shared block")
-#                 continue
-
-#             # New question
-#             if is_question_start(text):
-#                 close_current_question()
-
-#                 full_question = text
-#                 if current_shared_block:
-#                     full_question = current_shared_block + "\n\n" + text
-#                     current_shared_block = ""   # clear after first use
-
-#                 current_question = {
-#                     "question": full_question,
-#                     "a": "",
-#                     "b": "",
-#                     "c": "",
-#                     "d": "",
-#                     "answer": "",
-#                     "extra_content": None,
-#                     "image": None,
-#                     "marks": get_marks_from_text(text),
-#                 }
-#                 current_option = None
-#                 print("🆕 New question started")
-#                 continue
-
-#             # Option
-#             option_match = re.match(r"^\(?([A-Da-d])[\.\)]\s*(.*)$", text)
-#             if option_match and current_question:
-#                 label = option_match.group(1).lower()
-#                 current_question[label] = text
-#                 current_option = label
-#                 print(f"🔠 Option {label.upper()}")
-#                 continue
-
-#             # Answer
-#             if is_answer_line(text) and current_question:
-#                 current_question["answer"] = parse_answer_letter(text)
-#                 current_option = None
-#                 print(f"✅ Answer: {current_question['answer'] or '(blank)'}")
-#                 continue
-
-#             # Continuation
-#             if current_question:
-#                 if current_option:
-#                     current_question[current_option] = append_with_newline(
-#                         current_question[current_option], text
-#                     )
-#                     print(f"↪ Continued option {current_option.upper()}")
-#                 else:
-#                     current_question["question"] = append_with_newline(
-#                         current_question["question"], text
-#                     )
-#                     print("↪ Continued current question")
-#             else:
-#                 current_shared_block = append_with_newline(current_shared_block, text)
-#                 print("↪ Added to shared block")
-
-#         elif isinstance(block, Table):
-#             table_text = extract_table_text(block)
-#             if not table_text:
-#                 continue
-
-#             print("📊 Table detected")
-
-#             if current_question:
-#                 if current_option:
-#                     current_question[current_option] = append_with_newline(
-#                         current_question[current_option], table_text
-#                     )
-#                     print(f"↪ Table added to option {current_option.upper()}")
-#                 else:
-#                     current_question["question"] = append_with_newline(
-#                         current_question["question"], table_text
-#                     )
-#                     print("↪ Table added to current question")
-#             else:
-#                 current_shared_block = append_with_newline(current_shared_block, table_text)
-#                 print("↪ Table added to shared block")
-
-#     close_current_question()
-
-#     print(f"\n✅ Parsed {len(questions)} question(s)")
-#     if skipped:
-#         print(f"⚠️ Skipped {skipped} question(s)")
-
-#     for i, q in enumerate(questions, 1):
-#         print(f"\nQuestion {i}")
-#         print(q["question"][:300])
-#         print("A:", q["a"])
-#         print("B:", q["b"])
-#         print("C:", q["c"])
-#         print("D:", q["d"])
-#         print("Answer:", q["answer"] or "(blank)")
-
-#     return questions
-
-
-# def get_quiz_status(user_id):
-#     return "active"
-
-
-# def extract_drive_id(url):
-#     patterns = [
-#         r"https://drive\.google\.com/file/d/([A-Za-z0-9_-]+)",
-#         r"https://drive\.google\.com/open\?id=([A-Za-z0-9_-]+)"
-#     ]
-
-#     for pattern in patterns:
-#         match = re.search(pattern, url)
-#         if match:
-#             return match.group(1)
-
-#     return url
-
-
-# def get_drive_embed_url(drive_url_or_id):
-#     file_id = extract_drive_id(drive_url_or_id)
-#     return f"https://drive.google.com/file/d/{file_id}/preview"
-
 import os
 import re
 from docx import Document
@@ -301,16 +20,17 @@ def normalize_text(text):
 
 
 def extract_table_text(table):
-    """Extract text from a Word table with proper formatting"""
-    rows = []
+    """Extract text from a Word table and convert to HTML table"""
+    html = "<table class='data-table'>"
     for row in table.rows:
-        cells = []
+        html += "<tr>"
         for cell in row.cells:
             # Get text from paragraphs in cell
-            cell_text = "\n".join([normalize_text(p.text) for p in cell.paragraphs if p.text.strip()])
-            cells.append(cell_text)
-        rows.append(" | ".join(cells))
-    return "\n".join(rows).strip()
+            cell_text = "<br>".join([normalize_text(p.text) for p in cell.paragraphs if p.text.strip()])
+            html += f"<td>{cell_text}</td>"
+        html += "</tr>"
+    html += "</table>"
+    return html
 
 
 def save_image_from_run(run, output_dir, image_counter):
@@ -376,17 +96,11 @@ def append_with_newline(existing, new_text):
 def is_question_start(text):
     """Check if text starts a new question - handles numbered questions"""
     text = text.strip()
-    # Match patterns like: 1. 1) 1. 1) 1. 1) 1. 1)
-    # Also handles "16." for double digit numbers
     return bool(re.match(r"^(\d+)[\.\)]\s*", text))
 
 
 def has_word_numbering(paragraph):
-    """
-    NEW: Detect if a paragraph was given an automatic number by MS Word.
-    This catches questions like 23. and 25. which Word auto-numbers
-    without actually writing the number into the paragraph text.
-    """
+    """Detect if a paragraph was given an automatic number by MS Word."""
     try:
         pPr = paragraph._element.pPr
         if pPr is None:
@@ -402,8 +116,6 @@ def has_word_numbering(paragraph):
 def is_option_line(text):
     """Check if text is an option (A, B, C, D)"""
     text = text.strip()
-    # Match patterns like: A. B) C. D)
-    # Handle cases where option is followed by text
     return bool(re.match(r"^([A-Da-d])[\.\)]\s*", text))
 
 
@@ -425,16 +137,15 @@ def extract_answer(text):
 def get_marks_from_text(text):
     """Extract marks from question text"""
     text = text.strip()
-    # Match patterns like: (2 marks), (2mks), (2)
     match = re.search(r"\((\d+)\s*(?:mks|marks?)?\)", text, re.IGNORECASE)
     if match:
         return int(match.group(1))
-    return 1  # Default marks
+    return 1
 
 
-def is_financial_table(table_text):
+def is_financial_table(table_html):
     """Check if table contains financial data"""
-    table_text = table_text.lower()
+    table_text = table_html.lower()
     financial_terms = [
         'shs', 'debit', 'credit', 'balance', 'account', 'amount',
         'revenue', 'expense', 'asset', 'liability', 'equity',
@@ -450,11 +161,10 @@ def is_financial_table(table_text):
 def is_financial_data(text):
     """Check if text contains financial data"""
     text = text.lower().strip()
-    # Check for currency symbols or financial terms
     financial_patterns = [
-        r'(?:shs|kshs|kes)\s*[\d,]+',  # Shs 000
-        r'[\$\€\£\₦\₹]',  # Currency symbols
-        r'\d{1,3}(?:,\d{3})*(?:\.\d{2})?',  # Numbers with commas
+        r'(?:shs|kshs|kes)\s*[\d,]+',
+        r'[\$\€\£\₦\₹]',
+        r'\d{1,3}(?:,\d{3})*(?:\.\d{2})?',
         r'debit|credit|dr|cr',
         r'balance sheet|income statement|trial balance',
         r'profit|loss|revenue|expense|asset|liability|equity',
@@ -465,54 +175,26 @@ def is_financial_data(text):
 
 
 def is_instruction_line(text):
-    """Check if text contains exam instructions - expanded for accounting"""
+    """Check if text contains exam instructions"""
     text = text.lower().strip()
     instruction_keywords = [
-        "use the following",
-        "use matrices",
-        "use the information",
-        "refer to the following",
-        "answer question",
-        "answer questions",
-        "read the following",
-        "study the following",
-        "consider the following",
-        "based on the following",
-        "using the following",
-        "given the following",
-        "the following table",
-        "the following information",
-        "the following data",
-        "the following scenario",
-        "the following passage",
-        "the following text",
-        "the following case",
-        "the following diagram",
-        "the following figure",
-        "the following chart",
-        "the following graph",
-        "the following trial balance",
-        "the following balance sheet",
-        "the following income statement",
-        "the following financial statements",
-        "the following accounts",
-        "the following transactions",
-        "the following ledger",
-        "the following journal",
-        "the following inventory",
-        "the following vehicles",
-        "the following assets",
-        "the following liabilities",
-        "the following statements",
-        "statement of profit or loss",
-        "statement of financial position",
-        "use the following information to answer",
-        "prepare the following",
-        "calculate the following",
-        "compute the following",
-        "determine the following",
-        "analyze the following",
-        "the following additional information",
+        "use the following", "use matrices", "use the information",
+        "refer to the following", "answer question", "answer questions",
+        "read the following", "study the following", "consider the following",
+        "based on the following", "using the following", "given the following",
+        "the following table", "the following information", "the following data",
+        "the following scenario", "the following passage", "the following text",
+        "the following case", "the following diagram", "the following figure",
+        "the following chart", "the following graph", "the following trial balance",
+        "the following balance sheet", "the following income statement",
+        "the following financial statements", "the following accounts",
+        "the following transactions", "the following ledger", "the following journal",
+        "the following inventory", "the following vehicles", "the following assets",
+        "the following liabilities", "the following statements",
+        "statement of profit or loss", "statement of financial position",
+        "use the following information to answer", "prepare the following",
+        "calculate the following", "compute the following", "determine the following",
+        "analyze the following", "the following additional information",
         "the following further information"
     ]
     return any(keyword in text for keyword in instruction_keywords)
@@ -539,18 +221,14 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
 
     os.makedirs(image_output_dir, exist_ok=True)
 
-    # Get all blocks (paragraphs and tables)
     blocks = list(iter_block_items(document))
     print(f"📄 Found {len(blocks)} blocks to process")
 
     def save_current_question():
-        """Save the current question if it's valid"""
         nonlocal current_question, skipped
-        
         if not current_question:
             return
         
-        # Check if question has at least some content
         question_text = normalize_text(current_question.get("question", ""))
         if question_text:
             questions.append(current_question)
@@ -559,7 +237,6 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
             skipped += 1
 
     def clean_shared_instructions():
-        """Convert shared instructions to a single string"""
         nonlocal shared_instructions
         if shared_instructions:
             result = "\n\n".join(shared_instructions)
@@ -567,7 +244,6 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
             return result
         return ""
 
-    # Process each block
     for idx, block in enumerate(blocks):
         if isinstance(block, Paragraph):
             text = normalize_text(block.text)
@@ -576,7 +252,6 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
 
             print(f"\n📝 Block {idx}: {text[:100]}...")
 
-            # Check for images in the paragraph
             for run in block.runs:
                 if current_question and not current_question.get("image"):
                     image_name = save_image_from_run(run, image_output_dir, image_counter + 1)
@@ -585,7 +260,6 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
                         current_question["image"] = image_name
                         print(f"📸 Saved image: {image_name}")
 
-            # Check if this is an instruction line
             if not current_question and is_instruction_line(text):
                 shared_instructions.append(text)
                 in_instruction_block = True
@@ -593,26 +267,19 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
                 print(f"📘 Added to shared instructions ({instruction_counter}): {text[:50]}...")
                 continue
 
-            # ── NEW: check if this paragraph is an auto-numbered list item ──
             is_auto_numbered = has_word_numbering(block) and not is_option_line(text)
             starts_new_question = is_question_start(text) or is_auto_numbered
 
-            # Check if this starts a new question
             if starts_new_question:
-                # Save previous question
                 save_current_question()
 
-                # If Word auto-numbered it (but no literal number in text),
-                # we prepend a synthetic number so it's clearly a new question.
                 display_text = text
                 if is_auto_numbered and not is_question_start(text):
                     display_text = f"{len(questions) + 1}. {text}"
                     print(f"🔢 Auto-numbered by Word → injecting '{len(questions) + 1}.'")
 
-                # Get shared instructions if any
                 instructions = clean_shared_instructions()
                 
-                # Create new question with shared instructions if any
                 full_text = display_text
                 if instructions:
                     full_text = instructions + "\n\n" + display_text
@@ -633,7 +300,6 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
                 print(f"🆕 New question started: {display_text[:50]}...")
                 continue
 
-            # Check if this is an option
             option_match = re.match(r"^([A-Da-d])[\.\)]\s*(.*)", text)
             if option_match and current_question:
                 label = option_match.group(1).lower()
@@ -643,72 +309,56 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
                 print(f"🔠 Option {label.upper()}: {option_text[:50]}...")
                 continue
 
-            # Check if this is an answer line
             if is_answer_line(text) and current_question:
                 current_question["answer"] = extract_answer(text)
                 print(f"✅ Answer: {current_question['answer'] or 'Not found'}")
                 continue
 
-            # If we have a current question, append text to it
             if current_question:
                 if current_option:
-                    # Append to current option
                     current_question[current_option] = append_with_newline(
                         current_question[current_option], text
                     )
                     print(f"↪ Added to option {current_option.upper()}")
                 else:
-                    # Check if this is financial data
                     if is_financial_data(text):
                         text = "📊 " + text
                     
-                    # Append to question text
                     current_question["question"] = append_with_newline(
                         current_question["question"], text
                     )
                     print(f"↪ Added to question")
             else:
-                # No current question, add to shared instructions
                 shared_instructions.append(text)
                 print(f"↪ Added to shared instructions")
 
         elif isinstance(block, Table):
-            table_text = extract_table_text(block)
-            if not table_text:
+            table_html = extract_table_text(block)
+            if not table_html:
                 continue
 
-            print(f"📊 Table found: {table_text[:100]}...")
+            print(f"📊 Table found")
 
-            # Format financial tables nicely
-            if is_financial_table(table_text):
-                table_text = "┌─────────────────────────────────────┐\n" + \
-                             "📊 FINANCIAL DATA:\n" + \
-                             table_text + \
-                             "\n└─────────────────────────────────────┘"
+            # If we are currently in the middle of choosing an option, reset it
+            # so the table goes to the main question text, not Option D.
+            if current_option:
+                current_option = None
 
             if current_question:
-                if current_option:
-                    current_question[current_option] = append_with_newline(
-                        current_question[current_option], table_text
-                    )
-                    print(f"↪ Table added to option {current_option.upper()}")
-                else:
-                    current_question["question"] = append_with_newline(
-                        current_question["question"], table_text
-                    )
-                    print(f"↪ Table added to question")
+                current_question["question"] = append_with_newline(
+                    current_question["question"], table_html
+                )
+                print(f"↪ Table added to question")
             else:
-                shared_instructions.append(table_text)
+                shared_instructions.append(table_html)
                 print(f"↪ Table added to shared instructions")
 
-    # Save the last question
     save_current_question()
 
     print(f"\n✅ Parsed {len(questions)} questions successfully")
     if skipped:
         print(f"⚠️ Skipped {skipped} invalid questions")
 
-    # Debug output for first few questions
     for i, q in enumerate(questions[:3], 1):
         print(f"\n📋 Question {i}:")
         print(f"   Text: {q['question'][:100]}...")
@@ -728,12 +378,10 @@ def parse_docx_questions(file_path, image_output_dir=DEFAULT_IMAGE_DIR):
 
 
 def get_quiz_status(user_id):
-    """Get the status of a quiz for a user"""
     return "active"
 
 
 def extract_drive_id(url):
-    """Extract Google Drive file ID from URL"""
     patterns = [
         r"https://drive\.google\.com/file/d/([A-Za-z0-9_-]+)",
         r"https://drive\.google\.com/open\?id=([A-Za-z0-9_-]+)",
@@ -749,6 +397,5 @@ def extract_drive_id(url):
 
 
 def get_drive_embed_url(drive_url_or_id):
-    """Convert Google Drive URL to embed URL"""
     file_id = extract_drive_id(drive_url_or_id)
     return f"https://drive.google.com/file/d/{file_id}/preview"
