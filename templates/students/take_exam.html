@@ -243,22 +243,7 @@
       font-weight: 700;
     }
 
-    /* ===== CASE STUDY / DATA BLOCK STYLING ===== */
-    .case-study-block {
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
-      border-left: 4px solid #3b82f6;
-      border-radius: 8px;
-      padding: 18px;
-      margin-bottom: 24px;
-      font-size: 0.92em;
-      line-height: 1.6;
-      color: #334155;
-      font-family: 'Courier New', Courier, monospace;
-      white-space: pre-wrap;
-      overflow-x: auto;
-    }
-
+    /* ===== QUESTION TEXT & DATA TABLES ===== */
     .question-text {
       white-space: pre-wrap;
       line-height: 1.8;
@@ -266,6 +251,35 @@
       font-size: 1.02em;
       color: #1e293b;
       font-weight: 500;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0;
+      font-size: 0.95em;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+      white-space: normal;
+    }
+
+    .data-table td {
+      padding: 12px 16px;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+      vertical-align: top;
+    }
+
+    .data-table tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    .data-table tr:first-child td {
+      font-weight: 700;
+      background-color: #eef2f7;
+      color: #1e3a8a;
     }
 
     /* ===== OPTIONS ===== */
@@ -864,9 +878,9 @@
         background: white;
       }
       
-      .case-study-block {
+      .data-table {
         border: 1px solid #000;
-        background: transparent;
+        box-shadow: none;
       }
     }
   </style>
@@ -974,14 +988,7 @@
                 <span class="question-status" id="status-{{ loop.index0 }}">⏳ Not Answered</span>
               </div>
 
-              <!-- Detect if the parser dumped a massive case study block into the question text -->
-              {% if 'Use the following information' in question.question_text or 'Opening' in question.question_text or 'Particulars' in question.question_text or 'Additional information' in question.question_text %}
-                <!-- We split the text at the first question mark or end of instructions if possible. 
-                     Alternatively, just render the whole thing in a nice block -->
-                <div class="case-study-block">{{ question.question_text }}</div>
-              {% else %}
-                <div class="question-text">{{ question.question_text }}</div>
-              {% endif %}
+              <div class="question-text">{{ question.question_text | safe }}</div>
 
               {% if question.image %}
                 <img src="{{ url_for('static', filename='question_images/' ~ question.image) }}" 
