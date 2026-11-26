@@ -743,6 +743,28 @@ def _translate_db_error(exc):
     return "Could not save the record. Please check the form and try again."
 
 
+
+def _validate_subject_semester(db, subject, semester_id, course_id):
+    """
+    Ensure the semester belongs to the same course as the subject.
+    Returns an error string, or None if valid.
+    """
+    if semester_id is None:
+        return None  # allowed: subject intentionally unmapped
+
+    sem = db.query(Semester).filter_by(id=semester_id).first()
+    if not sem:
+        return f"Semester #{semester_id} does not exist."
+
+    if sem.course_id != course_id:
+        return (
+            f"Semester '{sem.name}' does not belong to the selected course. "
+            f"Pick a semester from the same course."
+        )
+
+    return None
+
+
 """
 ============================================================
 PUBLIC ROUTES
@@ -988,9 +1010,10 @@ def manage_departments():
 
     db = SessionLocal()
     try:
+        # ── POST: add a new department ──
         if request.method == "POST":
-            name = request.form.get("name", "").strip()
-            code = request.form.get("code", "").strip() or None
+            name = (request.form.get("name") or "").strip()
+            code = (request.form.get("code") or "").strip() or None
 
             if not name:
                 flash("Department name is required.", "danger")
@@ -1005,16 +1028,52 @@ def manage_departments():
             flash(f"✅ Department '{name}' added.", "success")
             return redirect(url_for("manage_departments"))
 
+        # ── GET: build dept_stats with full counts ──
         departments = db.query(Department).order_by(Department.name.asc()).all()
         dept_stats = []
+
         for d in departments:
+            courses = db.query(Course).filter_by(department_id=d.id).all()
+            course_ids = [c.id for c in courses]
+
+            students_count = 0
+            subjects_count = 0
+            broken_subjects = 0
+
+            if course_ids:
+                students_count = (
+                    db.query(StudentProfile)
+                    .filter(StudentProfile.course_id.in_(course_ids))
+                    .count()
+                )
+
+                subjects = (
+                    subject_query(db)
+                    .filter(Subject.course_id.in_(course_ids))
+                    .all()
+                )
+                subjects_count = len(subjects)
+
+                # Count subjects whose semester is missing OR belongs to a different course
+                for s in subjects:
+                    if s.semester_id is None:
+                        broken_subjects += 1
+                    elif s.semester is None or s.semester.course_id != s.course_id:
+                        broken_subjects += 1
+
             dept_stats.append({
                 "department": d,
-                "courses": db.query(Course).filter_by(department_id=d.id).count(),
+                "courses": len(courses),
                 "hods": db.query(HOD).filter_by(department_id=d.id).count(),
+                "subjects": subjects_count,
+                "students": students_count,
+                "broken_subjects": broken_subjects,
             })
 
-        return render_template("admin/manage_departments.html", dept_stats=dept_stats)
+        return render_template(
+            "admin/manage_departments.html",
+            dept_stats=dept_stats,
+        )
     finally:
         db.close()
 
@@ -1046,6 +1105,131 @@ def delete_department(dept_id):
         db.close()
 
     return redirect(url_for("manage_departments"))
+
+@app.route("/admin/departments/<int:dept_id>/subjects")
+def admin_department_subjects(dept_id):
+    """Audit view: every subject in a department grouped by course → semester,
+    with red flags for any broken mappings."""
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    db = SessionLocal()
+    try:
+        department = db.query(Department).filter_by(id=dept_id).first()
+        if not department:
+            flash("Department not found.", "danger")
+            return redirect(url_for("manage_departments"))
+
+        courses = (
+            db.query(Course)
+            .filter_by(department_id=dept_id)
+            .order_by(Course.name.asc())
+            .all()
+        )
+        course_ids = [c.id for c in courses]
+
+        subjects = (
+            subject_query(db)
+            .filter(Subject.course_id.in_(course_ids))
+            .order_by(Course.name.asc(), Semester.name.asc(), Subject.name.asc())
+            .all()
+        ) if course_ids else []
+
+        issues = []
+        for s in subjects:
+            problems = []
+            course = s.course
+            sem = s.semester
+
+            if course is None:
+                problems.append("Course missing")
+            elif course.department_id != dept_id:
+                problems.append(f"Course '{course.name}' is not in this department")
+
+            if s.semester_id is None:
+                problems.append("No semester assigned")
+            elif sem is None:
+                problems.append(f"Semester #{s.semester_id} no longer exists")
+            elif course and sem.course_id != course.id:
+                problems.append(f"Semester '{sem.name}' belongs to a different course")
+
+            if s.module_id:
+                mod = s.module_obj
+                if mod is None:
+                    problems.append(f"Module #{s.module_id} no longer exists")
+                elif course and mod.course_id != course.id:
+                    problems.append(f"Module '{mod.name}' belongs to a different course")
+
+            if problems:
+                issues.append({"subject": s, "problems": problems})
+
+        grouped = {}
+        for s in subjects:
+            cname = s.course.name if s.course else "— No course —"
+            sname = s.semester.name if s.semester else "— No semester —"
+            grouped.setdefault(cname, {}).setdefault(sname, []).append(s)
+
+        issue_subject_ids = {i["subject"].id for i in issues}
+
+        return render_template(
+            "admin/department_subjects.html",
+            department=department,
+            courses=courses,
+            subjects=subjects,
+            issues=issues,
+            issue_subject_ids=issue_subject_ids,
+            grouped=grouped,
+            total_subjects=len(subjects),
+            total_issues=len(issues),
+            username=session.get("username"),
+        )
+    finally:
+        db.close()
+
+
+@app.route("/admin/departments/<int:dept_id>/fix-semesters", methods=["POST"])
+def fix_department_subjects(dept_id):
+    """Bulk auto-map any unmapped subject to its course's current semester."""
+    if session.get("role") != "admin":
+        return redirect(url_for("login"))
+
+    db = SessionLocal()
+    try:
+        courses = db.query(Course).filter_by(department_id=dept_id).all()
+        fixed = 0
+        skipped = 0
+
+        for c in courses:
+            cur = db.query(Semester).filter_by(
+                course_id=c.id, is_current=True
+            ).first()
+            if not cur:
+                skipped += 1
+                continue
+
+            unmapped = db.query(Subject).filter_by(
+                course_id=c.id, semester_id=None
+            ).all()
+            for s in unmapped:
+                s.semester_id = cur.id
+                fixed += 1
+
+        db.commit()
+
+        if fixed:
+            flash(f"✅ Auto-mapped {fixed} subject(s) to their course's current semester.", "success")
+        if skipped:
+            flash(f"⚠️ {skipped} course(s) have no current semester set.", "warning")
+        if not fixed and not skipped:
+            flash("Nothing to fix — all subjects already have a semester.", "info")
+
+    except Exception as e:
+        db.rollback()
+        flash(f"❌ Error fixing subjects: {e}", "danger")
+    finally:
+        db.close()
+
+    return redirect(url_for("admin_department_subjects", dept_id=dept_id))
 
 
 @app.route("/admin/hods", methods=["GET", "POST"])
@@ -1400,7 +1584,6 @@ def admin_course_modules(course_id):
     finally:
         db.close()
 
-
 @app.route("/add_subject", methods=["GET", "POST"])
 def add_subject():
     blocked = require_admin_or_hod()
@@ -1409,74 +1592,121 @@ def add_subject():
 
     db = SessionLocal()
     try:
+        # ── HOD scoping: which course IDs is this user allowed to touch? ──
         if is_hod():
             hod_course_ids = [
-                c.id for c in db.query(Course).filter_by(department_id=session["department_id"]).all()
+                c.id for c in db.query(Course)
+                .filter_by(department_id=session["department_id"]).all()
             ]
         else:
             hod_course_ids = None
 
         if request.method == "POST":
-            subject_name = request.form["subject_name"].strip()
-            course_id = int(request.form["course_id"])
-            semester_id = request.form.get("semester_id") or None
+            subject_name = (request.form.get("subject_name") or "").strip()
+            course_id = request.form.get("course_id", type=int)
+            semester_id = request.form.get("semester_id", type=int) or None
             module_id = request.form.get("module_id", type=int)
 
-            if semester_id:
-                semester_id = int(semester_id)
+            # ── 1. Basic presence checks ──
+            if not subject_name:
+                flash("Subject name is required.", "danger")
+                return redirect(url_for("add_subject"))
 
+            if not course_id:
+                flash("Please choose a course.", "danger")
+                return redirect(url_for("add_subject"))
+
+            # ── 2. HOD department boundary ──
             if is_hod() and course_id not in hod_course_ids:
                 flash("That course is not in your department.", "danger")
                 return redirect(url_for("add_subject"))
 
-            q = db.query(Subject).filter_by(name=subject_name, course_id=course_id)
-            if semester_id:
-                q = q.filter_by(semester_id=semester_id)
-            else:
-                q = q.filter(Subject.semester_id.is_(None))
-            if q.first():
-                flash("Subject already exists for this course/semester!", "danger")
+            # ── 3. Verify the course actually exists ──
+            course = db.query(Course).filter_by(id=course_id).first()
+            if not course:
+                flash(f"Course #{course_id} does not exist.", "danger")
                 return redirect(url_for("add_subject"))
 
-            if semester_id:
-                sem = db.query(Semester).filter_by(id=semester_id).first()
-                if not sem or sem.course_id != course_id:
-                    flash("Selected semester does not belong to that course.", "danger")
-                    return redirect(url_for("add_subject"))
+            # ── 4. Validate semester ↔ course mapping ──
+            err = _validate_subject_semester(db, None, semester_id, course_id)
+            if err:
+                flash(err, "danger")
+                return redirect(url_for("add_subject"))
 
+            # ── 5. Validate module ↔ course mapping ──
             module_obj = None
             if module_id:
-                module_obj = db.query(Module).filter_by(id=module_id, course_id=course_id).first()
+                module_obj = db.query(Module).filter_by(
+                    id=module_id, course_id=course_id
+                ).first()
+                if not module_obj:
+                    flash("Selected module does not belong to the chosen course.", "danger")
+                    return redirect(url_for("add_subject"))
 
+            # ── 6. Duplicate guard (same name + same course + same semester) ──
+            dup_q = db.query(Subject).filter_by(
+                name=subject_name, course_id=course_id
+            )
+            if semester_id:
+                dup_q = dup_q.filter_by(semester_id=semester_id)
+            else:
+                dup_q = dup_q.filter(Subject.semester_id.is_(None))
+
+            if dup_q.first():
+                flash(
+                    f"'{subject_name}' already exists for this course "
+                    f"{'and semester' if semester_id else '(with no semester)'}.",
+                    "danger",
+                )
+                return redirect(url_for("add_subject"))
+
+            # ── 7. Persist ──
             db.add(Subject(
-                name=subject_name, course_id=course_id,
+                name=subject_name,
+                course_id=course_id,
                 semester_id=semester_id,
                 module=module_obj.name if module_obj else None,
                 module_id=module_obj.id if module_obj else None,
             ))
             db.commit()
-            flash("Subject added successfully!", "success")
+
+            flash(f"✅ Subject '{subject_name}' added successfully!", "success")
             return redirect(url_for("manage_courses"))
 
+        # ── GET branch ──
         if is_hod():
-            courses = db.query(Course).filter_by(department_id=session["department_id"]).order_by(Course.name.asc()).all()
+            courses = (
+                db.query(Course)
+                .filter_by(department_id=session["department_id"])
+                .order_by(Course.name.asc())
+                .all()
+            )
             semesters = (
-                semester_query(db).filter(Semester.course_id.in_(hod_course_ids))
-                .order_by(Semester.created_at.desc()).all()
+                semester_query(db)
+                .filter(Semester.course_id.in_(hod_course_ids))
+                .order_by(Semester.created_at.desc())
+                .all()
                 if hod_course_ids else []
             )
         else:
             courses = db.query(Course).order_by(Course.name.asc()).all()
             semesters = semester_query(db).order_by(Semester.created_at.desc()).all()
 
-        modules = db.query(Module).order_by(Module.course_id.asc(), Module.order.asc()).all()
+        modules = (
+            db.query(Module)
+            .order_by(Module.course_id.asc(), Module.order.asc())
+            .all()
+        )
 
         return render_template(
             "admin/add_subject.html",
-            courses=courses, semesters=semesters, modules=modules,
+            courses=courses,
+            semesters=semesters,
+            modules=modules,
         )
     finally:
         db.close()
+
 
 
 @app.route("/edit_subject/<int:subject_id>", methods=["GET", "POST"])

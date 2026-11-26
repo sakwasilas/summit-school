@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <style>
         body { background: #f0f2f5; font-family: 'Segoe UI', sans-serif; padding: 28px 32px; color: #0f1724; }
-        .wrap { max-width: 1040px; margin: 0 auto; }
+        .wrap { max-width: 1200px; margin: 0 auto; }
         .back-link { color: #4a5568; text-decoration: none; font-size: 13px; }
         .back-link:hover { text-decoration: underline; }
         .page-title { display: flex; align-items: center; gap: 14px; margin: 12px 0 22px; }
@@ -29,14 +29,41 @@
         .btn-primary:hover { background: #16a085; border-color: #16a085; }
 
         table { width: 100%; border-collapse: collapse; }
-        thead th { background: #1a2332; color: white; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; padding: 14px 16px; text-align: left; }
+        thead th {
+            background: #1a2332; color: white; font-size: 11px;
+            text-transform: uppercase; letter-spacing: 0.6px;
+            padding: 14px 16px; text-align: left;
+        }
         tbody td { padding: 14px 16px; border-bottom: 1px solid #eef2f5; font-size: 13px; vertical-align: middle; }
         tbody tr:last-child td { border-bottom: none; }
         tbody tr:hover { background: #f9fbfd; }
-        .dept-code { font-family: 'Courier New', monospace; background: #eef2f7; color: #5a7fbf; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 600; }
-        .stat-chip { display: inline-block; background: #f0f4f8; color: #4a5568; font-size: 11px; padding: 3px 9px; border-radius: 10px; font-weight: 600; margin-right: 6px; }
-        .btn-del { background: #f8d7da; color: #721c24; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .dept-code {
+            font-family: 'Courier New', monospace; background: #eef2f7;
+            color: #5a7fbf; padding: 2px 8px; border-radius: 5px;
+            font-size: 11px; font-weight: 600;
+        }
+        .stat-chip {
+            display: inline-block; background: #f0f4f8; color: #4a5568;
+            font-size: 11px; padding: 3px 9px; border-radius: 10px;
+            font-weight: 600; margin-right: 6px;
+        }
+        .stat-chip.warn { background: #f8d7da; color: #721c24; }
+        .stat-chip.ok   { background: #d4edda; color: #155724; }
+
+        .btn-del {
+            background: #f8d7da; color: #721c24; border: none;
+            padding: 6px 12px; border-radius: 8px; font-size: 12px;
+            font-weight: 600; cursor: pointer;
+        }
         .btn-del:hover { background: #f5c6cb; }
+
+        .btn-view-subjects {
+            background: #e7f6f3; color: #0f766e; border: 1px solid #1abc9c;
+            padding: 6px 12px; border-radius: 8px; font-size: 12px;
+            font-weight: 600; text-decoration: none; display: inline-block;
+            margin-right: 4px;
+        }
+        .btn-view-subjects:hover { background: #1abc9c; color: white; }
     </style>
 </head>
 <body>
@@ -80,46 +107,73 @@
 
     <!-- List -->
     <div class="card-box p-0">
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 60px;">#</th>
-                    <th>Department</th>
-                    <th style="width: 220px;">Contents</th>
-                    <th style="width: 140px; text-align: right;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in dept_stats %}
-                <tr>
-                    <td class="text-muted">{{ loop.index }}</td>
-                    <td>
-                        <strong>{{ item.department.name }}</strong>
-                        {% if item.department.code %}
-                            <span class="dept-code ms-2">{{ item.department.code }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="stat-chip">{{ item.courses }} course{{ 's' if item.courses != 1 else '' }}</span>
-                        <span class="stat-chip">{{ item.hods }} HOD{{ 's' if item.hods != 1 else '' }}</span>
-                    </td>
-                    <td style="text-align: right;">
-                        <form method="POST" action="{{ url_for('delete_department', dept_id=item.department.id) }}"
-                              onsubmit="return confirm('Delete this department?');" style="display:inline;">
-                            <button class="btn-del"><i class="bi bi-trash"></i> Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if not dept_stats %}
-                <tr>
-                    <td colspan="4" class="text-center text-muted py-5">
-                        No departments yet. Add one above.
-                    </td>
-                </tr>
-                {% endif %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 55px;">#</th>
+                        <th>Department</th>
+                        <th style="width: 320px;">Contents</th>
+                        <th style="width: 200px; text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in dept_stats %}
+                    <tr>
+                        <td class="text-muted">{{ loop.index }}</td>
+                        <td>
+                            <strong>{{ item.department.name }}</strong>
+                            {% if item.department.code %}
+                                <span class="dept-code ms-2">{{ item.department.code }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="stat-chip">
+                                {{ item.courses }} course{{ 's' if item.courses != 1 else '' }}
+                            </span>
+                            <span class="stat-chip">
+                                {{ item.subjects }} subject{{ 's' if item.subjects != 1 else '' }}
+                            </span>
+                            {% if item.broken_subjects %}
+                                <span class="stat-chip warn"
+                                      title="{{ item.broken_subjects }} subject(s) have broken semester mapping">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    {{ item.broken_subjects }} broken
+                                </span>
+                            {% endif %}
+                            <span class="stat-chip">
+                                {{ item.students }} student{{ 's' if item.students != 1 else '' }}
+                            </span>
+                            <span class="stat-chip">
+                                {{ item.hods }} HOD{{ 's' if item.hods != 1 else '' }}
+                            </span>
+                        </td>
+                        <td style="text-align: right;">
+                            <a href="{{ url_for('admin_department_subjects', dept_id=item.department.id) }}"
+                               class="btn-view-subjects">
+                                <i class="bi bi-journal-bookmark"></i> View Subjects
+                            </a>
+                            <form method="POST"
+                                  action="{{ url_for('delete_department', dept_id=item.department.id) }}"
+                                  onsubmit="return confirm('Delete this department?');"
+                                  style="display:inline;">
+                                <button class="btn-del">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not dept_stats %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-5">
+                            No departments yet. Add one above.
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
 </div>
