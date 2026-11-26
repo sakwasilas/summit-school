@@ -1128,13 +1128,19 @@ def admin_department_subjects(dept_id):
         )
         course_ids = [c.id for c in courses]
 
+        # ── ORDER BY uses only columns on `subjects` (no alias conflict) ──
         subjects = (
             subject_query(db)
             .filter(Subject.course_id.in_(course_ids))
-            .order_by(Course.name.asc(), Semester.name.asc(), Subject.name.asc())
+            .order_by(
+                Subject.course_id.asc(),
+                Subject.semester_id.asc(),
+                Subject.name.asc(),
+            )
             .all()
         ) if course_ids else []
 
+        # ── Validate each subject ──
         issues = []
         for s in subjects:
             problems = []
@@ -1163,11 +1169,22 @@ def admin_department_subjects(dept_id):
             if problems:
                 issues.append({"subject": s, "problems": problems})
 
+        # ── Group: course → semester → [subjects] ──
         grouped = {}
         for s in subjects:
             cname = s.course.name if s.course else "— No course —"
             sname = s.semester.name if s.semester else "— No semester —"
             grouped.setdefault(cname, {}).setdefault(sname, []).append(s)
+
+        # ── Alphabetical sort (Python-side) ──
+        grouped = dict(sorted(grouped.items(), key=lambda kv: kv[0].lower()))
+        for cname in grouped:
+            grouped[cname] = dict(
+                sorted(grouped[cname].items(), key=lambda kv: kv[0].lower())
+            )
+            # Sort subjects by name inside each semester
+            for sname in grouped[cname]:
+                grouped[cname][sname].sort(key=lambda s: (s.name or "").lower())
 
         issue_subject_ids = {i["subject"].id for i in issues}
 
@@ -1185,7 +1202,6 @@ def admin_department_subjects(dept_id):
         )
     finally:
         db.close()
-
 
 @app.route("/admin/departments/<int:dept_id>/fix-semesters", methods=["POST"])
 def fix_department_subjects(dept_id):
